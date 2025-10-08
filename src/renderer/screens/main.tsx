@@ -1,42 +1,15 @@
-import { Terminal } from 'lucide-react'
-import { useEffect } from 'react'
-
-import {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-} from 'renderer/components/ui/alert'
 import { InfiniteCanvas } from 'renderer/components/canvas/infinite-canvas'
-
-// The "App" comes from the context bridge in preload/index.ts
-const { App } = window
+import { MenuBar } from 'renderer/components/layout/menu-bar'
 
 export function MainScreen() {
-  useEffect(() => {
-    // check the console on dev tools
-    App.sayHelloFromBridge()
-  }, [])
-
-  const userName = App.username || 'there'
-
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-black p-8 gap-8">
-      <Alert className="bg-transparent border-transparent text-accent w-fit">
-        <AlertTitle className="text-4xl text-teal-400">
-          Hi, {userName}!
-        </AlertTitle>
+    <div className="h-screen w-screen flex flex-col bg-[#1e1e1e] overflow-hidden">
+      {/* Top Menu Bar */}
+      <MenuBar />
 
-        <AlertDescription className="flex items-center gap-2 text-lg">
-          <Terminal className="size-6 text-fuchsia-300" />
-
-          <span className="text-gray-400">
-            Infinite canvas with pan & zoom
-          </span>
-        </AlertDescription>
-      </Alert>
-
-      <div className="w-full max-w-6xl">
-        <InfiniteCanvas width={1200} height={700}>
+      {/* Main Canvas Area */}
+      <div className="flex-1 relative">
+        <InfiniteCanvas>
           {/* Demo content - some circles in world space */}
           <circle cx={0} cy={0} r={50} fill="#14b8a6" opacity={0.8} />
           <circle cx={200} cy={0} r={40} fill="#ec4899" opacity={0.8} />
@@ -50,6 +23,6 @@ export function MainScreen() {
           <line x1={0} y1={-20} x2={0} y2={20} stroke="#fff" strokeWidth={2} />
         </InfiniteCanvas>
       </div>
-    </main>
+    </div>
   )
 }

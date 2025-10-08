@@ -3,8 +3,6 @@ import type { Viewport, Point } from 'lib/types/canvas'
 import { CanvasUtils } from 'lib/utils/canvas'
 
 interface InfiniteCanvasProps {
-  width?: number
-  height?: number
   initialViewport?: Viewport
   minZoom?: number
   maxZoom?: number
@@ -12,8 +10,6 @@ interface InfiniteCanvasProps {
 }
 
 export function InfiniteCanvas({
-  width = 800,
-  height = 600,
   initialViewport = { x: 0, y: 0, zoom: 1 },
   minZoom = 0.1,
   maxZoom = 5,
@@ -22,9 +18,25 @@ export function InfiniteCanvas({
   const [viewport, setViewport] = useState<Viewport>(initialViewport)
   const [isPanning, setIsPanning] = useState(false)
   const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 })
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
   
   const containerRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
+
+  // Update dimensions when container size changes
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        setDimensions({ width: rect.width, height: rect.height })
+      }
+    }
+
+    updateDimensions()
+    window.addEventListener('resize', updateDimensions)
+    
+    return () => window.removeEventListener('resize', updateDimensions)
+  }, [])
 
   // Handle mouse wheel for zooming
   const handleWheel = useCallback(
@@ -42,7 +54,7 @@ export function InfiniteCanvas({
       const worldPoint = CanvasUtils.screenToWorld(
         { x: mouseX, y: mouseY },
         viewport,
-        { width, height }
+        dimensions
       )
 
       // Calculate new zoom
@@ -55,9 +67,9 @@ export function InfiniteCanvas({
 
       // Calculate new viewport position to keep mouse point fixed
       const newViewportX =
-        worldPoint.x - (mouseX - width / 2) / newZoom
+        worldPoint.x - (mouseX - dimensions.width / 2) / newZoom
       const newViewportY =
-        worldPoint.y - (mouseY - height / 2) / newZoom
+        worldPoint.y - (mouseY - dimensions.height / 2) / newZoom
 
       setViewport({
         x: newViewportX,
@@ -65,7 +77,7 @@ export function InfiniteCanvas({
         zoom: newZoom,
       })
     },
-    [viewport, width, height, minZoom, maxZoom]
+    [viewport, dimensions, minZoom, maxZoom]
   )
 
   // Handle mouse down for panning
@@ -137,23 +149,22 @@ export function InfiniteCanvas({
   }, [isPanning, handleMouseMove, handleMouseUp])
 
   // Calculate SVG viewBox for viewport transformation
-  const viewBox = `${viewport.x - width / (2 * viewport.zoom)} ${
-    viewport.y - height / (2 * viewport.zoom)
-  } ${width / viewport.zoom} ${height / viewport.zoom}`
+  const viewBox = `${viewport.x - dimensions.width / (2 * viewport.zoom)} ${
+    viewport.y - dimensions.height / (2 * viewport.zoom)
+  } ${dimensions.width / viewport.zoom} ${dimensions.height / viewport.zoom}`
 
   return (
     <div
       ref={containerRef}
-      className="relative overflow-hidden bg-[#0a0a0a] rounded-lg cursor-grab select-none active:cursor-grabbing"
-      style={{ width, height }}
+      className="absolute inset-0 overflow-hidden bg-[#0a0a0a] cursor-grab select-none active:cursor-grabbing"
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
     >
       <svg
         ref={svgRef}
         className="block w-full h-full"
-        width={width}
-        height={height}
+        width={dimensions.width}
+        height={dimensions.height}
         viewBox={viewBox}
       >
         {/* Grid pattern for visual reference */}
@@ -175,10 +186,10 @@ export function InfiniteCanvas({
         
         {/* Background grid */}
         <rect
-          x={viewport.x - width / viewport.zoom}
-          y={viewport.y - height / viewport.zoom}
-          width={width * 2 / viewport.zoom}
-          height={height * 2 / viewport.zoom}
+          x={viewport.x - dimensions.width / viewport.zoom}
+          y={viewport.y - dimensions.height / viewport.zoom}
+          width={dimensions.width * 2 / viewport.zoom}
+          height={dimensions.height * 2 / viewport.zoom}
           fill="url(#grid)"
         />
 

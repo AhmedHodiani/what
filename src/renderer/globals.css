@@ -1,4 +1,15 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+/* Draggable title bar regions */
+.app-drag-region {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
 
 @plugin 'tailwindcss-animate';
 
