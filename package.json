@@ -31,6 +31,9 @@
     "lint:fix": "biome check --write --no-errors-on-unmatched --assist-enabled=true"
   },
   "dependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "adm-zip": "^0.5.16",
+    "better-sqlite3": "^12.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "electron-router-dom": "^2.1.0",

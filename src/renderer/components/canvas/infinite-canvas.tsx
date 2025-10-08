@@ -38,13 +38,15 @@ export function InfiniteCanvas({
     return () => window.removeEventListener('resize', updateDimensions)
   }, [])
 
-  // Handle mouse wheel for zooming
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
+  // Handle mouse wheel for zooming (with non-passive listener)
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const handleWheel = (e: WheelEvent) => {
       e.preventDefault()
 
-      const rect = containerRef.current?.getBoundingClientRect()
-      if (!rect) return
+      const rect = container.getBoundingClientRect()
 
       // Mouse position relative to canvas
       const mouseX = e.clientX - rect.left
@@ -76,9 +78,15 @@ export function InfiniteCanvas({
         y: newViewportY,
         zoom: newZoom,
       })
-    },
-    [viewport, dimensions, minZoom, maxZoom]
-  )
+    }
+
+    // Add wheel listener with passive: false to allow preventDefault
+    container.addEventListener('wheel', handleWheel, { passive: false })
+
+    return () => {
+      container.removeEventListener('wheel', handleWheel)
+    }
+  }, [viewport, dimensions, minZoom, maxZoom])
 
   // Handle mouse down for panning
   const handleMouseDown = useCallback(
@@ -157,7 +165,6 @@ export function InfiniteCanvas({
     <div
       ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-[#0a0a0a] cursor-grab select-none active:cursor-grabbing"
-      onWheel={handleWheel}
       onMouseDown={handleMouseDown}
     >
       <svg

@@ -22,6 +22,21 @@ const API = {
       })
     },
   },
+  
+  // File operations
+  file: {
+    new: () => ipcRenderer.invoke('file-new'),
+    open: () => ipcRenderer.invoke('file-open'),
+    save: () => ipcRenderer.invoke('file-save'),
+    saveAs: () => ipcRenderer.invoke('file-save-as'),
+    close: () => ipcRenderer.invoke('file-close'),
+    getCurrentFile: () => ipcRenderer.invoke('file-get-current'),
+    onFileOpened: (callback: (file: any) => void) => {
+      ipcRenderer.on('file-opened', (_event, file) => {
+        callback(file)
+      })
+    },
+  },
 }
 
 contextBridge.exposeInMainWorld('App', API)

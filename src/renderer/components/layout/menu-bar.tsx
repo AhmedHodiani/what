@@ -3,9 +3,10 @@ import { Minus, Square, X, Copy } from 'lucide-react'
 
 interface MenuBarProps {
   onMenuClick?: (menu: string) => void
+  currentFileName?: string | null
 }
 
-export function MenuBar({ onMenuClick }: MenuBarProps) {
+export function MenuBar({ onMenuClick, currentFileName }: MenuBarProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [isMaximized, setIsMaximized] = useState(false)
 
@@ -69,6 +70,13 @@ export function MenuBar({ onMenuClick }: MenuBarProps) {
             </button>
           ))}
         </div>
+
+        {/* Current File Name */}
+        {currentFileName && (
+          <div className="ml-4 text-xs text-gray-500">
+            {currentFileName}
+          </div>
+        )}
       </div>
 
       {/* Window Controls */}
