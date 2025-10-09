@@ -27,6 +27,19 @@ export function InfiniteCanvas({
   const onViewportChangeRef = useRef(onViewportChange)
   const isExternalUpdateRef = useRef(false)
   const isInitialMountRef = useRef(true)
+  
+  // Use refs to avoid stale closures in event handlers
+  const viewportRef = useRef(viewport)
+  const panStartRef = useRef(panStart)
+  
+  // Keep refs in sync
+  useEffect(() => {
+    viewportRef.current = viewport
+  }, [viewport])
+  
+  useEffect(() => {
+    panStartRef.current = panStart
+  }, [panStart])
 
   // Keep ref up to date
   useEffect(() => {
@@ -66,9 +79,19 @@ export function InfiniteCanvas({
     }
 
     updateDimensions()
-    window.addEventListener('resize', updateDimensions)
     
-    return () => window.removeEventListener('resize', updateDimensions)
+    // Use ResizeObserver to detect container size changes (not just window resize)
+    const resizeObserver = new ResizeObserver(() => {
+      updateDimensions()
+    })
+    
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current)
+    }
+    
+    return () => {
+      resizeObserver.disconnect()
+    }
   }, [])
 
   // Handle mouse wheel for zooming (with non-passive listener)
@@ -78,6 +101,7 @@ export function InfiniteCanvas({
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault()
+      e.stopPropagation() // Prevent event from bubbling to other canvases
 
       const rect = container.getBoundingClientRect()
 
@@ -126,6 +150,8 @@ export function InfiniteCanvas({
     (e: React.MouseEvent) => {
       // Only pan with left mouse button
       if (e.button !== 0) return
+      
+      e.stopPropagation() // Prevent event from bubbling
 
       const rect = containerRef.current?.getBoundingClientRect()
       if (!rect) return
@@ -149,21 +175,25 @@ export function InfiniteCanvas({
     (e: MouseEvent) => {
       if (!isPanning) return
 
-      const deltaX = e.clientX - panStart.x
-      const deltaY = e.clientY - panStart.y
+      // Use refs to get current values (avoid stale closure)
+      const currentPanStart = panStartRef.current
+      const currentViewport = viewportRef.current
+      
+      const deltaX = e.clientX - currentPanStart.x
+      const deltaY = e.clientY - currentPanStart.y
 
-      setViewport(prev => ({
-        ...prev,
-        x: prev.x - deltaX / prev.zoom,
-        y: prev.y - deltaY / prev.zoom,
-      }))
+      setViewport({
+        x: currentViewport.x - deltaX / currentViewport.zoom,
+        y: currentViewport.y - deltaY / currentViewport.zoom,
+        zoom: currentViewport.zoom,
+      })
 
       setPanStart({
         x: e.clientX,
         y: e.clientY,
       })
     },
-    [isPanning, panStart]
+    [isPanning]
   )
 
   // Handle mouse up to stop panning
@@ -188,6 +218,16 @@ export function InfiniteCanvas({
       }
     }
   }, [isPanning, handleMouseMove, handleMouseUp])
+
+  // Cleanup on unmount - stop panning
+  useEffect(() => {
+    return () => {
+      setIsPanning(false)
+      if (containerRef.current) {
+        containerRef.current.style.cursor = 'grab'
+      }
+    }
+  }, [])
 
   // Calculate SVG viewBox for viewport transformation
   const viewBox = `${viewport.x - dimensions.width / (2 * viewport.zoom)} ${

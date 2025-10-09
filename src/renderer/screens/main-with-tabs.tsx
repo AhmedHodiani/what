@@ -37,6 +37,7 @@ export function MainScreenWithTabs() {
   const [tabs, setTabs] = useState<FileTab[]>([])
   const [activeTabId, setActiveTabId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [viewportLoadCount, setViewportLoadCount] = useState(0) // Force re-render when viewports load
   const layoutRef = useRef<Layout>(null)
   const saveTimeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map())
   const viewportsRef = useRef<Map<string, Viewport>>(new Map())
@@ -86,6 +87,7 @@ export function MainScreenWithTabs() {
                 y: canvas.viewport_y,
                 zoom: canvas.viewport_zoom,
               })
+              setViewportLoadCount(prev => prev + 1) // Trigger re-render
             }
           }
         }
@@ -102,16 +104,17 @@ export function MainScreenWithTabs() {
 
   // Listen for new files being opened
   useEffect(() => {
-    window.App.file.onFileOpened(({ file, tabId }) => {
+    const cleanup = window.App.file.onFileOpened(({ file, tabId }) => {
       console.log('[MainScreen] File opened:', file.name, tabId)
       
-      // Add tab to state
+      // Check if tab already exists
       setTabs((prevTabs) => {
-        // Check if tab already exists
         if (prevTabs.some((t) => t.id === tabId)) {
+          console.log('[MainScreen] Tab already exists, skipping:', tabId)
           return prevTabs
         }
         
+        console.log('[MainScreen] Adding new tab:', tabId)
         const newTab: FileTab = {
           id: tabId,
           filePath: file.path,
@@ -123,35 +126,49 @@ export function MainScreenWithTabs() {
         return [...prevTabs, newTab]
       })
 
-      // Add tab to FlexLayout
-      model.doAction(
-        Actions.addNode(
-          {
-            type: 'tab',
-            name: file.name,
-            component: 'canvas',
-            id: tabId,
-            config: { tabId },
-          },
-          model.getRoot().getId(),
-          DockLocation.CENTER,
-          -1
-        )
-      )
+      // Only add to FlexLayout if not already loaded (not initial load)
+      if (!isInitialLoadRef.current) {
+        console.log('[MainScreen] Adding tab to FlexLayout:', tabId)
+        
+        // Check if tab already exists in model
+        const existingNode = model.getNodeById(tabId)
+        if (!existingNode) {
+          model.doAction(
+            Actions.addNode(
+              {
+                type: 'tab',
+                name: file.name,
+                component: 'canvas',
+                id: tabId,
+                config: { tabId },
+              },
+              model.getRoot().getId(),
+              DockLocation.CENTER,
+              -1
+            )
+          )
+        }
+      }
 
       // Load viewport for the new tab
       window.App.file.getCanvas(DEFAULT_CANVAS_ID, tabId).then((canvas) => {
+        console.log('[MainScreen] Loaded viewport for tab:', tabId, canvas)
         if (canvas) {
-          viewportsRef.current.set(tabId, {
+          const newViewport = {
             x: canvas.viewport_x,
             y: canvas.viewport_y,
             zoom: canvas.viewport_zoom,
-          })
+          }
+          viewportsRef.current.set(tabId, newViewport)
+          console.log('[MainScreen] Set viewport in cache:', tabId, newViewport)
+          setViewportLoadCount(prev => prev + 1) // Trigger re-render
         }
       })
 
       setActiveTabId(tabId)
     })
+    
+    return cleanup
   }, [model])
 
   // Handle viewport changes for a specific tab
@@ -229,10 +246,29 @@ export function MainScreenWithTabs() {
     const config = node.getConfig() as { tabId: string }
     const tabId = config.tabId
     const viewport = viewportsRef.current.get(tabId) || { x: 0, y: 0, zoom: 1 }
+    
+    // Check if this tab is actually selected in its tabset
+    const parent = node.getParent()
+    let isSelected = false
+    
+    if (parent && parent.getType() === 'tabset') {
+      const tabset = parent as any // TabSetNode
+      isSelected = tabset.getSelectedNode()?.getId() === node.getId()
+    }
+    
+    console.log('[MainScreen Factory] Rendering tab:', tabId, 'isSelected:', isSelected, 'viewport:', viewport)
+
+    // Only render canvas if the tab is selected to avoid event conflicts
+    // This prevents multiple canvases from fighting over mouse events
+    if (!isSelected) {
+      return (
+        <div className="absolute inset-0 bg-[#0a0a0a]" />
+      )
+    }
 
     return (
       <InfiniteCanvas
-        key={tabId}
+        key={`canvas-${tabId}-${viewportLoadCount}`}
         initialViewport={viewport}
         onViewportChange={(newViewport) => handleViewportChange(tabId, newViewport)}
       >

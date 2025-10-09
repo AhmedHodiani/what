@@ -32,9 +32,13 @@ const API = {
     close: (tabId?: string) => ipcRenderer.invoke('file-close', tabId),
     getCurrentFile: () => ipcRenderer.invoke('file-get-current'),
     onFileOpened: (callback: (data: { file: any; tabId: string }) => void) => {
-      ipcRenderer.on('file-opened', (_event, data) => {
+      const listener = (_event: any, data: { file: any; tabId: string }) => {
         callback(data)
-      })
+      }
+      ipcRenderer.on('file-opened', listener)
+      return () => {
+        ipcRenderer.removeListener('file-opened', listener)
+      }
     },
     // Canvas operations
     getCanvas: (canvasId: string, tabId?: string) => ipcRenderer.invoke('file-get-canvas', canvasId, tabId),
