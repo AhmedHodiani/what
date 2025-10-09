@@ -1,0 +1,130 @@
+/* FlexLayout Dark Theme Customization for What app */
+
+/* Override FlexLayout light theme with dark colors */
+.flexlayout__theme_light {
+  background-color: #1e1e1e;
+}
+
+.flexlayout__theme_light .flexlayout__layout {
+  background-color: #0a0a0a;
+}
+
+/* Tabset header styling */
+.flexlayout__theme_light .flexlayout__tabset_header {
+  background-color: #1e1e1e;
+  border-bottom: 1px solid #2d2d2d;
+  height: 32px;
+  min-height: 32px;
+}
+
+/* Tab styling */
+.flexlayout__theme_light .flexlayout__tab {
+  background-color: #1e1e1e;
+  color: #cccccc;
+  border: 1px solid transparent;
+  border-bottom: none;
+  margin-right: 2px;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.flexlayout__theme_light .flexlayout__tab:hover {
+  background-color: #2d2d2d;
+}
+
+.flexlayout__theme_light .flexlayout__tab_button--selected {
+  background-color: #0a0a0a;
+  color: #ffffff;
+  border-color: #2d2d2d;
+  border-bottom: 1px solid #0a0a0a;
+}
+
+/* Tab close button */
+.flexlayout__theme_light .flexlayout__tab_button_trailing {
+  color: #858585;
+  margin-left: 8px;
+}
+
+.flexlayout__theme_light .flexlayout__tab_button_trailing:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Splitter styling */
+.flexlayout__theme_light .flexlayout__splitter {
+  background-color: #2d2d2d;
+}
+
+.flexlayout__theme_light .flexlayout__splitter:hover {
+  background-color: #3d3d3d;
+}
+
+.flexlayout__theme_light .flexlayout__splitter_drag {
+  background-color: #14b8a6;
+}
+
+/* Tabset content area */
+.flexlayout__theme_light .flexlayout__tabset-selected {
+  background-color: #0a0a0a;
+}
+
+/* Drag rectangle styling */
+.flexlayout__theme_light .flexlayout__outline_rect {
+  border: 2px solid #14b8a6;
+  background-color: rgba(20, 184, 166, 0.1);
+}
+
+/* Drag rectangle edge styling */
+.flexlayout__theme_light .flexlayout__edge_rect {
+  background-color: rgba(20, 184, 166, 0.2);
+  border: 2px solid #14b8a6;
+}
+
+/* Tab button icons */
+.flexlayout__theme_light .flexlayout__tab_toolbar_button {
+  color: #858585;
+}
+
+.flexlayout__theme_light .flexlayout__tab_toolbar_button:hover {
+  color: #ffffff;
+  background-color: #2d2d2d;
+}
+
+/* Maximize button */
+.flexlayout__theme_light .flexlayout__tabset_header_content {
+  display: flex;
+  align-items: center;
+}
+
+/* Border areas */
+.flexlayout__theme_light .flexlayout__border {
+  background-color: #1e1e1e;
+  border-color: #2d2d2d;
+}
+
+/* Popup menu (if used) */
+.flexlayout__theme_light .flexlayout__popup_menu {
+  background-color: #252526;
+  border: 1px solid #454545;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.flexlayout__theme_light .flexlayout__popup_menu_item {
+  color: #cccccc;
+  padding: 6px 12px;
+}
+
+.flexlayout__theme_light .flexlayout__popup_menu_item:hover {
+  background-color: #2a2d2e;
+}
+
+/* Ensure tabs take full height */
+.flexlayout__tabset_content {
+  height: 100%;
+}
+
+/* Tab content should fill available space */
+.flexlayout__tab_content {
+  height: 100%;
+  overflow: hidden;
+}

@@ -4,9 +4,11 @@ import { join } from 'node:path'
 import { createWindow } from 'lib/electron-app/factories/windows/create'
 import { ENVIRONMENT } from 'shared/constants'
 import { displayName } from '~/package.json'
-import { whatFileService } from '../services/what-file'
+import { multiFileManager } from '../services/multi-file-manager'
 
 export async function MainWindow() {
+  console.log('[Main] 🚀 MainWindow() function called - setting up window and IPC handlers')
+  
   const window = createWindow({
     id: 'main',
     title: displayName,
@@ -61,9 +63,9 @@ export async function MainWindow() {
     }
 
     try {
-      const file = whatFileService.createNewFile(filePath)
-      window.webContents.send('file-opened', file)
-      return file
+      const { file, tabId } = multiFileManager.createNewFile(filePath)
+      window.webContents.send('file-opened', { file, tabId })
+      return { file, tabId }
     } catch (error) {
       console.error('Failed to create file:', error)
       dialog.showErrorBox(
@@ -86,9 +88,9 @@ export async function MainWindow() {
     }
 
     try {
-      const file = whatFileService.openFile(filePaths[0])
-      window.webContents.send('file-opened', file)
-      return file
+      const { file, tabId } = multiFileManager.openFile(filePaths[0])
+      window.webContents.send('file-opened', { file, tabId })
+      return { file, tabId }
     } catch (error) {
       console.error('Failed to open file:', error)
       dialog.showErrorBox(
@@ -99,15 +101,10 @@ export async function MainWindow() {
     }
   })
 
-  ipcMain.handle('file-save', async () => {
-    const currentFile = whatFileService.getCurrentFile()
-    if (!currentFile) {
-      return null
-    }
-
+  ipcMain.handle('file-save', async (_event, tabId?: string) => {
     try {
-      whatFileService.saveFile()
-      return currentFile
+      const file = tabId ? multiFileManager.saveTab(tabId) : multiFileManager.saveActiveFile()
+      return file
     } catch (error) {
       console.error('Failed to save file:', error)
       dialog.showErrorBox(
@@ -134,13 +131,99 @@ export async function MainWindow() {
     return null
   })
 
-  ipcMain.handle('file-close', async () => {
-    whatFileService.closeFile()
+  ipcMain.handle('file-close', async (_event, tabId?: string) => {
+    if (tabId) {
+      multiFileManager.closeTab(tabId)
+    } else {
+      const activeTabId = multiFileManager.getActiveTabId()
+      if (activeTabId) {
+        multiFileManager.closeTab(activeTabId)
+      }
+    }
     return true
   })
 
   ipcMain.handle('file-get-current', async () => {
-    return whatFileService.getCurrentFile()
+    return multiFileManager.getActiveFile()
+  })
+
+  // New tab management handlers
+  ipcMain.handle('tabs-get-all', async () => {
+    return multiFileManager.getTabs()
+  })
+
+  ipcMain.handle('tabs-set-active', async (_event, tabId: string) => {
+    multiFileManager.setActiveTab(tabId)
+    return true
+  })
+
+  ipcMain.handle('tabs-get-active-id', async () => {
+    return multiFileManager.getActiveTabId()
+  })
+
+  ipcMain.handle('file-get-canvas', async (_event, canvasId: string, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) return null
+      
+      const viewport = multiFileManager.getViewport(targetTabId)
+      console.log('[Main] Getting viewport:', viewport)
+      // Return in canvas format for backward compatibility
+      return {
+        id: canvasId,
+        title: 'Canvas',
+        viewport_x: viewport.x,
+        viewport_y: viewport.y,
+        viewport_zoom: viewport.zoom,
+        object_count: 0,
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }
+    } catch (error) {
+      console.error('Failed to get viewport:', error)
+      return null
+    }
+  })
+
+  console.log('[Main] 📝 Registering file-save-viewport IPC handler...')
+  
+  // Remove old handler if it exists (for hot reload)
+  ipcMain.removeHandler('file-save-viewport')
+  
+  ipcMain.handle('file-save-viewport', async (_event, canvasId: string, x: number, y: number, zoom: number, tabId?: string) => {
+    console.log('[Main IPC] 🔵 file-save-viewport handler called with:', { canvasId, x, y, zoom, tabId })
+    
+    const targetTabId = tabId || multiFileManager.getActiveTabId()
+    if (!targetTabId) {
+      console.error('[Main IPC] ❌ No tab is currently active!')
+      throw new Error('No tab is currently active')
+    }
+    
+    const tab = multiFileManager.getTab(targetTabId)
+    console.log('[Main IPC] ✅ Current tab:', tab?.fileName)
+    
+    try {
+      console.log('[Main IPC] 🔵 Calling multiFileManager.saveViewport...')
+      multiFileManager.saveViewport(targetTabId, x, y, zoom)
+      console.log('[Main IPC] ✅ Viewport saved successfully')
+    } catch (error) {
+      console.error('[Main IPC] ❌ Failed to save viewport:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('file-get-metadata', async (_event, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) return null
+      
+      const metadata = multiFileManager.getMetadata(targetTabId)
+      console.log('[Main] Metadata:', metadata)
+      return metadata
+    } catch (error) {
+      console.error('Failed to get metadata:', error)
+      return null
+    }
   })
 
   // Notify renderer when maximize state changes
@@ -161,6 +244,16 @@ export async function MainWindow() {
   })
 
   window.on('close', () => {
+    console.log('[Main] 💾 Window closing, saving all files...')
+    // Save all files before closing to persist viewport and other changes
+    try {
+      multiFileManager.saveAll()
+      console.log('[Main] ✅ All files saved successfully')
+      multiFileManager.closeAll()
+    } catch (error) {
+      console.error('[Main] ❌ Failed to save files on close:', error)
+    }
+    
     for (const window of BrowserWindow.getAllWindows()) {
       window.destroy()
     }

@@ -14,8 +14,13 @@ export interface WhatFileMetadata {
   title: string
   description?: string
   thumbnail?: string // Base64 encoded thumbnail
+  // Viewport settings (1 file = 1 canvas)
+  viewport_x?: number
+  viewport_y?: number
+  viewport_zoom?: number
 }
 
+// Deprecated: We no longer use canvas table (1 file = 1 canvas)
 export interface WhatFileCanvas {
   id: string
   title: string
@@ -29,8 +34,7 @@ export interface WhatFileCanvas {
 
 export interface WhatFileObject {
   id: string
-  canvas_id: string
-  type: string
+  type: string  // Removed canvas_id since 1 file = 1 canvas
   x: number
   y: number
   width: number

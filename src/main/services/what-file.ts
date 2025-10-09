@@ -6,7 +6,6 @@ import { tmpdir } from 'node:os'
 import type {
   WhatFile,
   WhatFileMetadata,
-  WhatFileCanvas,
   WhatFileObject,
 } from 'shared/types/what-file'
 
@@ -24,6 +23,11 @@ const WHAT_FILE_VERSION = '1.0.0'
  * 
  * File structure:
  * [MAGIC_NUMBER (8 bytes)][ZIP data containing: main.db, meta.json, assets/]
+ * 
+ * Database structure (simplified for 1 file = 1 canvas):
+ * - metadata table: version, title, viewport settings, etc.
+ * - objects table: drawing objects (no canvas_id needed)
+ * - assets table: embedded media files
  */
 const WHAT_MAGIC_NUMBER = Buffer.from([0x57, 0x48, 0x41, 0x54, 0x01, 0x00, 0x00, 0x00])
 
@@ -53,19 +57,19 @@ export class WhatFileService {
       // Initialize database schema
       this.initializeSchema()
 
-      // Create initial metadata
+      // Create initial metadata with default viewport
       const now = new Date().toISOString()
       const metadata: WhatFileMetadata = {
         version: WHAT_FILE_VERSION,
         created: now,
         modified: now,
         title: basename(filePath, '.what'),
+        viewport_x: 0,
+        viewport_y: 0,
+        viewport_zoom: 1,
       }
 
       this.setMetadata(metadata)
-
-      // Create default canvas
-      this.createDefaultCanvas()
 
       // Create meta.json
       const metaJson = {
@@ -330,12 +334,12 @@ export class WhatFileService {
   }
 
   /**
-   * Initialize database schema
+   * Initialize database schema (simplified for 1 file = 1 canvas)
    */
   private initializeSchema(): void {
     if (!this.db) throw new Error('No database connection')
 
-    // Metadata table
+    // Metadata table (includes viewport settings)
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS metadata (
         key TEXT PRIMARY KEY,
@@ -343,25 +347,10 @@ export class WhatFileService {
       )
     `)
 
-    // Canvases table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS canvases (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        viewport_x REAL DEFAULT 0,
-        viewport_y REAL DEFAULT 0,
-        viewport_zoom REAL DEFAULT 1,
-        object_count INTEGER DEFAULT 0,
-        created TEXT NOT NULL,
-        updated TEXT NOT NULL
-      )
-    `)
-
-    // Objects table
+    // Objects table (no canvas_id needed - 1 file = 1 canvas)
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS objects (
         id TEXT PRIMARY KEY,
-        canvas_id TEXT NOT NULL,
         type TEXT NOT NULL,
         x REAL NOT NULL,
         y REAL NOT NULL,
@@ -370,8 +359,7 @@ export class WhatFileService {
         z_index INTEGER DEFAULT 0,
         object_data TEXT NOT NULL,
         created TEXT NOT NULL,
-        updated TEXT NOT NULL,
-        FOREIGN KEY (canvas_id) REFERENCES canvases(id) ON DELETE CASCADE
+        updated TEXT NOT NULL
       )
     `)
 
@@ -389,7 +377,6 @@ export class WhatFileService {
 
     // Create indexes
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_objects_canvas ON objects(canvas_id);
       CREATE INDEX IF NOT EXISTS idx_objects_zindex ON objects(z_index);
     `)
   }
@@ -402,11 +389,11 @@ export class WhatFileService {
 
     const tables = this.db
       .prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('metadata', 'canvases', 'objects', 'assets')"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('metadata', 'objects', 'assets')"
       )
       .all()
 
-    if (tables.length < 4) {
+    if (tables.length < 3) {
       throw new Error('Invalid .what file: missing required tables')
     }
   }
@@ -436,9 +423,14 @@ export class WhatFileService {
       'INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)'
     )
 
+    console.log('[WhatFileService] 🔵 Updating metadata with:', updates)
+    
     for (const [key, value] of Object.entries(updates)) {
+      console.log(`[WhatFileService]   Writing: ${key} = ${JSON.stringify(value)}`)
       stmt.run(key, JSON.stringify(value))
     }
+    
+    console.log('[WhatFileService] ✅ Metadata update complete')
 
     if (this.currentFile) {
       this.currentFile.isModified = true
@@ -464,91 +456,62 @@ export class WhatFileService {
   }
 
   /**
-   * Create default canvas
+   * Get viewport settings from metadata
    */
-  private createDefaultCanvas(): void {
-    if (!this.db) throw new Error('No database connection')
+  getViewport(): { x: number; y: number; zoom: number } {
+    console.log('[WhatFileService] 🔵 getViewport called')
+    
+    if (!this.db) {
+      console.error('[WhatFileService] ❌ No database connection!')
+      throw new Error('No database connection')
+    }
 
-    const now = new Date().toISOString()
-    const id = `canvas_${Date.now()}`
-
-    this.db
-      .prepare(
-        `
-      INSERT INTO canvases (id, title, viewport_x, viewport_y, viewport_zoom, object_count, created, updated)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `
-      )
-      .run(id, 'Canvas 1', 0, 0, 1, 0, now, now)
+    const metadata = this.getMetadata()
+    console.log('[WhatFileService] 📖 Raw metadata:', metadata)
+    
+    const viewport = {
+      x: metadata.viewport_x || 0,
+      y: metadata.viewport_y || 0,
+      zoom: metadata.viewport_zoom || 1,
+    }
+    
+    console.log('[WhatFileService] ✅ Returning viewport:', viewport)
+    return viewport
   }
 
   /**
-   * Get all canvases
+   * Save viewport settings to metadata
    */
-  getCanvases(): WhatFileCanvas[] {
-    if (!this.db) throw new Error('No database connection')
+  saveViewport(x: number, y: number, zoom: number): void {
+    console.log('[WhatFileService] 🔵 saveViewport called with:', { x, y, zoom })
+    
+    if (!this.db) {
+      console.error('[WhatFileService] ❌ No database connection!')
+      throw new Error('No database connection')
+    }
 
-    return this.db
-      .prepare('SELECT * FROM canvases ORDER BY created ASC')
-      .all() as WhatFileCanvas[]
+    console.log('[WhatFileService] ✅ Database exists, updating metadata...')
+
+    this.updateMetadata({
+      viewport_x: x,
+      viewport_y: y,
+      viewport_zoom: zoom,
+    })
+
+    // Verify the update
+    const updated = this.getViewport()
+    console.log('[WhatFileService] ✅ Viewport after save:', updated)
   }
 
   /**
-   * Get canvas by ID
+   * Get all objects
    */
-  getCanvas(id: string): WhatFileCanvas | null {
-    if (!this.db) throw new Error('No database connection')
-
-    return (
-      (this.db
-        .prepare('SELECT * FROM canvases WHERE id = ?')
-        .get(id) as WhatFileCanvas) || null
-    )
-  }
-
-  /**
-   * Save canvas
-   */
-  saveCanvas(canvas: Partial<WhatFileCanvas> & { id: string }): void {
-    if (!this.db) throw new Error('No database connection')
-
-    const now = new Date().toISOString()
-
-    this.db
-      .prepare(
-        `
-      UPDATE canvases 
-      SET title = COALESCE(?, title),
-          viewport_x = COALESCE(?, viewport_x),
-          viewport_y = COALESCE(?, viewport_y),
-          viewport_zoom = COALESCE(?, viewport_zoom),
-          object_count = COALESCE(?, object_count),
-          updated = ?
-      WHERE id = ?
-    `
-      )
-      .run(
-        canvas.title,
-        canvas.viewport_x,
-        canvas.viewport_y,
-        canvas.viewport_zoom,
-        canvas.object_count,
-        now,
-        canvas.id
-      )
-
-    this.markAsModified()
-  }
-
-  /**
-   * Get objects for a canvas
-   */
-  getObjects(canvasId: string): WhatFileObject[] {
+  getObjects(): WhatFileObject[] {
     if (!this.db) throw new Error('No database connection')
 
     const objects = this.db
-      .prepare('SELECT * FROM objects WHERE canvas_id = ? ORDER BY z_index ASC')
-      .all(canvasId) as WhatFileObject[]
+      .prepare('SELECT * FROM objects ORDER BY z_index ASC')
+      .all() as WhatFileObject[]
 
     // Parse object_data JSON
     return objects.map(obj => ({
@@ -576,8 +539,7 @@ export class WhatFileService {
         .prepare(
           `
         UPDATE objects 
-        SET canvas_id = COALESCE(?, canvas_id),
-            type = COALESCE(?, type),
+        SET type = COALESCE(?, type),
             x = COALESCE(?, x),
             y = COALESCE(?, y),
             width = COALESCE(?, width),
@@ -589,7 +551,6 @@ export class WhatFileService {
       `
         )
         .run(
-          object.canvas_id,
           object.type,
           object.x,
           object.y,
@@ -605,13 +566,12 @@ export class WhatFileService {
       this.db
         .prepare(
           `
-        INSERT INTO objects (id, canvas_id, type, x, y, width, height, z_index, object_data, created, updated)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO objects (id, type, x, y, width, height, z_index, object_data, created, updated)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `
         )
         .run(
           object.id,
-          object.canvas_id,
           object.type,
           object.x,
           object.y,

@@ -6,6 +6,7 @@ interface InfiniteCanvasProps {
   initialViewport?: Viewport
   minZoom?: number
   maxZoom?: number
+  onViewportChange?: (viewport: Viewport) => void
   children?: React.ReactNode
 }
 
@@ -13,6 +14,7 @@ export function InfiniteCanvas({
   initialViewport = { x: 0, y: 0, zoom: 1 },
   minZoom = 0.1,
   maxZoom = 5,
+  onViewportChange,
   children,
 }: InfiniteCanvasProps) {
   const [viewport, setViewport] = useState<Viewport>(initialViewport)
@@ -22,6 +24,37 @@ export function InfiniteCanvas({
   
   const containerRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
+  const onViewportChangeRef = useRef(onViewportChange)
+  const isExternalUpdateRef = useRef(false)
+  const isInitialMountRef = useRef(true)
+
+  // Keep ref up to date
+  useEffect(() => {
+    onViewportChangeRef.current = onViewportChange
+  }, [onViewportChange])
+
+  // Update viewport when initialViewport changes (e.g., when file is opened)
+  useEffect(() => {
+    isExternalUpdateRef.current = true
+    setViewport(initialViewport)
+  }, [initialViewport])
+
+  // Notify parent when viewport changes (only for internal changes)
+  useEffect(() => {
+    // Skip notification on initial mount
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false
+      return
+    }
+    
+    // Skip notification if this was an external update
+    if (isExternalUpdateRef.current) {
+      isExternalUpdateRef.current = false
+      return
+    }
+    
+    onViewportChangeRef.current?.(viewport)
+  }, [viewport])
 
   // Update dimensions when container size changes
   useEffect(() => {
