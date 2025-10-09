@@ -342,7 +342,7 @@ export function MainScreenWithTabs() {
       {/* Main Content Area */}
       <div className="flex-1 relative">
         {tabs.length > 0 ? (
-          <div className="h-full flexlayout__theme_light">
+          <div className="h-full">
             <Layout
               ref={layoutRef}
               model={model}
