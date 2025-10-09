@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Layout, Model, Actions, TabNode, IJsonModel, DockLocation } from 'flexlayout-react'
 import 'flexlayout-react/style/light.css'
 import '../styles/flexlayout-theme.css'
-import { InfiniteCanvas } from 'renderer/components/canvas/infinite-canvas'
+import { InfiniteCanvas, CanvasDemoContent, CanvasErrorBoundary } from 'renderer/components/canvas'
 import { MenuBar } from 'renderer/components/layout/menu-bar'
 import { WelcomeScreen } from 'renderer/components/welcome/welcome-screen'
 import type { Viewport } from 'lib/types/canvas'
@@ -267,22 +267,15 @@ export function MainScreenWithTabs() {
     }
 
     return (
-      <InfiniteCanvas
-        key={`canvas-${tabId}-${viewportLoadCount}`}
-        initialViewport={viewport}
-        onViewportChange={(newViewport) => handleViewportChange(tabId, newViewport)}
-      >
-        {/* Demo content - some circles in world space */}
-        <circle cx={0} cy={0} r={50} fill="#14b8a6" opacity={0.8} />
-        <circle cx={200} cy={0} r={40} fill="#ec4899" opacity={0.8} />
-        <circle cx={-200} cy={0} r={40} fill="#f59e0b" opacity={0.8} />
-        <circle cx={0} cy={-200} r={30} fill="#3b82f6" opacity={0.8} />
-
-        {/* Center marker */}
-        <circle cx={0} cy={0} r={5} fill="#fff" />
-        <line x1={-20} y1={0} x2={20} y2={0} stroke="#fff" strokeWidth={2} />
-        <line x1={0} y1={-20} x2={0} y2={20} stroke="#fff" strokeWidth={2} />
-      </InfiniteCanvas>
+      <CanvasErrorBoundary>
+        <InfiniteCanvas
+          key={`canvas-${tabId}-${viewportLoadCount}`}
+          initialViewport={viewport}
+          onViewportChange={(newViewport) => handleViewportChange(tabId, newViewport)}
+        >
+          <CanvasDemoContent />
+        </InfiniteCanvas>
+      </CanvasErrorBoundary>
     )
   }
 

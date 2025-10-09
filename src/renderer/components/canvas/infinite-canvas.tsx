@@ -1,238 +1,94 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
-import type { Viewport, Point } from 'lib/types/canvas'
-import { CanvasUtils } from 'lib/utils/canvas'
+import { useRef, useMemo } from 'react'
+import type { Viewport } from 'lib/types/canvas'
+import { sanitizeViewport } from 'lib/types/canvas-validators'
+import { useContainerSize } from 'renderer/hooks/use-container-size'
+import { useViewport } from 'renderer/hooks/use-viewport'
+import { useCanvasPan } from 'renderer/hooks/use-canvas-pan'
+import { useCanvasZoom } from 'renderer/hooks/use-canvas-zoom'
+import { CanvasGrid } from './canvas-grid'
+import { CanvasViewportDisplay } from './canvas-viewport-display'
 
 interface InfiniteCanvasProps {
   initialViewport?: Viewport
   minZoom?: number
   maxZoom?: number
   onViewportChange?: (viewport: Viewport) => void
+  showViewportInfo?: boolean
+  showGrid?: boolean
   children?: React.ReactNode
 }
 
+/**
+ * InfiniteCanvas - A zoomable, pannable SVG canvas component.
+ * 
+ * Features:
+ * - Pan with left-click drag
+ * - Zoom with mouse wheel (towards cursor)
+ * - Responsive to container size changes
+ * - Optional grid and viewport display
+ * 
+ * @example
+ * ```tsx
+ * <InfiniteCanvas
+ *   initialViewport={{ x: 0, y: 0, zoom: 1 }}
+ *   onViewportChange={(viewport) => saveViewport(viewport)}
+ * >
+ *   <circle cx={0} cy={0} r={50} fill="teal" />
+ * </InfiniteCanvas>
+ * ```
+ */
 export function InfiniteCanvas({
-  initialViewport = { x: 0, y: 0, zoom: 1 },
+  initialViewport,
   minZoom = 0.1,
   maxZoom = 5,
   onViewportChange,
+  showViewportInfo = true,
+  showGrid = true,
   children,
 }: InfiniteCanvasProps) {
-  const [viewport, setViewport] = useState<Viewport>(initialViewport)
-  const [isPanning, setIsPanning] = useState(false)
-  const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 })
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 })
-  
-  const containerRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
-  const onViewportChangeRef = useRef(onViewportChange)
-  const isExternalUpdateRef = useRef(false)
-  const isInitialMountRef = useRef(true)
-  
-  // Use refs to avoid stale closures in event handlers
-  const viewportRef = useRef(viewport)
-  const panStartRef = useRef(panStart)
-  
-  // Keep refs in sync
-  useEffect(() => {
-    viewportRef.current = viewport
-  }, [viewport])
-  
-  useEffect(() => {
-    panStartRef.current = panStart
-  }, [panStart])
 
-  // Keep ref up to date
-  useEffect(() => {
-    onViewportChangeRef.current = onViewportChange
-  }, [onViewportChange])
-
-  // Update viewport when initialViewport changes (e.g., when file is opened)
-  useEffect(() => {
-    isExternalUpdateRef.current = true
-    setViewport(initialViewport)
-  }, [initialViewport])
-
-  // Notify parent when viewport changes (only for internal changes)
-  useEffect(() => {
-    // Skip notification on initial mount
-    if (isInitialMountRef.current) {
-      isInitialMountRef.current = false
-      return
-    }
-    
-    // Skip notification if this was an external update
-    if (isExternalUpdateRef.current) {
-      isExternalUpdateRef.current = false
-      return
-    }
-    
-    onViewportChangeRef.current?.(viewport)
-  }, [viewport])
-
-  // Update dimensions when container size changes
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect()
-        setDimensions({ width: rect.width, height: rect.height })
-      }
-    }
-
-    updateDimensions()
-    
-    // Use ResizeObserver to detect container size changes (not just window resize)
-    const resizeObserver = new ResizeObserver(() => {
-      updateDimensions()
-    })
-    
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current)
-    }
-    
-    return () => {
-      resizeObserver.disconnect()
-    }
-  }, [])
-
-  // Handle mouse wheel for zooming (with non-passive listener)
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      e.stopPropagation() // Prevent event from bubbling to other canvases
-
-      const rect = container.getBoundingClientRect()
-
-      // Mouse position relative to canvas
-      const mouseX = e.clientX - rect.left
-      const mouseY = e.clientY - rect.top
-
-      // Current mouse position in world coordinates
-      const worldPoint = CanvasUtils.screenToWorld(
-        { x: mouseX, y: mouseY },
-        viewport,
-        dimensions
-      )
-
-      // Calculate new zoom
-      const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1
-      const newZoom = CanvasUtils.clampZoom(
-        viewport.zoom * zoomDelta,
-        minZoom,
-        maxZoom
-      )
-
-      // Calculate new viewport position to keep mouse point fixed
-      const newViewportX =
-        worldPoint.x - (mouseX - dimensions.width / 2) / newZoom
-      const newViewportY =
-        worldPoint.y - (mouseY - dimensions.height / 2) / newZoom
-
-      setViewport({
-        x: newViewportX,
-        y: newViewportY,
-        zoom: newZoom,
-      })
-    }
-
-    // Add wheel listener with passive: false to allow preventDefault
-    container.addEventListener('wheel', handleWheel, { passive: false })
-
-    return () => {
-      container.removeEventListener('wheel', handleWheel)
-    }
-  }, [viewport, dimensions, minZoom, maxZoom])
-
-  // Handle mouse down for panning
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      // Only pan with left mouse button
-      if (e.button !== 0) return
-      
-      e.stopPropagation() // Prevent event from bubbling
-
-      const rect = containerRef.current?.getBoundingClientRect()
-      if (!rect) return
-
-      setIsPanning(true)
-      setPanStart({
-        x: e.clientX,
-        y: e.clientY,
-      })
-
-      // Change cursor
-      if (containerRef.current) {
-        containerRef.current.style.cursor = 'grabbing'
-      }
-    },
-    []
+  // Sanitize initial viewport to ensure valid values
+  const safeInitialViewport = useMemo(
+    () => (initialViewport ? sanitizeViewport(initialViewport, minZoom, maxZoom) : undefined),
+    [initialViewport, minZoom, maxZoom]
   )
 
-  // Handle mouse move for panning
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!isPanning) return
+  // Use our custom hooks for clean separation of concerns
+  const { size: dimensions, ref: containerRef } = useContainerSize()
+  const { viewport, setViewport } = useViewport({
+    initialViewport: safeInitialViewport,
+    onViewportChange,
+  })
 
-      // Use refs to get current values (avoid stale closure)
-      const currentPanStart = panStartRef.current
-      const currentViewport = viewportRef.current
-      
-      const deltaX = e.clientX - currentPanStart.x
-      const deltaY = e.clientY - currentPanStart.y
+  // Handle panning - use functional update to always get latest viewport
+  const { handleMouseDown } = useCanvasPan(containerRef, (deltaX, deltaY) => {
+    setViewport((prev) => ({
+      x: prev.x - deltaX / prev.zoom,
+      y: prev.y - deltaY / prev.zoom,
+      zoom: prev.zoom,
+    }))
+  })
 
-      setViewport({
-        x: currentViewport.x - deltaX / currentViewport.zoom,
-        y: currentViewport.y - deltaY / currentViewport.zoom,
-        zoom: currentViewport.zoom,
-      })
-
-      setPanStart({
-        x: e.clientX,
-        y: e.clientY,
-      })
-    },
-    [isPanning]
-  )
-
-  // Handle mouse up to stop panning
-  const handleMouseUp = useCallback(() => {
-    setIsPanning(false)
-    
-    // Reset cursor
-    if (containerRef.current) {
-      containerRef.current.style.cursor = 'grab'
-    }
-  }, [])
-
-  // Add global mouse event listeners for panning
-  useEffect(() => {
-    if (isPanning) {
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
-      
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove)
-        window.removeEventListener('mouseup', handleMouseUp)
-      }
-    }
-  }, [isPanning, handleMouseMove, handleMouseUp])
-
-  // Cleanup on unmount - stop panning
-  useEffect(() => {
-    return () => {
-      setIsPanning(false)
-      if (containerRef.current) {
-        containerRef.current.style.cursor = 'grab'
-      }
-    }
-  }, [])
+  // Handle zooming
+  useCanvasZoom({
+    containerRef,
+    viewport,
+    dimensions,
+    minZoom,
+    maxZoom,
+    onZoom: setViewport,
+  })
 
   // Calculate SVG viewBox for viewport transformation
-  const viewBox = `${viewport.x - dimensions.width / (2 * viewport.zoom)} ${
-    viewport.y - dimensions.height / (2 * viewport.zoom)
-  } ${dimensions.width / viewport.zoom} ${dimensions.height / viewport.zoom}`
+  // Memoize to avoid recalculating on every render
+  const viewBox = useMemo(() => {
+    const halfWidth = dimensions.width / (2 * viewport.zoom)
+    const halfHeight = dimensions.height / (2 * viewport.zoom)
+    return `${viewport.x - halfWidth} ${viewport.y - halfHeight} ${
+      dimensions.width / viewport.zoom
+    } ${dimensions.height / viewport.zoom}`
+  }, [viewport, dimensions])
 
   return (
     <div
@@ -247,47 +103,15 @@ export function InfiniteCanvas({
         height={dimensions.height}
         viewBox={viewBox}
       >
-        {/* Grid pattern for visual reference */}
-        <defs>
-          <pattern
-            id="grid"
-            width={50}
-            height={50}
-            patternUnits="userSpaceOnUse"
-          >
-            <path
-              d="M 50 0 L 0 0 0 50"
-              fill="none"
-              stroke="rgba(255, 255, 255, 0.1)"
-              strokeWidth={1 / viewport.zoom}
-            />
-          </pattern>
-        </defs>
-        
-        {/* Background grid */}
-        <rect
-          x={viewport.x - dimensions.width / viewport.zoom}
-          y={viewport.y - dimensions.height / viewport.zoom}
-          width={dimensions.width * 2 / viewport.zoom}
-          height={dimensions.height * 2 / viewport.zoom}
-          fill="url(#grid)"
-        />
+        {/* Grid pattern */}
+        {showGrid && <CanvasGrid viewport={viewport} dimensions={dimensions} />}
 
-        {/* Content goes here */}
+        {/* Canvas content */}
         {children}
       </svg>
 
       {/* Viewport info overlay */}
-      <div className="absolute top-3 left-3 bg-black/80 text-teal-400 px-3 py-2 rounded-md text-xs font-mono pointer-events-none flex flex-col gap-1 border border-teal-400/30">
-        <div>Zoom: {(viewport.zoom * 100).toFixed(0)}%</div>
-        <div>
-          Position: ({viewport.x.toFixed(0)}, {viewport.y.toFixed(0)})
-        </div>
-        <div className="mt-2 pt-2 border-t border-white/10 flex flex-col gap-0.5 text-[11px] text-gray-500">
-          <span>🖱️ Drag to pan</span>
-          <span>🖲️ Scroll to zoom</span>
-        </div>
-      </div>
+      {showViewportInfo && <CanvasViewportDisplay viewport={viewport} />}
     </div>
   )
 }
