@@ -28,6 +28,30 @@ export async function MainWindow() {
     },
   })
 
+  // Configure all new child windows (popouts) to be frameless
+  window.webContents.setWindowOpenHandler((details) => {
+    console.log('[Main] 🪟 New window requested:', details.url)
+    
+    // Check if this is a popout window (FlexLayout popouts)
+    if (details.url.includes('popout.html')) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          frame: false,
+          titleBarStyle: 'hidden',
+          autoHideMenuBar: true,
+          webPreferences: {
+            preload: join(__dirname, '../preload/index.js'),
+            nodeIntegration: false,
+            contextIsolation: true,
+          },
+        },
+      }
+    }
+    
+    return { action: 'allow' }
+  })
+
   // Window control IPC handlers
   ipcMain.on('window-minimize', () => {
     window.minimize()

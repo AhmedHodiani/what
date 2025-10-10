@@ -16,6 +16,8 @@ const initialLayoutConfig: IJsonModel = {
   global: {
     tabEnableClose: true,
     tabEnableRename: false,
+    tabEnablePopout: true, // Enable popout/detach windows
+    tabEnablePopoutIcon: true, // Show popout icon in tab header
     tabSetEnableTabStrip: true,
     tabSetEnableDrop: true,
     tabSetEnableDrag: true,
@@ -71,6 +73,7 @@ export function MainScreenWithTabs() {
                     component: 'canvas',
                     id: tab.id,
                     config: { tabId: tab.id },
+                    enablePopout: true, // Enable popout for this tab
                   })),
                 },
               ],
@@ -141,6 +144,7 @@ export function MainScreenWithTabs() {
                 component: 'canvas',
                 id: tabId,
                 config: { tabId },
+                enablePopout: true, // Enable popout for this tab
               },
               model.getRoot().getId(),
               DockLocation.CENTER,
@@ -349,6 +353,7 @@ export function MainScreenWithTabs() {
               factory={factory}
               onModelChange={onModelChange}
               onAction={onAction}
+              popoutURL="popout.html"
             />
           </div>
         ) : (

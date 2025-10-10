@@ -84,15 +84,22 @@ export function useCanvasPan(
   // Add/remove global mouse event listeners for panning
   useEffect(() => {
     if (isPanning) {
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
+      // Get the window object from the container's document (works in popouts!)
+      const container = containerRef.current
+      if (!container) return
+      
+      const targetWindow = container.ownerDocument.defaultView
+      if (!targetWindow) return
+
+      targetWindow.addEventListener('mousemove', handleMouseMove)
+      targetWindow.addEventListener('mouseup', handleMouseUp)
 
       return () => {
-        window.removeEventListener('mousemove', handleMouseMove)
-        window.removeEventListener('mouseup', handleMouseUp)
+        targetWindow.removeEventListener('mousemove', handleMouseMove)
+        targetWindow.removeEventListener('mouseup', handleMouseUp)
       }
     }
-  }, [isPanning, handleMouseMove, handleMouseUp])
+  }, [isPanning, handleMouseMove, handleMouseUp, containerRef])
 
   // Cleanup on unmount - stop panning and reset cursor
   useEffect(() => {

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv='Content-type' content='text/html; charset=utf-8'>
+    <title>What - Popout Window</title>
+    <style>
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #0a0a0a;
+        }
+
+        /* Hide scrollbars if any appear */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        * {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Ensure full viewport usage */
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+    <script>
+        // Request to hide window frame (only works in Electron)
+        if (window.opener && window.opener !== window) {
+            try {
+                // Try to hide menubar via opener window
+                window.onload = () => {
+                    // Check if we're in Electron
+                    if (navigator.userAgent.includes('Electron')) {
+                        console.log('[Popout] Electron detected, frameless mode would be applied by parent');
+                    }
+                };
+            } catch (e) {
+                console.log('[Popout] Could not configure window:', e);
+            }
+        }
+    </script>
+</head>
+<body>
+</body>
+</html>
