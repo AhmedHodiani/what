@@ -1,14 +1,15 @@
-import { useRef, useMemo, useState, useCallback, useEffect } from 'react'
-import type { Viewport, ImageObject } from 'lib/types/canvas'
+import { useRef, useMemo, useCallback } from 'react'
+import type { Viewport, DrawingObject } from 'lib/types/canvas'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
 import { useContainerSize } from 'renderer/hooks/use-container-size'
 import { useViewport } from 'renderer/hooks/use-viewport'
 import { useCanvasPan } from 'renderer/hooks/use-canvas-pan'
 import { useCanvasZoom } from 'renderer/hooks/use-canvas-zoom'
 import { useClipboardPaste } from 'renderer/hooks/use-clipboard-paste'
+import { useCanvasObjects } from 'renderer/hooks/use-canvas-objects'
 import { CanvasGrid } from './canvas-grid'
 import { CanvasViewportDisplay } from './canvas-viewport-display'
-import { ImageWidget } from './image-widget'
+import { CanvasObject } from './canvas-object'
 
 interface InfiniteCanvasProps {
   initialViewport?: Viewport
@@ -49,40 +50,17 @@ export function InfiniteCanvas({
   children,
 }: InfiniteCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const [objects, setObjects] = useState<ImageObject[]>([])
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null)
-  const [_isLoading, setIsLoading] = useState(true)
 
-  // Load objects from database on mount
-  useEffect(() => {
-    const loadObjects = async () => {
-      try {
-        const loadedObjects = await window.App.file.getObjects()
-        console.log('Loaded objects from database:', loadedObjects)
-        
-        // Load asset data URLs for each image object
-        const objectsWithUrls = await Promise.all(
-          loadedObjects.map(async (obj: any) => {
-            if (obj.type === 'image') {
-              const dataUrl = await window.App.file.getAssetDataUrl(obj.object_data.assetId)
-              console.log(`Loaded data URL for object ${obj.id}:`, dataUrl ? 'success' : 'failed')
-              return { ...obj, _imageUrl: dataUrl }
-            }
-            return obj
-          })
-        )
-        
-        console.log('Objects with URLs:', objectsWithUrls)
-        setObjects(objectsWithUrls as ImageObject[])
-      } catch (error) {
-        console.error('Failed to load objects:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadObjects()
-  }, [])
+  // Use generic canvas objects hook
+  const {
+    objects,
+    selectedObjectId,
+    addObject,
+    updateObject,
+    selectObject,
+    moveObject,
+    saveObjectPosition,
+  } = useCanvasObjects()
 
   // Sanitize initial viewport to ensure valid values
   const safeInitialViewport = useMemo(
@@ -114,7 +92,7 @@ export function InfiniteCanvas({
     return { x: worldX, y: worldY }
   }, [containerRef, dimensions, viewport])
 
-  // Handle clipboard paste
+    // Handle clipboard paste for images
   const handleImagePaste = useCallback(async (image: { file: File; dataUrl: string; width: number; height: number }, mousePosition?: { x: number; y: number }) => {
     try {
       // Convert data URL to buffer
@@ -145,7 +123,7 @@ export function InfiniteCanvas({
         : screenToWorld(dimensions.width / 2, dimensions.height / 2)
       
       // Create image object with data URL
-      const newImage: ImageObject & { _imageUrl?: string } = {
+      const newImage: DrawingObject & { _imageUrl?: string } = {
         id: `img-${Date.now()}`,
         type: 'image',
         x: worldPos.x - image.width / 2,
@@ -163,51 +141,30 @@ export function InfiniteCanvas({
         _imageUrl: assetDataUrl, // Store data URL for immediate display
       }
       
-      setObjects(prev => [...prev, newImage])
-      setSelectedObjectId(newImage.id)
-      
-      // Save to database (without _imageUrl which is not in schema)
-      const { _imageUrl, ...objectToSave } = newImage
-      await window.App.file.saveObject(objectToSave)
+      await addObject(newImage)
+      selectObject(newImage.id)
     } catch (error) {
       console.error('Failed to paste image:', error)
     }
-  }, [dimensions, screenToWorld, objects.length])
+  }, [dimensions, screenToWorld, objects.length, addObject, selectObject])
 
   useClipboardPaste({ onImagePaste: handleImagePaste })
 
-  // Object management callbacks
-  const handleUpdateObject = useCallback(async (id: string, updates: Partial<ImageObject>) => {
-    const updatedObject = { ...updates, id, updated: new Date().toISOString() }
-    
-    setObjects(prev => prev.map(obj => 
-      obj.id === id ? { ...obj, ...updatedObject } : obj
-    ))
-    
-    // Save to database
-    try {
-      await window.App.file.saveObject(updatedObject)
-    } catch (error) {
-      console.error('Failed to save object update:', error)
-    }
-  }, [])
+  // Object management callbacks - now using generic methods
+  const handleUpdateObject = useCallback(async (id: string, updates: Partial<DrawingObject>) => {
+    await updateObject(id, updates)
+  }, [updateObject])
 
   const handleSelectObject = useCallback((id: string) => {
-    setSelectedObjectId(id)
-  }, [])
+    selectObject(id)
+  }, [selectObject])
 
   const handleContextMenu = useCallback((event: React.MouseEvent, id: string) => {
     // TODO: Show context menu for object
     console.log('Context menu for object:', id, event)
   }, [])
 
-  const getImageUrl = useCallback((assetId: string) => {
-    // Find object with this asset and return cached URL
-    const obj = objects.find(o => o.object_data.assetId === assetId) as (ImageObject & { _imageUrl?: string }) | undefined
-    return obj?._imageUrl || ''
-  }, [objects])
-
-  // Handle object dragging
+  // Handle object dragging - generic for all object types
   const handleStartDrag = useCallback((e: React.MouseEvent, objectId: string) => {
     e.stopPropagation() // Stop canvas pan from triggering
     
@@ -228,49 +185,28 @@ export function InfiniteCanvas({
       finalX = startObjectX + deltaX
       finalY = startObjectY + deltaY
 
-      setObjects(prev => prev.map(obj =>
-        obj.id === objectId
-          ? { ...obj, x: finalX, y: finalY, updated: new Date().toISOString() }
-          : obj
-      ))
+      moveObject(objectId, finalX, finalY)
     }
 
     const handleDragEnd = async () => {
       document.removeEventListener('mousemove', handleDragMove)
       document.removeEventListener('mouseup', handleDragEnd)
       
-      // Get the full updated object from state and save to database
-      setObjects(prev => {
-        const updatedObject = prev.find(obj => obj.id === objectId)
-        if (updatedObject) {
-          // Save to database (exclude _imageUrl)
-          const { _imageUrl, ...objectToSave } = updatedObject as ImageObject & { _imageUrl?: string }
-          window.App.file.saveObject({
-            ...objectToSave,
-            x: finalX,
-            y: finalY,
-            updated: new Date().toISOString()
-          }).then(() => {
-            console.log(`Saved object ${objectId} position: (${finalX}, ${finalY})`)
-          }).catch(error => {
-            console.error('Failed to save object position:', error)
-          })
-        }
-        return prev
-      })
+      // Save final position to database
+      await saveObjectPosition(objectId, finalX, finalY)
     }
 
     document.addEventListener('mousemove', handleDragMove)
     document.addEventListener('mouseup', handleDragEnd)
-  }, [objects, screenToWorld])
+  }, [objects, screenToWorld, moveObject, saveObjectPosition])
 
   // Handle canvas click (deselect objects)
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     // Only deselect if clicking on the canvas itself, not on an object
     if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'svg') {
-      setSelectedObjectId(null)
+      selectObject(null)
     }
-  }, [])
+  }, [selectObject])
 
   // Handle panning - use functional update to always get latest viewport
   const { handleMouseDown } = useCanvasPan(containerRef, (deltaX, deltaY) => {
@@ -321,27 +257,32 @@ export function InfiniteCanvas({
         {/* Canvas content */}
         {children}
         
-        {/* Render image objects */}
-        {objects.map(obj => (
-          <foreignObject
-            key={obj.id}
-            x={obj.x}
-            y={obj.y}
-            width={obj.width}
-            height={obj.height}
-          >
-            <ImageWidget
-              image={obj}
-              isSelected={selectedObjectId === obj.id}
-              zoom={viewport.zoom}
-              onUpdate={handleUpdateObject}
-              onSelect={handleSelectObject}
-              onContextMenu={handleContextMenu}
-              onStartDrag={handleStartDrag}
-              getImageUrl={getImageUrl}
-            />
-          </foreignObject>
-        ))}
+        {/* Render all drawing objects */}
+        {objects.map(obj => {
+          // Get width/height for foreignObject (freehand doesn't have explicit dimensions)
+          const width = 'width' in obj ? obj.width : 100
+          const height = 'height' in obj ? obj.height : 100
+          
+          return (
+            <foreignObject
+              key={obj.id}
+              x={obj.x}
+              y={obj.y}
+              width={width}
+              height={height}
+            >
+              <CanvasObject
+                object={obj}
+                isSelected={selectedObjectId === obj.id}
+                zoom={viewport.zoom}
+                onUpdate={handleUpdateObject}
+                onSelect={handleSelectObject}
+                onContextMenu={handleContextMenu}
+                onStartDrag={handleStartDrag}
+              />
+            </foreignObject>
+          )
+        })}
       </svg>
 
       {/* Viewport info overlay */}
