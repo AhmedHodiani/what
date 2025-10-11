@@ -50,6 +50,5 @@ export interface WhatFileAsset {
   filename: string
   mime_type: string
   size: number
-  data: Buffer
   created: string
 }

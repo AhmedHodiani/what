@@ -48,6 +48,19 @@ const API = {
       console.log('[Preload] 🔵 IPC invoke returned:', result)
       return result
     },
+    // Asset operations
+    saveAsset: (filename: string, dataBuffer: ArrayBuffer, mimeType: string, tabId?: string) => 
+      ipcRenderer.invoke('file-save-asset', filename, dataBuffer, mimeType, tabId),
+    getAssetPath: (assetId: string, tabId?: string) => 
+      ipcRenderer.invoke('file-get-asset-path', assetId, tabId),
+    getAssetDataUrl: (assetId: string, tabId?: string) => 
+      ipcRenderer.invoke('file-get-asset-data-url', assetId, tabId),
+    deleteAsset: (assetId: string, tabId?: string) => 
+      ipcRenderer.invoke('file-delete-asset', assetId, tabId),
+    // Object operations
+    getObjects: (tabId?: string) => ipcRenderer.invoke('file-get-objects', tabId),
+    saveObject: (object: any, tabId?: string) => ipcRenderer.invoke('file-save-object', object, tabId),
+    deleteObject: (objectId: string, tabId?: string) => ipcRenderer.invoke('file-delete-object', objectId, tabId),
     // Debug operations
     getMetadata: (tabId?: string) => ipcRenderer.invoke('file-get-metadata', tabId),
   },

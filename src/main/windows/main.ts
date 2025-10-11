@@ -250,6 +250,100 @@ export async function MainWindow() {
     }
   })
 
+  // Asset handling IPC handlers
+  ipcMain.handle('file-save-asset', async (_event, filename: string, dataBuffer: ArrayBuffer, mimeType: string, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) throw new Error('No active tab')
+
+      const buffer = Buffer.from(dataBuffer)
+      const assetId = multiFileManager.saveAsset(targetTabId, filename, buffer, mimeType)
+      return assetId
+    } catch (error) {
+      console.error('Failed to save asset:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('file-get-asset-path', async (_event, assetId: string, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) return null
+
+      const assetPath = multiFileManager.getAssetPath(targetTabId, assetId)
+      return assetPath
+    } catch (error) {
+      console.error('Failed to get asset path:', error)
+      return null
+    }
+  })
+
+  ipcMain.handle('file-get-asset-data-url', async (_event, assetId: string, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) return null
+
+      const dataUrl = multiFileManager.getAssetDataUrl(targetTabId, assetId)
+      return dataUrl
+    } catch (error) {
+      console.error('Failed to get asset data URL:', error)
+      return null
+    }
+  })
+
+  ipcMain.handle('file-delete-asset', async (_event, assetId: string, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) throw new Error('No active tab')
+
+      multiFileManager.deleteAsset(targetTabId, assetId)
+      return true
+    } catch (error) {
+      console.error('Failed to delete asset:', error)
+      throw error
+    }
+  })
+
+  // Object operations
+  ipcMain.handle('file-get-objects', async (_event, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) return []
+
+      const objects = multiFileManager.getObjects(targetTabId)
+      return objects
+    } catch (error) {
+      console.error('Failed to get objects:', error)
+      return []
+    }
+  })
+
+  ipcMain.handle('file-save-object', async (_event, object: any, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) throw new Error('No active tab')
+
+      multiFileManager.saveObject(targetTabId, object)
+      return true
+    } catch (error) {
+      console.error('Failed to save object:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('file-delete-object', async (_event, objectId: string, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) throw new Error('No active tab')
+
+      multiFileManager.deleteObject(targetTabId, objectId)
+      return true
+    } catch (error) {
+      console.error('Failed to delete object:', error)
+      throw error
+    }
+  })
+
   // Notify renderer when maximize state changes
   window.on('maximize', () => {
     window.webContents.send('window-maximize-change', true)

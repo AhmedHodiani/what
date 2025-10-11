@@ -285,6 +285,95 @@ export class MultiFileManager {
   }
 
   /**
+   * Save asset to a specific tab's file
+   */
+  saveAsset(tabId: string, filename: string, data: Buffer, mimeType: string): string {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    const assetId = service.saveAsset(filename, data, mimeType)
+    this.markTabModified(tabId)
+    return assetId
+  }
+
+  /**
+   * Get asset path from a specific tab's file
+   */
+  getAssetPath(tabId: string, assetId: string): string | null {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    return service.getAssetPath(assetId)
+  }
+
+  /**
+   * Get asset as data URL from a specific tab's file
+   */
+  getAssetDataUrl(tabId: string, assetId: string): string | null {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    return service.getAssetDataUrl(assetId)
+  }
+
+  /**
+   * Delete asset from a specific tab's file
+   */
+  deleteAsset(tabId: string, assetId: string): void {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    service.deleteAsset(assetId)
+    this.markTabModified(tabId)
+  }
+
+  /**
+   * Get all objects from a specific tab's file
+   */
+  getObjects(tabId: string): any[] {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    return service.getObjects()
+  }
+
+  /**
+   * Save object to a specific tab's file
+   */
+  saveObject(tabId: string, object: any): void {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    service.saveObject(object)
+    this.markTabModified(tabId)
+  }
+
+  /**
+   * Delete object from a specific tab's file
+   */
+  deleteObject(tabId: string, objectId: string): void {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    service.deleteObject(objectId)
+    this.markTabModified(tabId)
+  }
+
+  /**
    * Close all tabs
    */
   closeAll(): void {

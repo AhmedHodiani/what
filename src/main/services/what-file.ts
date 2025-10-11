@@ -363,14 +363,13 @@ export class WhatFileService {
       )
     `)
 
-    // Assets table (for images, videos, etc.)
+    // Assets table (references to files in assets/ directory)
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS assets (
         id TEXT PRIMARY KEY,
         filename TEXT NOT NULL,
         mime_type TEXT NOT NULL,
         size INTEGER NOT NULL,
-        data BLOB NOT NULL,
         created TEXT NOT NULL
       )
     `)
@@ -603,9 +602,109 @@ export class WhatFileService {
   private markAsModified(): void {
     if (this.currentFile) {
       this.currentFile.isModified = true
-      this.updateMetadata({ modified: new Date().toISOString() })
     }
   }
+
+  /**
+   * Save asset file to assets directory and create database record
+   * Returns the asset ID
+   */
+  saveAsset(filename: string, data: Buffer, mimeType: string): string {
+    if (!this.db || !this.workingDir) {
+      throw new Error('No database connection or working directory')
+    }
+
+    // Generate unique ID
+    const assetId = `asset_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const assetsDir = join(this.workingDir, 'assets')
+    
+    // Ensure assets directory exists
+    if (!existsSync(assetsDir)) {
+      mkdirSync(assetsDir, { recursive: true })
+    }
+
+    // Save file to assets directory
+    const assetPath = join(assetsDir, filename)
+    writeFileSync(assetPath, data)
+
+    // Create database record (no BLOB, just reference)
+    const now = new Date().toISOString()
+    this.db
+      .prepare(
+        'INSERT INTO assets (id, filename, mime_type, size, created) VALUES (?, ?, ?, ?, ?)'
+      )
+      .run(assetId, filename, mimeType, data.length, now)
+
+    this.markAsModified()
+    return assetId
+  }
+
+  /**
+   * Get asset file path
+   */
+  getAssetPath(assetId: string): string | null {
+    if (!this.db || !this.workingDir) return null
+
+    const asset = this.db
+      .prepare('SELECT filename FROM assets WHERE id = ?')
+      .get(assetId) as { filename: string } | undefined
+
+    if (!asset) return null
+
+    const assetPath = join(this.workingDir, 'assets', asset.filename)
+    return existsSync(assetPath) ? assetPath : null
+  }
+
+  /**
+   * Get asset as data URL (for renderer display)
+   */
+  getAssetDataUrl(assetId: string): string | null {
+    if (!this.db || !this.workingDir) return null
+
+    const asset = this.db
+      .prepare('SELECT filename, mime_type FROM assets WHERE id = ?')
+      .get(assetId) as { filename: string; mime_type: string } | undefined
+
+    if (!asset) return null
+
+    const assetPath = join(this.workingDir, 'assets', asset.filename)
+    if (!existsSync(assetPath)) return null
+
+    // Read file and convert to base64 data URL
+    const fileData = readFileSync(assetPath)
+    const base64 = fileData.toString('base64')
+    return `data:${asset.mime_type};base64,${base64}`
+  }
+
+  /**
+   * Delete asset file and database record
+   */
+  deleteAsset(assetId: string): void {
+    if (!this.db || !this.workingDir) {
+      throw new Error('No database connection or working directory')
+    }
+
+    // Get asset filename
+    const asset = this.db
+      .prepare('SELECT filename FROM assets WHERE id = ?')
+      .get(assetId) as { filename: string } | undefined
+
+    if (asset) {
+      // Delete file
+      const assetPath = join(this.workingDir, 'assets', asset.filename)
+      if (existsSync(assetPath)) {
+        rmSync(assetPath)
+      }
+
+      // Delete database record
+      this.db.prepare('DELETE FROM assets WHERE id = ?').run(assetId)
+      this.markAsModified()
+    }
+  }
+
+  /**
+   * Cleanup resources
+   */
 }
 
 // Singleton instance
