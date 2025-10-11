@@ -276,6 +276,7 @@ export function MainScreenWithTabs() {
           key={`canvas-${tabId}-${viewportLoadCount}`}
           initialViewport={viewport}
           onViewportChange={(newViewport) => handleViewportChange(tabId, newViewport)}
+          tabId={tabId}
         >
           <CanvasDemoContent />
         </InfiniteCanvas>

@@ -9,6 +9,7 @@ const DEFAULT_CANVAS_ID = 'canvas_default'
 
 export function MainScreen() {
   const [currentFile, setCurrentFile] = useState<any>(null)
+  const [currentTabId, setCurrentTabId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingViewport, setIsLoadingViewport] = useState(false)
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 })
@@ -27,8 +28,8 @@ export function MainScreen() {
     const loadViewport = async () => {
       setIsLoadingViewport(true)
       try {
-        console.log('[MainScreen] Loading viewport for file:', currentFile.name)
-        const canvas = await window.App.file.getCanvas(DEFAULT_CANVAS_ID)
+        console.log('[MainScreen] Loading viewport for file:', currentFile.name, 'tabId:', currentTabId)
+        const canvas = await window.App.file.getCanvas(DEFAULT_CANVAS_ID, currentTabId || undefined)
         console.log('[MainScreen] Canvas data received:', canvas)
         if (canvas) {
           console.log('[MainScreen] Setting viewport to:', canvas.viewport_x, canvas.viewport_y, canvas.viewport_zoom)
@@ -69,7 +70,8 @@ export function MainScreen() {
         DEFAULT_CANVAS_ID,
         newViewport.x,
         newViewport.y,
-        newViewport.zoom
+        newViewport.zoom,
+        currentTabId || undefined
       ).then(() => {
         console.log('[MainScreen] ✅ Viewport save completed')
       }).catch(error => {
@@ -89,28 +91,40 @@ export function MainScreen() {
 
   useEffect(() => {
     // Check if there's an active file on mount
-    window.App.file.getCurrentFile().then(file => {
+    const loadInitialFile = async () => {
+      const file = await window.App.file.getCurrentFile()
+      const activeTabId = await window.App.tabs.getActiveId()
+      console.log('[MainScreen] Initial load - file:', file, 'tabId:', activeTabId)
       setCurrentFile(file)
+      setCurrentTabId(activeTabId)
       setIsLoading(false)
-    })
+    }
+    
+    loadInitialFile()
 
     // Listen for file opened events
-    window.App.file.onFileOpened(file => {
-      setCurrentFile(file)
+    window.App.file.onFileOpened((data: { file: any; tabId: string }) => {
+      console.log('[MainScreen] File opened event:', data)
+      setCurrentFile(data.file)
+      setCurrentTabId(data.tabId)
     })
   }, [])
 
   const handleNewFile = async () => {
-    const file = await window.App.file.new()
-    if (file) {
-      setCurrentFile(file)
+    const result = await window.App.file.new()
+    if (result) {
+      console.log('[MainScreen] New file created:', result)
+      setCurrentFile(result.file)
+      setCurrentTabId(result.tabId)
     }
   }
 
   const handleOpenFile = async () => {
-    const file = await window.App.file.open()
-    if (file) {
-      setCurrentFile(file)
+    const result = await window.App.file.open()
+    if (result) {
+      console.log('[MainScreen] File opened:', result)
+      setCurrentFile(result.file)
+      setCurrentTabId(result.tabId)
     }
   }
 
@@ -169,6 +183,7 @@ export function MainScreen() {
                 key={currentFile.path} // Force remount when file changes to apply viewport
                 initialViewport={viewport}
                 onViewportChange={handleViewportChange}
+                tabId={currentTabId}
               >
                 {/* Demo content - some circles in world space */}
                 <circle cx={0} cy={0} r={50} fill="#14b8a6" opacity={0.8} />

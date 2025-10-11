@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import type { DrawingObject } from 'lib/types/canvas'
 
 interface UseCanvasObjectsOptions {
+  tabId?: string
   onLoad?: (objects: DrawingObject[]) => void
   onError?: (error: Error) => void
 }
@@ -11,7 +12,7 @@ interface UseCanvasObjectsOptions {
  * Handles CRUD operations, loading, saving, and state management
  * Works with any DrawingObject type
  */
-export function useCanvasObjects({ onLoad, onError }: UseCanvasObjectsOptions = {}) {
+export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOptions = {}) {
   const [objects, setObjects] = useState<(DrawingObject & { _imageUrl?: string })[]>([])
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -28,22 +29,20 @@ export function useCanvasObjects({ onLoad, onError }: UseCanvasObjectsOptions = 
   useEffect(() => {
     const loadObjects = async () => {
       try {
-        const loadedObjects = await window.App.file.getObjects()
-        console.log('Loaded objects from database:', loadedObjects)
+        const loadedObjects = await window.App.file.getObjects(tabId)
         
         // Load asset data URLs for image objects (and other asset-based types in future)
         const objectsWithAssets = await Promise.all(
           loadedObjects.map(async (obj: DrawingObject) => {
             if (obj.type === 'image') {
-              const dataUrl = await window.App.file.getAssetDataUrl(obj.object_data.assetId)
-              console.log(`Loaded data URL for object ${obj.id}:`, dataUrl ? 'success' : 'failed')
+              const dataUrl = await window.App.file.getAssetDataUrl(obj.object_data.assetId, tabId)
               return { ...obj, _imageUrl: dataUrl }
             }
             return obj
           })
         )
         
-        console.log('Objects with assets loaded:', objectsWithAssets)
+        console.log(`✅ Loaded ${objectsWithAssets.length} objects for tab ${tabId}`)
         setObjects(objectsWithAssets as any)
         onLoad?.(objectsWithAssets)
       } catch (error) {
@@ -55,7 +54,7 @@ export function useCanvasObjects({ onLoad, onError }: UseCanvasObjectsOptions = 
     }
 
     loadObjects()
-  }, [onLoad, onError])
+  }, [tabId, onLoad, onError])
 
   // Add a new object
   const addObject = useCallback(async (object: DrawingObject & { _imageUrl?: string }) => {
@@ -64,28 +63,22 @@ export function useCanvasObjects({ onLoad, onError }: UseCanvasObjectsOptions = 
     // Save to database (exclude temporary fields like _imageUrl)
     const { _imageUrl, ...objectToSave } = object
     try {
-      await window.App.file.saveObject(objectToSave)
-      console.log('Saved new object:', object.id)
+      await window.App.file.saveObject(objectToSave, tabId)
     } catch (error) {
       console.error('Failed to save new object:', error)
     }
-  }, [])
+  }, [tabId])
 
   // Update an existing object
   const updateObject = useCallback(async (id: string, updates: Partial<DrawingObject>) => {
-    console.log('updateObject called with:', { id, updates })
-    
     // Use ref to get current objects without stale closure
     const currentObjects = objectsRef.current
     const existingObject = currentObjects.find(obj => obj.id === id)
     
     if (!existingObject) {
       console.error('❌ No object found with id:', id)
-      console.error('Available object IDs:', currentObjects.map(o => o.id))
       return
     }
-    
-    console.log('✅ Found object to update:', existingObject)
     
     // Create the updated object
     const updated = { 
@@ -94,21 +87,18 @@ export function useCanvasObjects({ onLoad, onError }: UseCanvasObjectsOptions = 
       updated: new Date().toISOString() 
     } as DrawingObject & { _imageUrl?: string }
     
-    console.log('Updated object:', updated)
-    
     // Update state
     setObjects(prev => prev.map(obj => obj.id === id ? updated : obj))
     
     // Save to database (without _imageUrl)
     const { _imageUrl, ...objectToSave } = updated
     try {
-      console.log('Saving complete object to database:', objectToSave)
-      await window.App.file.saveObject(objectToSave)
-      console.log('✅ Successfully saved object:', id)
+      await window.App.file.saveObject(objectToSave, tabId)
+      console.log('✅ Saved object:', id)
     } catch (error) {
       console.error('❌ Failed to save object update:', error)
     }
-  }, [])
+  }, [tabId])
 
   // Delete an object
   const deleteObject = useCallback(async (id: string) => {
@@ -116,12 +106,11 @@ export function useCanvasObjects({ onLoad, onError }: UseCanvasObjectsOptions = 
     
     // Delete from database
     try {
-      await window.App.file.deleteObject(id)
-      console.log('Deleted object:', id)
+      await window.App.file.deleteObject(id, tabId)
     } catch (error) {
       console.error('Failed to delete object:', error)
     }
-  }, [])
+  }, [tabId])
 
   // Select an object
   const selectObject = useCallback((id: string | null) => {

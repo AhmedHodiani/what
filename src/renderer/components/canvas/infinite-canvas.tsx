@@ -18,6 +18,7 @@ interface InfiniteCanvasProps {
   onViewportChange?: (viewport: Viewport) => void
   showViewportInfo?: boolean
   showGrid?: boolean
+  tabId?: string | null
   children?: React.ReactNode
 }
 
@@ -47,6 +48,7 @@ export function InfiniteCanvas({
   onViewportChange,
   showViewportInfo = true,
   showGrid = true,
+  tabId,
   children,
 }: InfiniteCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
@@ -60,7 +62,7 @@ export function InfiniteCanvas({
     selectObject,
     moveObject,
     saveObjectPosition,
-  } = useCanvasObjects()
+  } = useCanvasObjects({ tabId: tabId || undefined })
 
   // Sanitize initial viewport to ensure valid values
   const safeInitialViewport = useMemo(
@@ -108,11 +110,12 @@ export function InfiniteCanvas({
       const assetId = await window.App.file.saveAsset(
         `image-${Date.now()}.png`,
         buffer,
-        'image/png'
+        'image/png',
+        tabId || undefined
       )
       
       // Get asset as data URL for display
-      const assetDataUrl = await window.App.file.getAssetDataUrl(assetId)
+      const assetDataUrl = await window.App.file.getAssetDataUrl(assetId, tabId || undefined)
       if (!assetDataUrl) {
         throw new Error('Failed to retrieve asset data URL')
       }
