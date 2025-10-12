@@ -277,6 +277,7 @@ export function MainScreenWithTabs() {
           initialViewport={viewport}
           onViewportChange={(newViewport) => handleViewportChange(tabId, newViewport)}
           tabId={tabId}
+          isActive={tabId === activeTabId}
         >
           <CanvasDemoContent />
         </InfiniteCanvas>

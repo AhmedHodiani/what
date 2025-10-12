@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, RefObject } from 'react'
 
 export interface PastedImage {
   file: File
@@ -10,6 +10,7 @@ export interface PastedImage {
 interface UseClipboardPasteOptions {
   onImagePaste: (image: PastedImage, mousePosition?: { x: number; y: number }) => void
   enabled?: boolean
+  containerRef?: RefObject<HTMLElement | null> // Reference to canvas container for position tracking
 }
 
 /**
@@ -18,10 +19,18 @@ interface UseClipboardPasteOptions {
  * 
  * @param onImagePaste - Callback fired when an image is pasted
  * @param enabled - Whether paste handling is enabled (default: true)
+ * @param containerRef - Reference to container element for accurate mouse position
  */
-export function useClipboardPaste({ onImagePaste, enabled = true }: UseClipboardPasteOptions) {
+export function useClipboardPaste({ onImagePaste, enabled = true, containerRef }: UseClipboardPasteOptions) {
   useEffect(() => {
     if (!enabled) return
+
+    // Track last known mouse position
+    let lastMousePosition = { x: 0, y: 0 }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      lastMousePosition = { x: e.clientX, y: e.clientY }
+    }
 
     const handlePaste = async (e: ClipboardEvent) => {
       // Check if clipboard has image data
@@ -52,10 +61,16 @@ export function useClipboardPaste({ onImagePaste, enabled = true }: UseClipboard
             img.src = dataUrl
           })
 
-          // Get mouse position at time of paste (if available)
-          const mousePosition = {
-            x: window.innerWidth / 2,  // Default to center if no mouse position
-            y: window.innerHeight / 2,
+          // Use last known mouse position, or fallback to container center
+          let mousePosition = lastMousePosition
+          
+          // If no mouse movement detected yet, use container center
+          if (mousePosition.x === 0 && mousePosition.y === 0 && containerRef?.current) {
+            const rect = containerRef.current.getBoundingClientRect()
+            mousePosition = {
+              x: rect.left + rect.width / 2,
+              y: rect.top + rect.height / 2,
+            }
           }
 
           onImagePaste(
@@ -73,7 +88,13 @@ export function useClipboardPaste({ onImagePaste, enabled = true }: UseClipboard
       }
     }
 
+    // Track mouse position globally for paste events
+    document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('paste', handlePaste)
-    return () => document.removeEventListener('paste', handlePaste)
-  }, [onImagePaste, enabled])
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('paste', handlePaste)
+    }
+  }, [onImagePaste, enabled, containerRef])
 }

@@ -20,6 +20,7 @@ interface InfiniteCanvasProps {
   showViewportInfo?: boolean
   showGrid?: boolean
   tabId?: string | null
+  isActive?: boolean // Whether this canvas is the active tab
   children?: React.ReactNode
 }
 
@@ -50,6 +51,7 @@ export function InfiniteCanvas({
   showViewportInfo = true,
   showGrid = true,
   tabId,
+  isActive = true, // Default to true for backwards compatibility
   children,
 }: InfiniteCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
@@ -150,9 +152,13 @@ export function InfiniteCanvas({
     } catch (error) {
       console.error('Failed to paste image:', error)
     }
-  }, [dimensions, screenToWorld, objects.length, addObject, selectObject])
+  }, [dimensions, screenToWorld, objects.length, addObject, selectObject, tabId])
 
-  useClipboardPaste({ onImagePaste: handleImagePaste })
+  useClipboardPaste({ 
+    onImagePaste: handleImagePaste, 
+    enabled: isActive,
+    containerRef, // Pass container ref for accurate mouse position tracking
+  })
 
   // Object management callbacks - now using generic methods
   const handleUpdateObject = useCallback(async (id: string, updates: Partial<DrawingObject>) => {
