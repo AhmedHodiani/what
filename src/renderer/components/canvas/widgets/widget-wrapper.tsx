@@ -114,11 +114,16 @@ export function WidgetWrapper({
     >
       {children}
 
-      {/* Resize handles when selected - SW (left-bottom), E (right-side), SE (right-bottom) */}
+      {/* Resize handles when selected - E (right-side), SE (right-bottom), S (bottom-side) */}
       {isSelected && isResizable && (
         <>
           {(['e', 'se', 's'] as ResizeHandle[]).map((handle) => (
-            <ResizeHandleComponent key={handle} handle={handle} onResizeStart={handleResizeStart} />
+            <ResizeHandleComponent 
+              key={handle} 
+              handle={handle} 
+              zoom={zoom}
+              onResizeStart={handleResizeStart} 
+            />
           ))}
         </>
       )}
@@ -128,23 +133,30 @@ export function WidgetWrapper({
 
 /**
  * Individual resize handle component
+ * Scales inversely with zoom to maintain constant screen size
  */
 function ResizeHandleComponent({
   handle,
+  zoom,
   onResizeStart,
 }: {
   handle: ResizeHandle
+  zoom: number
   onResizeStart: (e: React.MouseEvent, handle: ResizeHandle) => void
 }) {
+  // Base size in pixels (will be scaled inversely with zoom)
+  const scaledSize = 20
+  const offset = 3 // Center the handle on the edge, max 3px
+  
   const positions: Record<ResizeHandle, React.CSSProperties> = {
-    se: { bottom: '-10px', right: '-10px' },
-    s: { bottom: '-10px', left: '50%', transform: 'translateX(-50%)' },
-    e: { right: '-10px', top: '50%', transform: 'translateY(-50%)' },
-    sw: { bottom: '-10px', left: '-10px' },
-    w: { left: '-10px', top: '50%', transform: 'translateY(-50%)' },
-    nw: { top: '-10px', left: '-10px' },
-    n: { top: '-10px', left: '50%', transform: 'translateX(-50%)' },
-    ne: { top: '-10px', right: '-10px' },
+    se: { bottom: `-${offset}px`, right: `-${offset}px` },
+    s: { bottom: `-${offset}px`, left: '50%', transform: `translateX(-50%) scale(${1/zoom})`, transformOrigin: 'center' },
+    e: { right: `-${offset}px`, top: '50%', transform: `translateY(-50%) scale(${1/zoom})`, transformOrigin: 'center' },
+    sw: { bottom: `-${offset}px`, left: `-${offset}px` },
+    w: { left: `-${offset}px`, top: '50%', transform: `translateY(-50%) scale(${1/zoom})`, transformOrigin: 'center' },
+    nw: { top: `-${offset}px`, left: `-${offset}px` },
+    n: { top: `-${offset}px`, left: '50%', transform: `translateX(-50%) scale(${1/zoom})`, transformOrigin: 'center' },
+    ne: { top: `-${offset}px`, right: `-${offset}px` },
   }
 
   // Map resize handles to proper CSS cursor values
@@ -161,11 +173,16 @@ function ResizeHandleComponent({
 
   return (
     <div
-      className="resize-handle absolute w-5 h-5 bg-[#007acc] border-2 border-white rounded-sm shadow-md hover:bg-[#005999] hover:scale-110 z-[1000]"
+      className="resize-handle absolute bg-[#007acc] border-2 border-white rounded-sm shadow-md hover:bg-[#005999] hover:scale-110 z-[1000]"
       style={{ 
+        width: `${scaledSize}px`,
+        height: `${scaledSize}px`,
         ...positions[handle], 
         cursor: cursors[handle],
-        pointerEvents: 'all' 
+        pointerEvents: 'all',
+        // Maintain visual consistency regardless of zoom
+        transform: positions[handle].transform || `scale(${1/zoom})`,
+        transformOrigin: positions[handle].transformOrigin || 'center',
       }}
       onMouseDown={(e) => onResizeStart(e, handle)}
     />
