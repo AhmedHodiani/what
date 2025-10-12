@@ -13,12 +13,15 @@
 - [x] Update `hooks/index.ts` exports
 
 ## Week 2: Widget System
-- [ ] Create `sticky-note-widget.tsx` using WidgetWrapper
+- [x] Create `sticky-note-widget.tsx` using WidgetWrapper
+- [x] Create `canvas-toolbar.tsx` with tool selection
+- [x] Add `use-canvas-tool.ts` for creation flow
+- [x] Integrate toolbar into canvas with keyboard shortcuts
+- [x] Add sticky note creation on canvas click
+- [x] Create `canvas-properties-panel.tsx` for sticky note customization
+- [x] Test sticky note (create, edit, resize, drag, colors, save/load)
 - [ ] Create `text-widget.tsx` using WidgetWrapper
 - [ ] Create `shape-widget.tsx` using WidgetWrapper (rect, circle, ellipse, triangle, star)
-- [ ] Create `canvas-toolbar.tsx` with tool selection
-- [ ] Add `use-canvas-tool.ts` for creation flow
-- [ ] Test all widgets (create, edit, resize, drag, save/load)
 
 ## Week 3: Undo/Redo
 - [ ] Create `lib/commands/command-interface.ts`
@@ -38,4 +41,4 @@
 - [ ] Add file validation with magic number check
 - [ ] Performance optimization & polish
 
-## Progress: 10/34 tasks (29%)
+## Progress: 17/34 tasks (50%)

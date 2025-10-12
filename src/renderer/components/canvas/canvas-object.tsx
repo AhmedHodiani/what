@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import type { DrawingObject } from 'lib/types/canvas'
 import { ImageWidget } from './image-widget'
+import { StickyNoteWidget } from './widgets/sticky-note-widget'
 
 interface CanvasObjectProps {
   object: DrawingObject & { _imageUrl?: string }
@@ -52,11 +53,16 @@ export function CanvasObject({
       )
 
     case 'sticky-note':
-      // TODO: Implement StickyNoteWidget
       return (
-        <div className="text-yellow-400">
-          Sticky Note Widget - Coming Soon
-        </div>
+        <StickyNoteWidget
+          object={object}
+          isSelected={isSelected}
+          zoom={zoom}
+          onUpdate={onUpdate}
+          onSelect={onSelect}
+          onContextMenu={onContextMenu}
+          onStartDrag={onStartDrag}
+        />
       )
 
     case 'text':

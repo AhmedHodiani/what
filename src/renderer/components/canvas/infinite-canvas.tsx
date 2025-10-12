@@ -1,6 +1,7 @@
 import { useRef, useMemo, useCallback } from 'react'
-import type { Viewport, DrawingObject } from 'lib/types/canvas'
+import type { Viewport, DrawingObject, StickyNoteObject } from 'lib/types/canvas'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
+import { generateId } from 'lib/utils/id-generator'
 import { useContainerSize } from 'renderer/hooks/use-container-size'
 import { useViewport } from 'renderer/hooks/use-viewport'
 import { useCanvasPan } from 'renderer/hooks/use-canvas-pan'
@@ -10,7 +11,10 @@ import { useCanvasObjects } from 'renderer/hooks/use-canvas-objects'
 import { ErrorBoundary } from '../error-boundary'
 import { CanvasGrid } from './canvas-grid'
 import { CanvasViewportDisplay } from './canvas-viewport-display'
+import { CanvasToolbar } from './canvas-toolbar'
+import { CanvasPropertiesPanel } from './canvas-properties-panel'
 import { CanvasObject } from './canvas-object'
+import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
 
 interface InfiniteCanvasProps {
   initialViewport?: Viewport
@@ -19,6 +23,7 @@ interface InfiniteCanvasProps {
   onViewportChange?: (viewport: Viewport) => void
   showViewportInfo?: boolean
   showGrid?: boolean
+  showToolbar?: boolean
   tabId?: string | null
   isActive?: boolean // Whether this canvas is the active tab
   children?: React.ReactNode
@@ -50,11 +55,15 @@ export function InfiniteCanvas({
   onViewportChange,
   showViewportInfo = true,
   showGrid = true,
+  showToolbar = true,
   tabId,
   isActive = true, // Default to true for backwards compatibility
   children,
 }: InfiniteCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
+  
+  // Tool selection
+  const { currentTool, setTool } = useCanvasTool()
 
   // Use generic canvas objects hook
   const {
@@ -211,15 +220,49 @@ export function InfiniteCanvas({
   }, [objects, screenToWorld, moveObject, saveObjectPosition])
 
   // Handle canvas click (deselect objects when clicking on background)
-  const handleCanvasBackgroundClick = useCallback((e: React.MouseEvent) => {
+  const handleCanvasBackgroundClick = useCallback(async (e: React.MouseEvent) => {
     // Check if we clicked on a widget (marked by widget-wrapper)
     if ((e as any)._clickedWidget) {
       return // Don't deselect if we clicked on a widget
     }
     
+    // If a creation tool is selected, create that object type
+    if (currentTool !== 'select') {
+      const worldPos = screenToWorld(e.clientX, e.clientY)
+      
+      switch (currentTool) {
+        case 'sticky-note': {
+          const stickyNote: StickyNoteObject = {
+            id: generateId(),
+            type: 'sticky-note',
+            x: worldPos.x - 100, // Center the note
+            y: worldPos.y - 100,
+            width: 200,
+            height: 200,
+            z_index: objects.length,
+            object_data: {
+              text: '',
+              paperColor: '#ffd700', // Classic yellow
+              fontColor: '#333333',
+              fontSize: 16,
+              fontFamily: 'Kalam',
+            },
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+          }
+          await addObject(stickyNote)
+          selectObject(stickyNote.id)
+          setTool('select') // Switch back to select mode after creating
+          break
+        }
+        // TODO: Add other object types (text, shape, etc.)
+      }
+      return
+    }
+    
     // Otherwise, deselect (clicked on canvas background)
     selectObject(null)
-  }, [selectObject])
+  }, [currentTool, screenToWorld, objects.length, addObject, selectObject, setTool])
 
   // Handle panning - use functional update to always get latest viewport
   const { handleMouseDown } = useCanvasPan(containerRef, (deltaX, deltaY) => {
@@ -308,6 +351,15 @@ export function InfiniteCanvas({
 
       {/* Viewport info overlay */}
       {showViewportInfo && <CanvasViewportDisplay viewport={viewport} />}
+      
+      {/* Canvas toolbar */}
+      {showToolbar && <CanvasToolbar selectedTool={currentTool} onToolSelect={setTool} />}
+      
+      {/* Properties panel for selected object */}
+      <CanvasPropertiesPanel 
+        selectedObject={objects.find(obj => obj.id === selectedObjectId) || null}
+        onUpdate={handleUpdateObject}
+      />
     </div>
   )
 }
