@@ -7,6 +7,7 @@ import { useCanvasPan } from 'renderer/hooks/use-canvas-pan'
 import { useCanvasZoom } from 'renderer/hooks/use-canvas-zoom'
 import { useClipboardPaste } from 'renderer/hooks/use-clipboard-paste'
 import { useCanvasObjects } from 'renderer/hooks/use-canvas-objects'
+import { ErrorBoundary } from '../error-boundary'
 import { CanvasGrid } from './canvas-grid'
 import { CanvasViewportDisplay } from './canvas-viewport-display'
 import { CanvasObject } from './canvas-object'
@@ -203,12 +204,15 @@ export function InfiniteCanvas({
     document.addEventListener('mouseup', handleDragEnd)
   }, [objects, screenToWorld, moveObject, saveObjectPosition])
 
-  // Handle canvas click (deselect objects)
-  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
-    // Only deselect if clicking on the canvas itself, not on an object
-    if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'svg') {
-      selectObject(null)
+  // Handle canvas click (deselect objects when clicking on background)
+  const handleCanvasBackgroundClick = useCallback((e: React.MouseEvent) => {
+    // Check if we clicked on a widget (marked by widget-wrapper)
+    if ((e as any)._clickedWidget) {
+      return // Don't deselect if we clicked on a widget
     }
+    
+    // Otherwise, deselect (clicked on canvas background)
+    selectObject(null)
   }, [selectObject])
 
   // Handle panning - use functional update to always get latest viewport
@@ -245,7 +249,6 @@ export function InfiniteCanvas({
       ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-[#0a0a0a] cursor-grab select-none active:cursor-grabbing"
       onMouseDown={handleMouseDown}
-      onClick={handleCanvasClick}
     >
       <svg
         ref={svgRef}
@@ -253,6 +256,7 @@ export function InfiniteCanvas({
         width={dimensions.width}
         height={dimensions.height}
         viewBox={viewBox}
+        onClick={handleCanvasBackgroundClick}
       >
         {/* Grid pattern */}
         {showGrid && <CanvasGrid viewport={viewport} dimensions={dimensions} />}
@@ -267,23 +271,31 @@ export function InfiniteCanvas({
           const height = 'height' in obj ? obj.height : 100
           
           return (
-            <foreignObject
+            <ErrorBoundary
               key={obj.id}
-              x={obj.x}
-              y={obj.y}
-              width={width}
-              height={height}
+              fallback={(error) => (
+                <text x={obj.x} y={obj.y} fill="#ff0000" fontSize="12">
+                  ❌ Error rendering {obj.type}: {error.message}
+                </text>
+              )}
             >
-              <CanvasObject
-                object={obj}
-                isSelected={selectedObjectId === obj.id}
-                zoom={viewport.zoom}
-                onUpdate={handleUpdateObject}
-                onSelect={handleSelectObject}
-                onContextMenu={handleContextMenu}
-                onStartDrag={handleStartDrag}
-              />
-            </foreignObject>
+              <foreignObject
+                x={obj.x}
+                y={obj.y}
+                width={width}
+                height={height}
+              >
+                <CanvasObject
+                  object={obj}
+                  isSelected={selectedObjectId === obj.id}
+                  zoom={viewport.zoom}
+                  onUpdate={handleUpdateObject}
+                  onSelect={handleSelectObject}
+                  onContextMenu={handleContextMenu}
+                  onStartDrag={handleStartDrag}
+                />
+              </foreignObject>
+            </ErrorBoundary>
           )
         })}
       </svg>

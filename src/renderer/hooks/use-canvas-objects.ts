@@ -138,12 +138,12 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
         x,
         y,
         updated: new Date().toISOString()
-      })
+      }, tabId)
       console.log(`Saved object ${id} position: (${x}, ${y})`)
     } catch (error) {
       console.error('Failed to save object position:', error)
     }
-  }, [objects])
+  }, [tabId])
 
   return {
     objects,

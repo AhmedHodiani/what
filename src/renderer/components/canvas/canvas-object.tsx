@@ -40,7 +40,7 @@ export function CanvasObject({
     case 'image':
       return (
         <ImageWidget
-          image={object}
+          object={object}
           isSelected={isSelected}
           zoom={zoom}
           onUpdate={onUpdate}

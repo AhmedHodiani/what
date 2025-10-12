@@ -74,6 +74,8 @@ export async function MainWindow() {
   })
 
   // File operation IPC handlers
+  // Remove old handlers for hot reload
+  ipcMain.removeHandler('file-new')
   ipcMain.handle('file-new', async () => {
     const { filePath, canceled } = await dialog.showSaveDialog(window, {
       title: 'Create New What File',
@@ -100,6 +102,7 @@ export async function MainWindow() {
     }
   })
 
+  ipcMain.removeHandler('file-open')
   ipcMain.handle('file-open', async () => {
     const { filePaths, canceled } = await dialog.showOpenDialog(window, {
       title: 'Open What File',
@@ -125,6 +128,7 @@ export async function MainWindow() {
     }
   })
 
+  ipcMain.removeHandler('file-save')
   ipcMain.handle('file-save', async (_event, tabId?: string) => {
     try {
       const file = tabId ? multiFileManager.saveTab(tabId) : multiFileManager.saveActiveFile()
@@ -139,6 +143,7 @@ export async function MainWindow() {
     }
   })
 
+  ipcMain.removeHandler('file-save-as')
   ipcMain.handle('file-save-as', async () => {
     const { filePath, canceled } = await dialog.showSaveDialog(window, {
       title: 'Save What File As',
@@ -155,6 +160,7 @@ export async function MainWindow() {
     return null
   })
 
+  ipcMain.removeHandler('file-close')
   ipcMain.handle('file-close', async (_event, tabId?: string) => {
     if (tabId) {
       multiFileManager.closeTab(tabId)
@@ -167,24 +173,29 @@ export async function MainWindow() {
     return true
   })
 
+  ipcMain.removeHandler('file-get-current')
   ipcMain.handle('file-get-current', async () => {
     return multiFileManager.getActiveFile()
   })
 
   // New tab management handlers
+  ipcMain.removeHandler('tabs-get-all')
   ipcMain.handle('tabs-get-all', async () => {
     return multiFileManager.getTabs()
   })
 
+  ipcMain.removeHandler('tabs-set-active')
   ipcMain.handle('tabs-set-active', async (_event, tabId: string) => {
     multiFileManager.setActiveTab(tabId)
     return true
   })
 
+  ipcMain.removeHandler('tabs-get-active-id')
   ipcMain.handle('tabs-get-active-id', async () => {
     return multiFileManager.getActiveTabId()
   })
 
+  ipcMain.removeHandler('file-get-canvas')
   ipcMain.handle('file-get-canvas', async (_event, canvasId: string, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
@@ -236,6 +247,7 @@ export async function MainWindow() {
     }
   })
 
+  ipcMain.removeHandler('file-get-metadata')
   ipcMain.handle('file-get-metadata', async (_event, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
@@ -251,6 +263,7 @@ export async function MainWindow() {
   })
 
   // Asset handling IPC handlers
+  ipcMain.removeHandler('file-save-asset')
   ipcMain.handle('file-save-asset', async (_event, filename: string, dataBuffer: ArrayBuffer, mimeType: string, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
@@ -265,6 +278,7 @@ export async function MainWindow() {
     }
   })
 
+  ipcMain.removeHandler('file-get-asset-path')
   ipcMain.handle('file-get-asset-path', async (_event, assetId: string, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
@@ -278,6 +292,7 @@ export async function MainWindow() {
     }
   })
 
+  ipcMain.removeHandler('file-get-asset-data-url')
   ipcMain.handle('file-get-asset-data-url', async (_event, assetId: string, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
@@ -291,6 +306,7 @@ export async function MainWindow() {
     }
   })
 
+  ipcMain.removeHandler('file-delete-asset')
   ipcMain.handle('file-delete-asset', async (_event, assetId: string, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
@@ -305,6 +321,7 @@ export async function MainWindow() {
   })
 
   // Object operations
+  ipcMain.removeHandler('file-get-objects')
   ipcMain.handle('file-get-objects', async (_event, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
@@ -318,6 +335,7 @@ export async function MainWindow() {
     }
   })
 
+  ipcMain.removeHandler('file-save-object')
   ipcMain.handle('file-save-object', async (_event, object: any, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
@@ -331,6 +349,7 @@ export async function MainWindow() {
     }
   })
 
+  ipcMain.removeHandler('file-delete-object')
   ipcMain.handle('file-delete-object', async (_event, objectId: string, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
