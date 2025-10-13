@@ -1,7 +1,8 @@
 # ARCHITECTURE
 
-## Core Pattern: Widget System
+## Core Patterns
 
+### Widget System
 **Problem:** Adding new drawing objects required 300+ lines of boilerplate  
 **Solution:** `WidgetWrapper` handles all interactions, widgets only render content
 
@@ -16,6 +17,24 @@ export function ImageWidget({ object, ...props }: WidgetProps) {
     </WidgetWrapper>
   )
 }
+```
+
+### Multi-Select System
+- **Ctrl+Click**: Toggle individual object selection
+- **Right-click + drag**: Rectangle selection (Windows 7-style)
+- **Group operations**: Selected objects move together, context menu multi-delete
+- **State**: `selectedObjectIds: string[]` in `use-canvas-objects.ts`
+
+### Resize Performance Optimization
+**Problem:** Resize called `updateObject` on every mouse move → hundreds of DB writes  
+**Solution:** `skipSave` option + single save on mouse up
+
+```typescript
+// During resize (mouse move)
+onUpdate(id, { width, height }, { skipSave: true })  // Only updates React state
+
+// After resize (mouse up)
+onUpdate(id, { width, height })  // Saves to database
 ```
 
 ## File Structure
@@ -52,12 +71,16 @@ src/
 │   │   │   ├── infinite-canvas.tsx        [Main orchestrator]
 │   │   │   ├── canvas-object.tsx          [Type dispatcher]
 │   │   │   ├── canvas-grid.tsx            [Grid background]
-│   │   │   ├── canvas-viewport-display.tsx [Debug overlay]
+│   │   │   ├── canvas-viewport-display.tsx [Stats: zoom, position, objects, size]
 │   │   │   ├── canvas-error-boundary.tsx  [Canvas-specific errors]
 │   │   │   ├── image-widget.tsx           [Image widget]
 │   │   │   └── widgets/
 │   │   │       ├── widget-wrapper.tsx     [Reusable interactions]
-│   │   │       └── widget-interface.ts    [TypeScript interfaces]
+│   │   │       ├── widget-interface.ts    [TypeScript interfaces]
+│   │   │       ├── sticky-note-widget.tsx [Sticky notes]
+│   │   │       ├── emoji-widget.tsx       [Emoji objects]
+│   │   │       ├── freehand-widget.tsx    [Pen strokes]
+│   │   │       └── arrow-widget.tsx       [Arrows]
 │   │   │
 │   │   ├── error-boundary.tsx             [Generic error boundary]
 │   │   ├── layout/menu-bar.tsx            [Top menu]
@@ -147,6 +170,36 @@ export function isImageObject(obj: DrawingObject): obj is ImageObject {
 }
 ```
 
+### 5. SkipSave Pattern (Performance)
+```typescript
+// updateObject signature
+const updateObject = useCallback(async (
+  id: string,
+  updates: Partial<DrawingObject>,
+  options?: { skipSave?: boolean }  // Skip database write for live updates
+) => {
+  // ... update React state
+  if (!options?.skipSave) {
+    await window.App.file.saveObject(objectToSave, tabId)  // Only save if not skipped
+  }
+}, [tabId])
+```
+
+### 6. Deep Merge for object_data
+```typescript
+// In updateObject - preserves nested fields
+const updated = {
+  ...existingObject,
+  ...updates,
+  ...(updates.object_data ? {
+    object_data: {
+      ...existingObject.object_data,  // Keep existing fields
+      ...updates.object_data,          // Merge in updates
+    }
+  } : {}),
+}
+```
+
 ## Database Schema
 
 ```sql
@@ -222,7 +275,10 @@ export function StickyNoteWidget({ object, ...props }) {
 
 ## Performance Notes
 
-- Viewport saves debounced 500ms (not on every frame)
-- Objects only save on drag end (not during drag)
-- Files only persist on window close (or manual save)
-- Use `key={currentFile.path}` to remount canvas when file changes
+- **Viewport saves**: Debounced 500ms (not on every frame)
+- **Object drag**: Updates state live, saves to DB on drag end only
+- **Object resize**: Uses `skipSave: true` during drag, saves once on mouse up
+- **File size**: Calculated from working directory with 500ms polling
+- **Multi-select drag**: Updates all objects live, batches saves on drag end
+- **Files persist**: On window close (or manual save)
+- **Canvas remount**: Use `key={currentFile.path}` to remount when file changes

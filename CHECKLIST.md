@@ -12,7 +12,7 @@
 - [x] Wrap objects in ErrorBoundary in `infinite-canvas.tsx`
 - [x] Update `hooks/index.ts` exports
 
-## Week 2: Widget System
+## Week 2: Widget System & Features
 - [x] Create `sticky-note-widget.tsx` using WidgetWrapper
 - [x] Create `canvas-toolbar.tsx` with tool selection
 - [x] Add `use-canvas-tool.ts` for creation flow
@@ -22,7 +22,17 @@
 - [x] Test sticky note (create, edit, resize, drag, colors, save/load)
 - [x] Create `freehand-widget.tsx` for pen/brush strokes
 - [x] Add `use-freehand-drawing.ts` hook for drawing interaction
-- [ ] Integrate freehand drawing into canvas
+- [x] Integrate freehand drawing into canvas
+- [x] Add arrow widget with curved/straight modes
+- [x] Create `emoji-widget.tsx` with 6 categories (~400 emojis)
+- [x] Multi-select system: Ctrl+Click, right-click rectangle selection
+- [x] Group operations: multi-drag, multi-delete via context menu
+- [x] Viewport stats panel: object count + real-time file size
+- [x] Real-time file size from working directory (500ms polling)
+- [x] Asset cleanup: delete image files when objects deleted
+- [x] Resize performance: skipSave pattern for live updates
+- [x] Fix sticky note text preservation during resize
+- [x] Arrow keyboard movement for freehand/arrow objects
 - [ ] Add brush properties panel
 - [ ] Create `text-widget.tsx` using WidgetWrapper
 - [ ] Create `shape-widget.tsx` using WidgetWrapper (rect, circle, ellipse, triangle, star)
@@ -45,4 +55,4 @@
 - [ ] Add file validation with magic number check
 - [ ] Performance optimization & polish
 
-## Progress: 19/36 tasks (53%)
+## Progress: 29/46 tasks (63%)
