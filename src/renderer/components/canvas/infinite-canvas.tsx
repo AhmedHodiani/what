@@ -265,13 +265,19 @@ export function InfiniteCanvas({
     event.preventDefault()
     event.stopPropagation()
     
+    // If the right-clicked object is not in the current selection, select only it
+    // If it's already selected as part of multi-selection, keep the multi-selection
+    if (!selectedObjectIds.includes(id)) {
+      selectObject(id)
+    }
+    
     // Show context menu at mouse position
     setContextMenu({
       x: event.clientX,
       y: event.clientY,
       objectId: id,
     })
-  }, [])
+  }, [selectedObjectIds, selectObject])
 
   // Handle object dragging - generic for all object types
   const handleStartDrag = useCallback((e: React.MouseEvent, objectId: string) => {
@@ -579,11 +585,16 @@ export function InfiniteCanvas({
   // Delete handlers
   const handleDeleteClick = useCallback(() => {
     if (contextMenu) {
-      setObjectToDelete(contextMenu.objectId)
+      // If the right-clicked object is part of multi-selection, delete all selected objects
+      if (selectedObjectIds.includes(contextMenu.objectId) && selectedObjectIds.length > 1) {
+        setObjectToDelete('multiple')
+      } else {
+        setObjectToDelete(contextMenu.objectId)
+      }
       setShowDeleteConfirmation(true)
       setContextMenu(null)
     }
-  }, [contextMenu])
+  }, [contextMenu, selectedObjectIds])
 
   const handleDeleteConfirm = useCallback(async () => {
     if (objectToDelete === 'multiple') {

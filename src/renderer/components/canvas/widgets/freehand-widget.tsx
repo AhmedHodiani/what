@@ -83,12 +83,18 @@ export function FreehandWidget({
   }, [object.object_data.points, object.x, object.y])
 
   const handleClick = (e: React.MouseEvent) => {
+    // Don't change selection on right-click (context menu)
+    if (e.button === 2) return
+    
     e.stopPropagation()
     ;(e as any)._clickedWidget = true
     onSelect(object.id, e)
   }
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Don't change selection on right-click (context menu)
+    if (e.button === 2) return
+    
     e.stopPropagation()
     ;(e as any)._clickedWidget = true
     onSelect(object.id, e)

@@ -64,6 +64,9 @@ export function WidgetWrapper({
       const target = e.target as HTMLElement
       if (target.classList.contains('resize-handle')) return
 
+      // Don't change selection on right-click (context menu)
+      if (e.button === 2) return
+
       e.stopPropagation()
       if (!isResizing) {
         onSelect(object.id, e)
@@ -77,6 +80,9 @@ export function WidgetWrapper({
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement
       if (target.classList.contains('resize-handle')) return
+      
+      // Don't change selection on right-click (context menu)
+      if (e.button === 2) return
       
       // Select the widget but DON'T stop propagation
       // This allows the canvas to detect if we clicked on a widget or background
