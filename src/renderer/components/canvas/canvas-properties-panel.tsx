@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import type { StickyNoteObject, DrawingObject } from 'lib/types/canvas'
 import { TextPropertiesPanel } from './text-properties-panel'
+import { ShapePropertiesPanel } from './shape-properties-panel'
 
 interface CanvasPropertiesPanelProps {
   selectedObject: DrawingObject | null
@@ -63,8 +64,15 @@ export function CanvasPropertiesPanel({
         />
       )
 
-    // TODO: Add other object type panels
     case 'shape':
+      return (
+        <ShapePropertiesPanel
+          object={selectedObject}
+          onUpdate={onUpdate}
+        />
+      )
+
+    // TODO: Add other object type panels
     case 'image':
     default:
       return null

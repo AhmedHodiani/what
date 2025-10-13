@@ -6,6 +6,7 @@ import { TextWidget } from './widgets/text-widget'
 import { FreehandWidget } from './widgets/freehand-widget'
 import { ArrowWidget } from './widgets/arrow-widget'
 import { YouTubeWidget } from './widgets/youtube-widget'
+import { ShapeWidget } from './widgets/shape-widget'
 
 interface CanvasObjectProps {
   object: DrawingObject & { _imageUrl?: string }
@@ -83,11 +84,16 @@ export function CanvasObject({
       )
 
     case 'shape':
-      // TODO: Implement ShapeWidget
       return (
-        <div className="text-blue-400">
-          Shape Widget - Coming Soon
-        </div>
+        <ShapeWidget
+          object={object}
+          isSelected={isSelected}
+          zoom={zoom}
+          onUpdate={onUpdate}
+          onSelect={onSelect}
+          onContextMenu={onContextMenu}
+          onStartDrag={onStartDrag}
+        />
       )
 
     case 'freehand':

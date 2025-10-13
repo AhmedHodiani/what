@@ -1,5 +1,5 @@
 import { useRef, useMemo, useCallback, useState } from 'react'
-import type { Viewport, DrawingObject, StickyNoteObject, TextObject, FreehandObject, ArrowObject, YouTubeVideoObject } from 'lib/types/canvas'
+import type { Viewport, DrawingObject, StickyNoteObject, TextObject, FreehandObject, ArrowObject, YouTubeVideoObject, ShapeObject } from 'lib/types/canvas'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
 import { generateId } from 'lib/utils/id-generator'
 import { useContainerSize } from 'renderer/hooks/use-container-size'
@@ -18,6 +18,8 @@ import { CanvasPropertiesPanel } from './canvas-properties-panel'
 import { BrushPropertiesPanel } from './brush-properties-panel'
 import { CanvasObject } from './canvas-object'
 import { YouTubeUrlDialog } from './youtube-url-dialog'
+import { ShapePickerDialog } from './shape-picker-dialog'
+import type { ShapeType } from './shape-picker-dialog'
 import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
 
 interface InfiniteCanvasProps {
@@ -79,6 +81,10 @@ export function InfiniteCanvas({
   // YouTube dialog state
   const [showYouTubeDialog, setShowYouTubeDialog] = useState(false)
   const [youtubeDialogPosition, setYoutubeDialogPosition] = useState({ x: 0, y: 0 })
+
+  // Shape picker dialog state
+  const [showShapeDialog, setShowShapeDialog] = useState(false)
+  const [shapeDialogPosition, setShapeDialogPosition] = useState({ x: 0, y: 0 })
 
   // Use generic canvas objects hook
   const {
@@ -394,7 +400,15 @@ export function InfiniteCanvas({
           break
         }
         
-        // TODO: Add other object types (text, shape, etc.)
+        case 'shape': {
+          const worldPos = screenToWorld(e.clientX, e.clientY)
+          // Store position and show shape picker dialog
+          setShapeDialogPosition({ x: worldPos.x, y: worldPos.y })
+          setShowShapeDialog(true)
+          break
+        }
+        
+        // TODO: Add other object types
       }
       return
     }
@@ -458,6 +472,40 @@ export function InfiniteCanvas({
 
   const handleYouTubeCancel = useCallback(() => {
     setShowYouTubeDialog(false)
+    setTool('select')
+  }, [setTool])
+
+  // Shape picker dialog handlers
+  const handleShapeSelect = useCallback(async (shapeType: ShapeType) => {
+    const shape: ShapeObject = {
+      id: generateId(),
+      type: 'shape',
+      x: shapeDialogPosition.x - 100, // Center the shape
+      y: shapeDialogPosition.y - 100,
+      width: 200,
+      height: 200,
+      z_index: objects.length,
+      object_data: {
+        shapeType: shapeType,
+        fill: '#3b82f6',
+        stroke: '#1e40af',
+        strokeWidth: 2,
+        cornerRadius: 0,
+        points: shapeType === 'star' ? 5 : 6,
+        rotation: 0,
+        opacity: 1,
+      },
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    }
+    await addObject(shape)
+    selectObject(shape.id)
+    setShowShapeDialog(false)
+    setTool('select')
+  }, [shapeDialogPosition, objects.length, addObject, selectObject, setTool])
+
+  const handleShapeCancel = useCallback(() => {
+    setShowShapeDialog(false)
     setTool('select')
   }, [setTool])
 
@@ -747,6 +795,15 @@ export function InfiniteCanvas({
         <YouTubeUrlDialog
           onConfirm={handleYouTubeConfirm}
           onCancel={handleYouTubeCancel}
+        />
+      )}
+
+      {/* Shape picker dialog */}
+      {showShapeDialog && (
+        <ShapePickerDialog
+          isOpen={showShapeDialog}
+          onClose={handleShapeCancel}
+          onSelectShape={handleShapeSelect}
         />
       )}
     </div>
