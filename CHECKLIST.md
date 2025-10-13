@@ -20,6 +20,10 @@
 - [x] Add sticky note creation on canvas click
 - [x] Create `canvas-properties-panel.tsx` for sticky note customization
 - [x] Test sticky note (create, edit, resize, drag, colors, save/load)
+- [x] Create `freehand-widget.tsx` for pen/brush strokes
+- [x] Add `use-freehand-drawing.ts` hook for drawing interaction
+- [ ] Integrate freehand drawing into canvas
+- [ ] Add brush properties panel
 - [ ] Create `text-widget.tsx` using WidgetWrapper
 - [ ] Create `shape-widget.tsx` using WidgetWrapper (rect, circle, ellipse, triangle, star)
 
@@ -41,4 +45,4 @@
 - [ ] Add file validation with magic number check
 - [ ] Performance optimization & polish
 
-## Progress: 17/34 tasks (50%)
+## Progress: 19/36 tasks (53%)

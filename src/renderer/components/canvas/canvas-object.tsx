@@ -2,6 +2,8 @@ import { useCallback } from 'react'
 import type { DrawingObject } from 'lib/types/canvas'
 import { ImageWidget } from './image-widget'
 import { StickyNoteWidget } from './widgets/sticky-note-widget'
+import { FreehandWidget } from './widgets/freehand-widget'
+import { ArrowWidget } from './widgets/arrow-widget'
 
 interface CanvasObjectProps {
   object: DrawingObject & { _imageUrl?: string }
@@ -82,19 +84,25 @@ export function CanvasObject({
       )
 
     case 'freehand':
-      // TODO: Implement FreehandWidget
       return (
-        <div className="text-green-400">
-          Freehand Widget - Coming Soon
-        </div>
+        <FreehandWidget
+          object={object}
+          isSelected={isSelected}
+          zoom={zoom}
+          onSelect={onSelect}
+          onContextMenu={onContextMenu}
+        />
       )
 
     case 'arrow':
-      // TODO: Implement ArrowWidget
       return (
-        <div className="text-purple-400">
-          Arrow Widget - Coming Soon
-        </div>
+        <ArrowWidget
+          object={object}
+          isSelected={isSelected}
+          zoom={zoom}
+          onSelect={onSelect}
+          onContextMenu={onContextMenu}
+        />
       )
 
     default:

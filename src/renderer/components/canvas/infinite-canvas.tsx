@@ -1,5 +1,5 @@
-import { useRef, useMemo, useCallback } from 'react'
-import type { Viewport, DrawingObject, StickyNoteObject } from 'lib/types/canvas'
+import { useRef, useMemo, useCallback, useState } from 'react'
+import type { Viewport, DrawingObject, StickyNoteObject, FreehandObject, ArrowObject } from 'lib/types/canvas'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
 import { generateId } from 'lib/utils/id-generator'
 import { useContainerSize } from 'renderer/hooks/use-container-size'
@@ -8,11 +8,14 @@ import { useCanvasPan } from 'renderer/hooks/use-canvas-pan'
 import { useCanvasZoom } from 'renderer/hooks/use-canvas-zoom'
 import { useClipboardPaste } from 'renderer/hooks/use-clipboard-paste'
 import { useCanvasObjects } from 'renderer/hooks/use-canvas-objects'
+import { useFreehandDrawing } from 'renderer/hooks/use-freehand-drawing'
+import { useArrowDrawing } from 'renderer/hooks/use-arrow-drawing'
 import { ErrorBoundary } from '../error-boundary'
 import { CanvasGrid } from './canvas-grid'
 import { CanvasViewportDisplay } from './canvas-viewport-display'
 import { CanvasToolbar } from './canvas-toolbar'
 import { CanvasPropertiesPanel } from './canvas-properties-panel'
+import { BrushPropertiesPanel } from './brush-properties-panel'
 import { CanvasObject } from './canvas-object'
 import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
 
@@ -65,6 +68,13 @@ export function InfiniteCanvas({
   // Tool selection
   const { currentTool, setTool } = useCanvasTool()
 
+  // Brush properties for freehand drawing
+  const [brushProperties, setBrushProperties] = useState({
+    strokeColor: '#FFFFFF',
+    strokeWidth: 15,
+    opacity: 1,
+  })
+
   // Use generic canvas objects hook
   const {
     objects,
@@ -105,6 +115,50 @@ export function InfiniteCanvas({
     
     return { x: worldX, y: worldY }
   }, [containerRef, dimensions, viewport])
+
+  // Freehand drawing
+  const {
+    isDrawing: isFreehandDrawing,
+    currentPath: freehandPath,
+    handleDrawStart: handleFreehandStart,
+    handleDrawMove: handleFreehandMove,
+    handleDrawEnd: handleFreehandEnd,
+  } = useFreehandDrawing({
+    isEnabled: currentTool === 'freehand',
+    screenToWorld,
+    strokeColor: brushProperties.strokeColor,
+    strokeWidth: brushProperties.strokeWidth,
+    opacity: brushProperties.opacity,
+    onComplete: useCallback(
+      async (freehandObject: FreehandObject) => {
+        await addObject(freehandObject)
+        // Don't select after drawing - keep drawing mode active
+      },
+      [addObject]
+    ),
+  })
+
+  // Arrow drawing
+  const {
+    isDrawing: isArrowDrawing,
+    currentPath: arrowPath,
+    handleDrawStart: handleArrowStart,
+    handleDrawMove: handleArrowMove,
+    handleDrawEnd: handleArrowEnd,
+  } = useArrowDrawing({
+    isEnabled: currentTool === 'arrow',
+    screenToWorld,
+    strokeColor: brushProperties.strokeColor,
+    strokeWidth: brushProperties.strokeWidth,
+    opacity: brushProperties.opacity,
+    onComplete: useCallback(
+      async (arrowObject: ArrowObject) => {
+        await addObject(arrowObject)
+        // Don't select after drawing - keep drawing mode active
+      },
+      [addObject]
+    ),
+  })
 
     // Handle clipboard paste for images
   const handleImagePaste = useCallback(async (image: { file: File; dataUrl: string; width: number; height: number }, mousePosition?: { x: number; y: number }) => {
@@ -296,7 +350,14 @@ export function InfiniteCanvas({
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 overflow-hidden bg-[#0a0a0a] cursor-grab select-none active:cursor-grabbing"
+      className="absolute inset-0 overflow-hidden bg-[#0a0a0a] select-none"
+      style={{
+        cursor: currentTool === 'freehand' || currentTool === 'arrow'
+          ? 'crosshair' 
+          : (isFreehandDrawing || isArrowDrawing)
+            ? 'grabbing' 
+            : 'grab'
+      }}
       onMouseDown={handleMouseDown}
     >
       <svg
@@ -306,6 +367,47 @@ export function InfiniteCanvas({
         height={dimensions.height}
         viewBox={viewBox}
         onClick={handleCanvasBackgroundClick}
+        onMouseDown={(e) => {
+          // Handle freehand drawing
+          if (currentTool === 'freehand') {
+            e.stopPropagation()
+            const started = handleFreehandStart(e, containerRef as React.RefObject<HTMLDivElement>)
+            if (started) {
+              e.preventDefault()
+            }
+          }
+          // Handle arrow drawing
+          else if (currentTool === 'arrow') {
+            e.stopPropagation()
+            const started = handleArrowStart(e, containerRef as React.RefObject<HTMLDivElement>)
+            if (started) {
+              e.preventDefault()
+            }
+          }
+        }}
+        onMouseMove={(e) => {
+          if (isFreehandDrawing) {
+            e.stopPropagation()
+            handleFreehandMove(e.nativeEvent)
+          } else if (isArrowDrawing) {
+            e.stopPropagation()
+            handleArrowMove(e.nativeEvent)
+          }
+        }}
+        onMouseUp={() => {
+          if (isFreehandDrawing) {
+            handleFreehandEnd()
+          } else if (isArrowDrawing) {
+            handleArrowEnd()
+          }
+        }}
+        onMouseLeave={() => {
+          if (isFreehandDrawing) {
+            handleFreehandEnd()
+          } else if (isArrowDrawing) {
+            handleArrowEnd()
+          }
+        }}
       >
         {/* Grid pattern */}
         {showGrid && <CanvasGrid viewport={viewport} dimensions={dimensions} />}
@@ -315,7 +417,31 @@ export function InfiniteCanvas({
         
         {/* Render all drawing objects */}
         {objects.map(obj => {
-          // Get width/height for foreignObject (freehand doesn't have explicit dimensions)
+          // Freehand and arrow objects render directly as SVG (not in foreignObject)
+          if (obj.type === 'freehand' || obj.type === 'arrow') {
+            return (
+              <ErrorBoundary
+                key={obj.id}
+                fallback={(error) => (
+                  <text x={obj.x} y={obj.y} fill="#ff0000" fontSize="12">
+                    ❌ Error rendering {obj.type}: {error.message}
+                  </text>
+                )}
+              >
+                <CanvasObject
+                  object={obj}
+                  isSelected={selectedObjectId === obj.id}
+                  zoom={viewport.zoom}
+                  onUpdate={handleUpdateObject}
+                  onSelect={handleSelectObject}
+                  onContextMenu={handleContextMenu}
+                  onStartDrag={handleStartDrag}
+                />
+              </ErrorBoundary>
+            )
+          }
+          
+          // Other objects use foreignObject wrapper
           const width = 'width' in obj ? obj.width : 100
           const height = 'height' in obj ? obj.height : 100
           
@@ -347,6 +473,127 @@ export function InfiniteCanvas({
             </ErrorBoundary>
           )
         })}
+        
+        {/* Freehand/Arrow drawing preview */}
+        {(isFreehandDrawing && freehandPath.length > 0) && (
+          <path
+            d={
+              freehandPath.length === 1
+                ? `M ${freehandPath[0].x} ${freehandPath[0].y} L ${freehandPath[0].x} ${freehandPath[0].y}`
+                : freehandPath.length === 2
+                  ? `M ${freehandPath[0].x} ${freehandPath[0].y} L ${freehandPath[1].x} ${freehandPath[1].y}`
+                  : `M ${freehandPath[0].x} ${freehandPath[0].y} ${freehandPath
+                      .slice(1)
+                      .map((point, i) => {
+                        if (i === freehandPath.length - 2) {
+                          return `L ${point.x} ${point.y}`
+                        }
+                        const next = freehandPath[i + 2]
+                        const midX = (point.x + next.x) / 2
+                        const midY = (point.y + next.y) / 2
+                        return `Q ${point.x} ${point.y} ${midX} ${midY}`
+                      })
+                      .join(' ')}`
+            }
+            stroke={brushProperties.strokeColor}
+            strokeWidth={brushProperties.strokeWidth}
+            strokeOpacity={brushProperties.opacity}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        )}
+        
+        {/* Arrow drawing preview (with arrowhead) */}
+        {(isArrowDrawing && arrowPath.length > 0) && (
+          <>
+            <path
+              d={
+                arrowPath.length === 1
+                  ? `M ${arrowPath[0].x} ${arrowPath[0].y} L ${arrowPath[0].x} ${arrowPath[0].y}`
+                  : arrowPath.length === 2
+                    ? `M ${arrowPath[0].x} ${arrowPath[0].y} L ${arrowPath[1].x} ${arrowPath[1].y}`
+                    : `M ${arrowPath[0].x} ${arrowPath[0].y} ${arrowPath
+                        .slice(1)
+                        .map((point, i) => {
+                          if (i === arrowPath.length - 2) {
+                            return `L ${point.x} ${point.y}`
+                          }
+                          const next = arrowPath[i + 2]
+                          const midX = (point.x + next.x) / 2
+                          const midY = (point.y + next.y) / 2
+                          return `Q ${point.x} ${point.y} ${midX} ${midY}`
+                        })
+                        .join(' ')}`
+              }
+              stroke={brushProperties.strokeColor}
+              strokeWidth={brushProperties.strokeWidth}
+              strokeOpacity={brushProperties.opacity}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+            {/* Preview arrowhead */}
+            {arrowPath.length >= 2 && (() => {
+              const lastPoint = arrowPath[arrowPath.length - 1]
+              
+              // Look back further for stable angle - avoid jitter
+              let referencePoint = arrowPath[arrowPath.length - 2]
+              const lookbackDistance = 20
+              
+              for (let i = arrowPath.length - 2; i >= 0; i--) {
+                const dist = Math.sqrt(
+                  Math.pow(lastPoint.x - arrowPath[i].x, 2) + 
+                  Math.pow(lastPoint.y - arrowPath[i].y, 2)
+                )
+                if (dist >= lookbackDistance) {
+                  referencePoint = arrowPath[i]
+                  break
+                }
+              }
+              
+              const angle = Math.atan2(
+                lastPoint.y - referencePoint.y,
+                lastPoint.x - referencePoint.x
+              )
+              
+              // Better proportions for hand-drawn look
+              const arrowLength = Math.max(brushProperties.strokeWidth * 3, 15)
+              const arrowWidth = arrowLength * 0.5
+              const tipX = lastPoint.x
+              const tipY = lastPoint.y
+              const baseX = tipX - arrowLength * Math.cos(angle)
+              const baseY = tipY - arrowLength * Math.sin(angle)
+              const leftX = baseX - arrowWidth * Math.sin(angle)
+              const leftY = baseY + arrowWidth * Math.cos(angle)
+              const rightX = baseX + arrowWidth * Math.sin(angle)
+              const rightY = baseY - arrowWidth * Math.cos(angle)
+              
+              // Add curve for hand-drawn feel
+              const curveDepth = arrowLength * 0.3
+              const leftCtrlX = baseX - curveDepth * Math.cos(angle) - arrowWidth * 0.7 * Math.sin(angle)
+              const leftCtrlY = baseY - curveDepth * Math.sin(angle) + arrowWidth * 0.7 * Math.cos(angle)
+              const rightCtrlX = baseX - curveDepth * Math.cos(angle) + arrowWidth * 0.7 * Math.sin(angle)
+              const rightCtrlY = baseY - curveDepth * Math.sin(angle) - arrowWidth * 0.7 * Math.cos(angle)
+              
+              return (
+                <path
+                  d={`M ${tipX} ${tipY} 
+                      Q ${leftCtrlX} ${leftCtrlY}, ${leftX} ${leftY}
+                      L ${rightX} ${rightY}
+                      Q ${rightCtrlX} ${rightCtrlY}, ${tipX} ${tipY}
+                      Z`}
+                  fill={brushProperties.strokeColor}
+                  opacity={brushProperties.opacity}
+                  stroke={brushProperties.strokeColor}
+                  strokeWidth={brushProperties.strokeWidth * 0.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )
+            })()}
+          </>
+        )}
       </svg>
 
       {/* Viewport info overlay */}
@@ -354,6 +601,26 @@ export function InfiniteCanvas({
       
       {/* Canvas toolbar */}
       {showToolbar && <CanvasToolbar selectedTool={currentTool} onToolSelect={setTool} />}
+      
+      {/* Brush properties panel for freehand and arrow tools */}
+      {(currentTool === 'freehand' || currentTool === 'arrow') && (
+        <BrushPropertiesPanel
+          selectedObject={objects.find((obj) => obj.id === selectedObjectId) || null}
+          strokeColor={brushProperties.strokeColor}
+          strokeWidth={brushProperties.strokeWidth}
+          opacity={brushProperties.opacity}
+          onStrokeColorChange={(color) =>
+            setBrushProperties((prev) => ({ ...prev, strokeColor: color }))
+          }
+          onStrokeWidthChange={(width) =>
+            setBrushProperties((prev) => ({ ...prev, strokeWidth: width }))
+          }
+          onOpacityChange={(opacity) =>
+            setBrushProperties((prev) => ({ ...prev, opacity }))
+          }
+          onUpdate={handleUpdateObject}
+        />
+      )}
       
       {/* Properties panel for selected object */}
       <CanvasPropertiesPanel 
