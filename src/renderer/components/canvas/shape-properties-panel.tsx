@@ -43,8 +43,8 @@ export function ShapePropertiesPanel({ object, onUpdate }: ShapePropertiesPanelP
   }
 
   return (
-    <div className="absolute top-4 right-4 bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-2xl border border-gray-700 p-4 w-64 z-[100] max-h-[calc(100vh-2rem)] overflow-y-auto">
-      <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+    <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-sm rounded-lg shadow-2xl border border-teal-400/30 p-4 w-64 z-[100] max-h-[calc(100vh-2rem)] overflow-y-auto">
+      <h3 className="text-sm font-semibold text-teal-400 mb-3 flex items-center gap-2">
         <span>🔷</span>
         <span>Shape Properties</span>
       </h3>

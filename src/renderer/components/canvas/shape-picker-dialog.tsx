@@ -43,10 +43,10 @@ export function ShapePickerDialog({ isOpen, onClose, onSelectShape }: ShapePicke
       onKeyDown={handleKeyDown}
     >
       <div
-        className="bg-zinc-900 rounded-lg shadow-xl border border-zinc-700 p-6 min-w-[400px]"
+        className="bg-black/90 rounded-lg shadow-xl border border-teal-400/30 p-6 min-w-[400px]"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-semibold text-white mb-4">Choose a Shape</h2>
+        <h2 className="text-xl font-semibold text-teal-400 mb-4">Choose a Shape</h2>
         
         <div className="grid grid-cols-3 gap-3">
           {shapes.map((shape) => (
@@ -61,13 +61,13 @@ export function ShapePickerDialog({ isOpen, onClose, onSelectShape }: ShapePicke
                 flex flex-col items-center justify-center gap-2
                 ${
                   hoveredShape === shape.type
-                    ? 'border-blue-500 bg-blue-500/10 scale-105'
-                    : 'border-zinc-700 bg-zinc-800 hover:bg-zinc-750'
+                    ? 'border-teal-400 bg-teal-400/10 scale-105'
+                    : 'border-teal-400/30 bg-black/50 hover:bg-black/70'
                 }
               `}
             >
               <span className="text-4xl">{shape.icon}</span>
-              <span className="text-sm text-zinc-300">{shape.label}</span>
+              <span className="text-sm text-gray-300">{shape.label}</span>
             </button>
           ))}
         </div>
@@ -76,7 +76,7 @@ export function ShapePickerDialog({ isOpen, onClose, onSelectShape }: ShapePicke
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-white transition-colors"
+            className="px-4 py-2 rounded bg-gray-800 hover:bg-gray-700 text-white transition-colors border border-gray-600"
           >
             Cancel
           </button>
