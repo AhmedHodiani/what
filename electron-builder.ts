@@ -29,6 +29,16 @@ export default {
   
   asar: true,
 
+  fileAssociations: [
+    {
+      ext: 'what',
+      name: 'What File',
+      description: 'What visual thinking canvas file',
+      icon: `${resources}/build/icons/icon.icns`,
+      role: 'Editor',
+    },
+  ],
+
   mac: {
     artifactName,
     icon: `${resources}/build/icons/icon.icns`,
@@ -41,6 +51,7 @@ export default {
     category: 'Utilities',
     synopsis: description,
     target: ['AppImage', 'deb', 'pacman', 'freebsd', 'rpm'],
+    mimeTypes: ['application/x-what'],
   },
 
   win: {
