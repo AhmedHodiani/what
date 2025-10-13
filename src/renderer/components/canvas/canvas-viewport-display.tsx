@@ -1,20 +1,80 @@
 import type { Viewport } from 'lib/types/canvas'
+import { useState, useEffect } from 'react'
 
 interface CanvasViewportDisplayProps {
   viewport: Viewport
+  objectCount?: number
+  tabId?: string | null
+}
+
+/**
+ * Format bytes to human-readable string
+ */
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`
 }
 
 /**
  * Displays current viewport information (zoom level and position).
  * Useful for debugging and user feedback.
  */
-export function CanvasViewportDisplay({ viewport }: CanvasViewportDisplayProps) {
+export function CanvasViewportDisplay({ viewport, objectCount = 0, tabId }: CanvasViewportDisplayProps) {
+  const [fileSize, setFileSize] = useState<string | null>(null)
+
+  // Get file size from IPC if available
+  useEffect(() => {
+    if (!tabId) {
+      setFileSize(null)
+      return
+    }
+
+    const fetchFileSize = async () => {
+      try {
+        const sizeBytes = await window.App.file.getFileSize(tabId)
+        if (sizeBytes !== null) {
+          setFileSize(formatBytes(sizeBytes))
+        } else {
+          setFileSize(null)
+        }
+      } catch (error) {
+        console.error('Failed to get file size:', error)
+        setFileSize(null)
+      }
+    }
+
+    // Fetch immediately
+    fetchFileSize()
+    
+    // Refresh file size every 500ms for real-time updates
+    const interval = setInterval(fetchFileSize, 500)
+    return () => clearInterval(interval)
+  }, [tabId, objectCount]) // Re-fetch when objectCount changes
+
   return (
     <div className="absolute top-3 left-3 bg-black/80 text-teal-400 px-3 py-2 rounded-md text-xs font-mono pointer-events-none flex flex-col gap-1 border border-teal-400/30">
       <div>Zoom: {(viewport.zoom * 100).toFixed(0)}%</div>
       <div>
         Position: ({viewport.x.toFixed(0)}, {viewport.y.toFixed(0)})
       </div>
+      
+      {/* File stats */}
+      <div className="mt-2 pt-2 border-t border-white/10 flex flex-col gap-0.5">
+        <div className="flex items-center gap-1">
+          <span className="text-gray-400">📦 Objects:</span>
+          <span className="text-teal-300 font-semibold">{objectCount}</span>
+        </div>
+        {fileSize && (
+          <div className="flex items-center gap-1">
+            <span className="text-gray-400">💾 Size:</span>
+            <span className="text-teal-300 font-semibold">{fileSize}</span>
+          </div>
+        )}
+      </div>
+      
       <div className="mt-2 pt-2 border-t border-white/10 flex flex-col gap-0.5 text-[11px] text-gray-500">
         <span>🖱️ Drag to pan</span>
         <span>🖲️ Scroll to zoom</span>

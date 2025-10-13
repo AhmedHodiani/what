@@ -47,6 +47,16 @@ export function WidgetWrapper({
   const width = 'width' in object ? object.width : 100
   const height = 'height' in object ? object.height : 100
 
+  // Callback to save to database when resize completes
+  const handleResizeEnd = useCallback(
+    (finalWidth: number, finalHeight: number) => {
+      // Now do a final save to the database with the final size
+      console.log('✅ Resize complete, saving to database:', finalWidth, finalHeight)
+      onUpdate(object.id, { width: finalWidth, height: finalHeight })
+    },
+    [object.id, onUpdate]
+  )
+
   const { isResizing, handleResizeStart } = useWidgetResize({
     objectId: object.id,
     width,
@@ -56,7 +66,8 @@ export function WidgetWrapper({
     minHeight,
     lockAspectRatio,
     onUpdate,
-    onResizeStart: onManualResize,  // Notify parent when resize starts
+    onResizeStart: onManualResize,
+    onResizeEnd: handleResizeEnd,
   })
 
   const handleMouseDown = useCallback(

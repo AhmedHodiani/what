@@ -43,6 +43,13 @@ export function StickyNoteWidget({
   // Check if auto-resize is enabled (default: true)
   const autoResizeEnabled = object.object_data.autoResize !== false
 
+  // Sync editText with object when not editing (object updated from elsewhere)
+  useEffect(() => {
+    if (!isEditing) {
+      setEditText(object.object_data.text)
+    }
+  }, [object.object_data.text, isEditing])
+
   // Auto-focus when entering edit mode
   useEffect(() => {
     if (isEditing && textareaRef.current) {
@@ -113,8 +120,11 @@ export function StickyNoteWidget({
     onResize: handleAutoResize,
   })
 
-  // Handle manual resize - disable auto-resize
+  // Handle manual resize - disable auto-resize and save any pending text
   const handleManualResize = useCallback(() => {
+    // Always use the latest text from object (not editText which might be stale)
+    // The useEffect above should have synced editText already
+    
     // Disable auto-resize permanently for this object
     onUpdate?.(object.id, {
       object_data: {
@@ -122,7 +132,12 @@ export function StickyNoteWidget({
         autoResize: false,
       },
     })
-  }, [object.id, object.object_data, onUpdate])
+    
+    // If currently editing, exit edit mode
+    if (isEditing) {
+      setIsEditing(false)
+    }
+  }, [object.id, object.object_data, onUpdate, isEditing])
 
   return (
     <WidgetWrapper

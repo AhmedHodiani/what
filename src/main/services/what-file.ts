@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3'
 import AdmZip from 'adm-zip'
 import { basename, join } from 'node:path'
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import type {
   WhatFile,
@@ -318,6 +318,47 @@ export class WhatFileService {
   }
 
   /**
+   * Get current file size in bytes (calculated from working directory for real-time updates)
+   */
+  getFileSize(): number | null {
+    // If no file is open, return null
+    if (!this.workingDir || !existsSync(this.workingDir)) {
+      return null
+    }
+
+    try {
+      // Calculate size of all files in working directory (including database, assets, meta.json)
+      return this.calculateDirectorySize(this.workingDir)
+    } catch (error) {
+      console.error('[WhatFile] Failed to calculate file size:', error)
+      return null
+    }
+  }
+
+  /**
+   * Recursively calculate the total size of a directory
+   */
+  private calculateDirectorySize(dirPath: string): number {
+    let totalSize = 0
+
+    const files = readdirSync(dirPath)
+    for (const file of files) {
+      const filePath = join(dirPath, file)
+      const stats = statSync(filePath)
+
+      if (stats.isDirectory()) {
+        // Recursively calculate subdirectory size
+        totalSize += this.calculateDirectorySize(filePath)
+      } else {
+        // Add file size
+        totalSize += stats.size
+      }
+    }
+
+    return totalSize
+  }
+
+  /**
    * Verify if a file is a valid .what file by checking its magic number
    */
   static isWhatFile(filePath: string): boolean {
@@ -587,11 +628,31 @@ export class WhatFileService {
   }
 
   /**
-   * Delete object
+   * Delete object and its associated assets (if any)
    */
   deleteObject(id: string): void {
     if (!this.db) throw new Error('No database connection')
 
+    // First, check if this object has any associated assets (e.g., image objects)
+    const object = this.db
+      .prepare('SELECT object_data FROM objects WHERE id = ?')
+      .get(id) as { object_data: string } | undefined
+
+    if (object) {
+      try {
+        const objectData = JSON.parse(object.object_data)
+        
+        // If the object has an assetId (like image objects), delete the asset too
+        if (objectData.assetId) {
+          console.log(`[WhatFile] Deleting associated asset ${objectData.assetId} for object ${id}`)
+          this.deleteAsset(objectData.assetId)
+        }
+      } catch (error) {
+        console.error(`[WhatFile] Failed to parse object_data for cleanup:`, error)
+      }
+    }
+
+    // Delete the object from database
     this.db.prepare('DELETE FROM objects WHERE id = ?').run(id)
     this.markAsModified()
   }

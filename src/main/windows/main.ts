@@ -262,6 +262,20 @@ export async function MainWindow() {
     }
   })
 
+  ipcMain.removeHandler('file-get-size')
+  ipcMain.handle('file-get-size', async (_event, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) return null
+      
+      const size = multiFileManager.getFileSize(targetTabId)
+      return size
+    } catch (error) {
+      console.error('Failed to get file size:', error)
+      return null
+    }
+  })
+
   // Asset handling IPC handlers
   ipcMain.removeHandler('file-save-asset')
   ipcMain.handle('file-save-asset', async (_event, filename: string, dataBuffer: ArrayBuffer, mimeType: string, tabId?: string) => {
@@ -339,13 +353,24 @@ export async function MainWindow() {
   ipcMain.handle('file-save-object', async (_event, object: any, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
-      if (!targetTabId) throw new Error('No active tab')
+      if (!targetTabId) {
+        console.warn('[Main] No tab ID for save object, skipping')
+        return false
+      }
+
+      // Check if the tab actually exists
+      const tab = multiFileManager.getTab(targetTabId)
+      if (!tab) {
+        console.warn(`[Main] Tab ${targetTabId} not found, skipping save object`)
+        return false
+      }
 
       multiFileManager.saveObject(targetTabId, object)
       return true
     } catch (error) {
       console.error('Failed to save object:', error)
-      throw error
+      // Don't throw - just return false to avoid breaking the UI
+      return false
     }
   })
 
@@ -353,13 +378,24 @@ export async function MainWindow() {
   ipcMain.handle('file-delete-object', async (_event, objectId: string, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
-      if (!targetTabId) throw new Error('No active tab')
+      if (!targetTabId) {
+        console.warn('[Main] No tab ID for delete object, skipping')
+        return false
+      }
+
+      // Check if the tab actually exists
+      const tab = multiFileManager.getTab(targetTabId)
+      if (!tab) {
+        console.warn(`[Main] Tab ${targetTabId} not found, skipping delete object`)
+        return false
+      }
 
       multiFileManager.deleteObject(targetTabId, objectId)
       return true
     } catch (error) {
       console.error('Failed to delete object:', error)
-      throw error
+      // Don't throw - just return false to avoid breaking the UI
+      return false
     }
   })
 

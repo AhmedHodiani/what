@@ -252,8 +252,12 @@ export function InfiniteCanvas({
   })
 
   // Object management callbacks - now using generic methods
-  const handleUpdateObject = useCallback(async (id: string, updates: Partial<DrawingObject>) => {
-    await updateObject(id, updates)
+  const handleUpdateObject = useCallback(async (
+    id: string, 
+    updates: Partial<DrawingObject>,
+    options?: { skipSave?: boolean }
+  ) => {
+    await updateObject(id, updates, options)
   }, [updateObject])
 
   const handleSelectObject = useCallback((id: string, event?: React.MouseEvent) => {
@@ -1033,7 +1037,13 @@ export function InfiniteCanvas({
       </svg>
 
       {/* Viewport info overlay */}
-      {showViewportInfo && <CanvasViewportDisplay viewport={viewport} />}
+      {showViewportInfo && (
+        <CanvasViewportDisplay 
+          viewport={viewport} 
+          objectCount={objects.length}
+          tabId={tabId}
+        />
+      )}
       
       {/* Canvas toolbar */}
       {showToolbar && <CanvasToolbar selectedTool={currentTool} onToolSelect={setTool} />}

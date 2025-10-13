@@ -23,6 +23,7 @@ declare global {
         getCanvas: (canvasId: string, tabId?: string) => Promise<any>
         saveViewport: (canvasId: string, x: number, y: number, zoom: number, tabId?: string) => Promise<void>
         getMetadata: (tabId?: string) => Promise<any>
+        getFileSize: (tabId?: string) => Promise<number | null>
         saveAsset: (filename: string, dataBuffer: ArrayBuffer, mimeType: string, tabId?: string) => Promise<string>
         getAssetPath: (assetId: string, tabId?: string) => Promise<string | null>
         getAssetDataUrl: (assetId: string, tabId?: string) => Promise<string | null>

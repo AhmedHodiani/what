@@ -275,6 +275,18 @@ export class MultiFileManager {
   }
 
   /**
+   * Get file size in bytes for a specific tab
+   */
+  getFileSize(tabId: string): number | null {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    return service.getFileSize()
+  }
+
+  /**
    * Mark a tab as modified
    */
   markTabModified(tabId: string): void {

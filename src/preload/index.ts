@@ -63,6 +63,7 @@ const API = {
     deleteObject: (objectId: string, tabId?: string) => ipcRenderer.invoke('file-delete-object', objectId, tabId),
     // Debug operations
     getMetadata: (tabId?: string) => ipcRenderer.invoke('file-get-metadata', tabId),
+    getFileSize: (tabId?: string) => ipcRenderer.invoke('file-get-size', tabId),
   },
   
   // Tab management

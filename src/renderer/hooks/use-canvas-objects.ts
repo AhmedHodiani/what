@@ -70,7 +70,11 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
   }, [tabId])
 
   // Update an existing object
-  const updateObject = useCallback(async (id: string, updates: Partial<DrawingObject>) => {
+  const updateObject = useCallback(async (
+    id: string, 
+    updates: Partial<DrawingObject>,
+    options?: { skipSave?: boolean }  // Option to skip database save (for live resize)
+  ) => {
     // Use ref to get current objects without stale closure
     const currentObjects = objectsRef.current
     const existingObject = currentObjects.find(obj => obj.id === id)
@@ -80,23 +84,45 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
       return
     }
     
-    // Create the updated object
+    console.log('🔄 Updating object:', {
+      id,
+      existingObjectData: existingObject.object_data,
+      updates,
+      hasObjectDataInUpdates: !!updates.object_data,
+      skipSave: options?.skipSave
+    })
+    
+    // Create the updated object with proper merging
+    // If updates contains object_data, merge it deeply to preserve existing fields
     const updated = { 
       ...existingObject, 
-      ...updates, 
+      ...updates,
+      // Deep merge object_data if it exists in updates
+      ...(updates.object_data ? {
+        object_data: {
+          ...existingObject.object_data,
+          ...updates.object_data,
+        }
+      } : {}),
       updated: new Date().toISOString() 
     } as DrawingObject & { _imageUrl?: string }
+    
+    console.log('✅ Updated object_data:', updated.object_data)
     
     // Update state
     setObjects(prev => prev.map(obj => obj.id === id ? updated : obj))
     
-    // Save to database (without _imageUrl)
-    const { _imageUrl, ...objectToSave } = updated
-    try {
-      await window.App.file.saveObject(objectToSave, tabId)
-      console.log('✅ Saved object:', id)
-    } catch (error) {
-      console.error('❌ Failed to save object update:', error)
+    // Save to database (unless skipSave is true)
+    if (!options?.skipSave) {
+      const { _imageUrl, ...objectToSave } = updated
+      try {
+        await window.App.file.saveObject(objectToSave, tabId)
+        console.log('✅ Saved object:', id)
+      } catch (error) {
+        console.error('❌ Failed to save object update:', error)
+      }
+    } else {
+      console.log('⏭️  Skipped database save (live update)')
     }
   }, [tabId])
 
