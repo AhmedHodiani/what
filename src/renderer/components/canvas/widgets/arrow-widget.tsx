@@ -5,8 +5,9 @@ interface ArrowWidgetProps {
   object: ArrowObject
   isSelected: boolean
   zoom: number
-  onSelect: (id: string) => void
+  onSelect: (id: string, event?: React.MouseEvent) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
+  onStartDrag: (e: React.MouseEvent, id: string) => void
 }
 
 /**
@@ -25,6 +26,7 @@ export function ArrowWidget({
   zoom,
   onSelect,
   onContextMenu,
+  onStartDrag,
 }: ArrowWidgetProps) {
   const stroke = object.object_data.stroke || '#FFFFFF'
   const strokeWidth = object.object_data.strokeWidth || 5
@@ -147,7 +149,14 @@ export function ArrowWidget({
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
     ;(e as any)._clickedWidget = true
-    onSelect(object.id)
+    onSelect(object.id, e)
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    ;(e as any)._clickedWidget = true
+    onSelect(object.id, e)
+    onStartDrag(e, object.id)
   }
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -169,8 +178,9 @@ export function ArrowWidget({
         strokeWidth={Math.max(strokeWidth + 10, 20)}
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
+        style={{ cursor: isSelected ? 'grab' : 'pointer', pointerEvents: 'stroke' }}
         onClick={handleClick}
+        onMouseDown={handleMouseDown}
         onContextMenu={handleContextMenu}
       />
       

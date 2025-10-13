@@ -104,6 +104,7 @@ export function CanvasObject({
           zoom={zoom}
           onSelect={onSelect}
           onContextMenu={onContextMenu}
+          onStartDrag={onStartDrag}
         />
       )
 
@@ -115,6 +116,7 @@ export function CanvasObject({
           zoom={zoom}
           onSelect={onSelect}
           onContextMenu={onContextMenu}
+          onStartDrag={onStartDrag}
         />
       )
 

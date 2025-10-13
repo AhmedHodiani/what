@@ -93,16 +93,23 @@ export function InfiniteCanvas({
 
   // Confirmation dialog state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [objectToDelete, setObjectToDelete] = useState<string | null>(null)
+  const [objectToDelete, setObjectToDelete] = useState<string | 'multiple' | null>(null)
+
+  // Rectangle selection state
+  const [isRectangleSelecting, setIsRectangleSelecting] = useState(false)
+  const [rectangleStart, setRectangleStart] = useState<{ x: number; y: number } | null>(null)
+  const [rectangleEnd, setRectangleEnd] = useState<{ x: number; y: number } | null>(null)
 
   // Use generic canvas objects hook
   const {
     objects,
-    selectedObjectId,
+    selectedObjectIds,
     addObject,
     updateObject,
     deleteObject,
     selectObject,
+    selectMultipleObjects,
+    clearSelection,
     moveObject,
     saveObjectPosition,
   } = useCanvasObjects({ tabId: tabId || undefined })
@@ -249,8 +256,9 @@ export function InfiniteCanvas({
     await updateObject(id, updates)
   }, [updateObject])
 
-  const handleSelectObject = useCallback((id: string) => {
-    selectObject(id)
+  const handleSelectObject = useCallback((id: string, event?: React.MouseEvent) => {
+    const isCtrlPressed = event ? (event.ctrlKey || event.metaKey) : false
+    selectObject(id, isCtrlPressed)
   }, [selectObject])
 
   const handleContextMenu = useCallback((event: React.MouseEvent, id: string) => {
@@ -272,34 +280,76 @@ export function InfiniteCanvas({
     const object = objects.find(o => o.id === objectId)
     if (!object) return
 
+    // Check if the clicked object is in the current selection
+    const isObjectSelected = selectedObjectIds.includes(objectId)
+    let objectsToMove = selectedObjectIds
+    
+    if (!isObjectSelected) {
+      // If not selected, select only this object
+      objectsToMove = [objectId]
+      selectObject(objectId)
+    }
+
+    // Store original positions for all objects that will be moved
+    const originalPositions = new Map<string, { x: number; y: number }>()
+    objects.forEach(obj => {
+      if (objectsToMove.includes(obj.id)) {
+        originalPositions.set(obj.id, { x: obj.x, y: obj.y })
+      }
+    })
+
     const startWorldPos = screenToWorld(e.clientX, e.clientY)
-    const startObjectX = object.x
-    const startObjectY = object.y
-    let finalX = startObjectX
-    let finalY = startObjectY
 
     const handleDragMove = (moveEvent: MouseEvent) => {
       const currentWorldPos = screenToWorld(moveEvent.clientX, moveEvent.clientY)
       const deltaX = currentWorldPos.x - startWorldPos.x
       const deltaY = currentWorldPos.y - startWorldPos.y
 
-      finalX = startObjectX + deltaX
-      finalY = startObjectY + deltaY
-
-      moveObject(objectId, finalX, finalY)
+      // Move all selected objects by the same delta
+      objectsToMove.forEach(objId => {
+        const originalPos = originalPositions.get(objId)
+        if (originalPos) {
+          const finalX = originalPos.x + deltaX
+          const finalY = originalPos.y + deltaY
+          moveObject(objId, finalX, finalY)
+        }
+      })
     }
 
     const handleDragEnd = async () => {
       document.removeEventListener('mousemove', handleDragMove)
       document.removeEventListener('mouseup', handleDragEnd)
       
-      // Save final position to database
-      await saveObjectPosition(objectId, finalX, finalY)
+      // Save final positions to database for all moved objects
+      const currentWorldPos = screenToWorld((window as any).lastMouseEvent?.clientX || e.clientX, (window as any).lastMouseEvent?.clientY || e.clientY)
+      const deltaX = currentWorldPos.x - startWorldPos.x
+      const deltaY = currentWorldPos.y - startWorldPos.y
+
+      // Save all object positions
+      for (const objId of objectsToMove) {
+        const originalPos = originalPositions.get(objId)
+        if (originalPos) {
+          const finalX = originalPos.x + deltaX
+          const finalY = originalPos.y + deltaY
+          await saveObjectPosition(objId, finalX, finalY)
+        }
+      }
+    }
+
+    // Track last mouse event for saving positions
+    const trackMouseEvent = (e: MouseEvent) => {
+      (window as any).lastMouseEvent = e
+    }
+    document.addEventListener('mousemove', trackMouseEvent)
+    const originalDragEnd = handleDragEnd
+    const wrappedDragEnd = async () => {
+      document.removeEventListener('mousemove', trackMouseEvent)
+      await originalDragEnd()
     }
 
     document.addEventListener('mousemove', handleDragMove)
-    document.addEventListener('mouseup', handleDragEnd)
-  }, [objects, screenToWorld, moveObject, saveObjectPosition])
+    document.addEventListener('mouseup', wrappedDragEnd)
+  }, [objects, selectedObjectIds, screenToWorld, moveObject, saveObjectPosition, selectObject])
 
   // Handle canvas click (deselect objects when clicking on background)
   const handleCanvasBackgroundClick = useCallback(async (e: React.MouseEvent) => {
@@ -536,12 +586,19 @@ export function InfiniteCanvas({
   }, [contextMenu])
 
   const handleDeleteConfirm = useCallback(async () => {
-    if (objectToDelete) {
+    if (objectToDelete === 'multiple') {
+      // Delete all selected objects
+      for (const id of selectedObjectIds) {
+        await deleteObject(id)
+      }
+      clearSelection()
+    } else if (objectToDelete) {
+      // Delete single object
       await deleteObject(objectToDelete)
-      setShowDeleteConfirmation(false)
-      setObjectToDelete(null)
     }
-  }, [objectToDelete, deleteObject])
+    setShowDeleteConfirmation(false)
+    setObjectToDelete(null)
+  }, [objectToDelete, selectedObjectIds, deleteObject, clearSelection])
 
   const handleDeleteCancel = useCallback(() => {
     setShowDeleteConfirmation(false)
@@ -551,22 +608,23 @@ export function InfiniteCanvas({
   // Keyboard shortcuts (Delete key)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Delete selected object with Delete or Backspace key
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedObjectId && isActive) {
+      // Delete selected object(s) with Delete or Backspace key
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedObjectIds.length > 0 && isActive) {
         // Don't delete if user is typing in an input/textarea
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
           return
         }
         
         e.preventDefault()
-        setObjectToDelete(selectedObjectId)
+        // For single selection, use the ID. For multiple, use 'multiple' marker
+        setObjectToDelete(selectedObjectIds.length === 1 ? selectedObjectIds[0] : 'multiple')
         setShowDeleteConfirmation(true)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedObjectId, isActive])
+  }, [selectedObjectIds, isActive])
 
   return (
     <div
@@ -588,6 +646,20 @@ export function InfiniteCanvas({
         height={dimensions.height}
         viewBox={viewBox}
         onClick={handleCanvasBackgroundClick}
+        onContextMenu={(e) => {
+          // Handle right-click for rectangle selection on canvas background
+          const clickedOnWidget = (e as any)._clickedWidget
+          if (!clickedOnWidget) {
+            e.preventDefault()
+            e.stopPropagation()
+            const point = screenToWorld(e.clientX, e.clientY)
+            console.log('Right-click on canvas - starting rectangle selection', point)
+            setIsRectangleSelecting(true)
+            setRectangleStart(point)
+            setRectangleEnd(point)
+            setContextMenu(null) // Close any existing context menu
+          }
+        }}
         onMouseDown={(e) => {
           // Handle freehand drawing
           if (currentTool === 'freehand') {
@@ -607,7 +679,12 @@ export function InfiniteCanvas({
           }
         }}
         onMouseMove={(e) => {
-          if (isFreehandDrawing) {
+          if (isRectangleSelecting && rectangleStart) {
+            // Update rectangle selection end point
+            e.stopPropagation()
+            const point = screenToWorld(e.clientX, e.clientY)
+            setRectangleEnd(point)
+          } else if (isFreehandDrawing) {
             e.stopPropagation()
             handleFreehandMove(e.nativeEvent)
           } else if (isArrowDrawing) {
@@ -616,14 +693,104 @@ export function InfiniteCanvas({
           }
         }}
         onMouseUp={() => {
-          if (isFreehandDrawing) {
+          if (isRectangleSelecting && rectangleStart && rectangleEnd) {
+            // Complete rectangle selection
+            const minX = Math.min(rectangleStart.x, rectangleEnd.x)
+            const maxX = Math.max(rectangleStart.x, rectangleEnd.x)
+            const minY = Math.min(rectangleStart.y, rectangleEnd.y)
+            const maxY = Math.max(rectangleStart.y, rectangleEnd.y)
+
+            // Check if this was just a click (no drag) or an actual rectangle selection
+            const isClick = Math.abs(rectangleEnd.x - rectangleStart.x) < 5 && Math.abs(rectangleEnd.y - rectangleStart.y) < 5
+            
+            if (isClick) {
+              // Just a right-click, clear selection
+              clearSelection()
+            } else {
+              // Find all objects that intersect with the rectangle
+              const selectedIds: string[] = []
+              objects.forEach(obj => {
+                let objMinX = obj.x
+                let objMaxX = obj.x + 100 // default size
+                let objMinY = obj.y
+                let objMaxY = obj.y + 100 // default size
+                
+                // Get actual dimensions based on object type
+                if (obj.type === 'freehand') {
+                  // For freehand, calculate bounds from points
+                  const freehandObj = obj as FreehandObject
+                  const points = freehandObj.object_data.points
+                  if (points && points.length > 0) {
+                    const xs = points.map(p => p.x)
+                    const ys = points.map(p => p.y)
+                    objMinX = Math.min(...xs)
+                    objMaxX = Math.max(...xs)
+                    objMinY = Math.min(...ys)
+                    objMaxY = Math.max(...ys)
+                    
+                    // Add stroke padding for easier selection
+                    const strokePadding = (freehandObj.object_data.strokeWidth || 5) * 2
+                    objMinX -= strokePadding
+                    objMaxX += strokePadding
+                    objMinY -= strokePadding
+                    objMaxY += strokePadding
+                  }
+                } else if (obj.type === 'arrow') {
+                  // For arrow, calculate bounds from control points
+                  const arrowObj = obj as ArrowObject
+                  const points = arrowObj.object_data.controlPoints
+                  if (points && points.length > 0) {
+                    const xs = points.map(p => p.x)
+                    const ys = points.map(p => p.y)
+                    objMinX = Math.min(...xs)
+                    objMaxX = Math.max(...xs)
+                    objMinY = Math.min(...ys)
+                    objMaxY = Math.max(...ys)
+                    
+                    // Add stroke padding for easier selection
+                    const strokePadding = (arrowObj.object_data.strokeWidth || 5) * 2
+                    objMinX -= strokePadding
+                    objMaxX += strokePadding
+                    objMinY -= strokePadding
+                    objMaxY += strokePadding
+                  }
+                } else if ('width' in obj && 'height' in obj) {
+                  // For objects with explicit dimensions
+                  objMaxX = obj.x + obj.width
+                  objMaxY = obj.y + obj.height
+                }
+                
+                // Rectangle intersection test
+                if (objMaxX >= minX && objMinX <= maxX && objMaxY >= minY && objMinY <= maxY) {
+                  selectedIds.push(obj.id)
+                }
+              })
+
+              // Update selection
+              if (selectedIds.length > 0) {
+                selectMultipleObjects(selectedIds)
+              } else {
+                clearSelection()
+              }
+            }
+
+            // Reset rectangle selection state
+            setIsRectangleSelecting(false)
+            setRectangleStart(null)
+            setRectangleEnd(null)
+          } else if (isFreehandDrawing) {
             handleFreehandEnd()
           } else if (isArrowDrawing) {
             handleArrowEnd()
           }
         }}
         onMouseLeave={() => {
-          if (isFreehandDrawing) {
+          // Cancel rectangle selection if mouse leaves canvas
+          if (isRectangleSelecting) {
+            setIsRectangleSelecting(false)
+            setRectangleStart(null)
+            setRectangleEnd(null)
+          } else if (isFreehandDrawing) {
             handleFreehandEnd()
           } else if (isArrowDrawing) {
             handleArrowEnd()
@@ -651,7 +818,7 @@ export function InfiniteCanvas({
               >
                 <CanvasObject
                   object={obj}
-                  isSelected={selectedObjectId === obj.id}
+                  isSelected={selectedObjectIds.includes(obj.id)}
                   zoom={viewport.zoom}
                   onUpdate={handleUpdateObject}
                   onSelect={handleSelectObject}
@@ -683,7 +850,7 @@ export function InfiniteCanvas({
               >
                 <CanvasObject
                   object={obj}
-                  isSelected={selectedObjectId === obj.id}
+                  isSelected={selectedObjectIds.includes(obj.id)}
                   zoom={viewport.zoom}
                   onUpdate={handleUpdateObject}
                   onSelect={handleSelectObject}
@@ -815,6 +982,21 @@ export function InfiniteCanvas({
             })()}
           </>
         )}
+        
+        {/* Rectangle selection visual */}
+        {isRectangleSelecting && rectangleStart && rectangleEnd && (
+          <rect
+            x={Math.min(rectangleStart.x, rectangleEnd.x)}
+            y={Math.min(rectangleStart.y, rectangleEnd.y)}
+            width={Math.abs(rectangleEnd.x - rectangleStart.x)}
+            height={Math.abs(rectangleEnd.y - rectangleStart.y)}
+            fill="rgba(0, 255, 255, 0.1)"
+            stroke="#00ffff"
+            strokeWidth={2 / viewport.zoom}
+            strokeDasharray={`${5 / viewport.zoom},${5 / viewport.zoom}`}
+            pointerEvents="none"
+          />
+        )}
       </svg>
 
       {/* Viewport info overlay */}
@@ -826,7 +1008,7 @@ export function InfiniteCanvas({
       {/* Brush properties panel for freehand and arrow tools */}
       {(currentTool === 'freehand' || currentTool === 'arrow') && (
         <BrushPropertiesPanel
-          selectedObject={objects.find((obj) => obj.id === selectedObjectId) || null}
+          selectedObject={objects.find((obj) => selectedObjectIds.includes(obj.id)) || null}
           strokeColor={brushProperties.strokeColor}
           strokeWidth={brushProperties.strokeWidth}
           opacity={brushProperties.opacity}
@@ -845,7 +1027,7 @@ export function InfiniteCanvas({
       
       {/* Properties panel for selected object */}
       <CanvasPropertiesPanel 
-        selectedObject={objects.find(obj => obj.id === selectedObjectId) || null}
+        selectedObject={selectedObjectIds.length === 1 ? objects.find(obj => obj.id === selectedObjectIds[0]) || null : null}
         onUpdate={handleUpdateObject}
       />
 
@@ -879,8 +1061,12 @@ export function InfiniteCanvas({
       {/* Delete confirmation dialog */}
       <ConfirmationDialog
         isOpen={showDeleteConfirmation}
-        title="Delete Object"
-        message="Are you sure you want to delete this object? This action cannot be undone."
+        title={objectToDelete === 'multiple' ? 'Delete Multiple Objects' : 'Delete Object'}
+        message={
+          objectToDelete === 'multiple'
+            ? `Are you sure you want to delete ${selectedObjectIds.length} objects? This action cannot be undone.`
+            : 'Are you sure you want to delete this object? This action cannot be undone.'
+        }
         confirmText="Delete"
         cancelText="Cancel"
         variant="danger"

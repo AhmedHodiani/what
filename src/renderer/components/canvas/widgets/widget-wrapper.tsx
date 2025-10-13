@@ -11,7 +11,7 @@ interface WidgetWrapperProps {
   minWidth?: number
   minHeight?: number
   onUpdate: (id: string, updates: Partial<DrawingObject>) => void
-  onSelect: (id: string) => void
+  onSelect: (id: string, event?: React.MouseEvent) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
   onStartDrag: (e: React.MouseEvent, id: string) => void
   onManualResize?: () => void  // Callback when user manually resizes
@@ -66,7 +66,7 @@ export function WidgetWrapper({
 
       e.stopPropagation()
       if (!isResizing) {
-        onSelect(object.id)
+        onSelect(object.id, e)
         onStartDrag(e, object.id)
       }
     },
@@ -81,7 +81,7 @@ export function WidgetWrapper({
       // Select the widget but DON'T stop propagation
       // This allows the canvas to detect if we clicked on a widget or background
       if (!isResizing) {
-        onSelect(object.id)
+        onSelect(object.id, e)
         // Mark that we clicked on a widget (not background)
         ;(e as any)._clickedWidget = true
       }

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { DrawingObject } from 'lib/types/canvas'
+import type { DrawingObject, FreehandObject, ArrowObject } from 'lib/types/canvas'
 
 interface UseCanvasObjectsOptions {
   tabId?: string
@@ -14,7 +14,7 @@ interface UseCanvasObjectsOptions {
  */
 export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOptions = {}) {
   const [objects, setObjects] = useState<(DrawingObject & { _imageUrl?: string })[]>([])
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null)
+  const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
   // Use ref to always have access to current objects without causing re-renders
@@ -112,18 +112,86 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
     }
   }, [tabId])
 
-  // Select an object
-  const selectObject = useCallback((id: string | null) => {
-    setSelectedObjectId(id)
+  // Select an object (or multiple with Ctrl)
+  const selectObject = useCallback((id: string | null, addToSelection = false) => {
+    if (id === null) {
+      setSelectedObjectIds([])
+    } else if (addToSelection) {
+      setSelectedObjectIds(prev => 
+        prev.includes(id) 
+          ? prev.filter(objId => objId !== id) // Toggle off if already selected
+          : [...prev, id] // Add to selection
+      )
+    } else {
+      setSelectedObjectIds([id])
+    }
+  }, [])
+
+  // Select multiple objects (for selection box)
+  const selectMultipleObjects = useCallback((ids: string[]) => {
+    setSelectedObjectIds(ids)
+  }, [])
+
+  // Clear selection
+  const clearSelection = useCallback(() => {
+    setSelectedObjectIds([])
   }, [])
 
   // Move an object (used by drag system)
   const moveObject = useCallback((id: string, x: number, y: number) => {
-    setObjects(prev => prev.map(obj =>
-      obj.id === id
-        ? { ...obj, x, y, updated: new Date().toISOString() }
-        : obj
-    ))
+    setObjects(prev => prev.map(obj => {
+      if (obj.id !== id) return obj
+      
+      // Calculate the delta from current position
+      const deltaX = x - obj.x
+      const deltaY = y - obj.y
+      
+      // For freehand objects, also move all points
+      if (obj.type === 'freehand') {
+        const freehandObj = obj as FreehandObject
+        return {
+          ...freehandObj,
+          x,
+          y,
+          object_data: {
+            ...freehandObj.object_data,
+            points: freehandObj.object_data.points.map((point: { x: number; y: number }) => ({
+              x: point.x + deltaX,
+              y: point.y + deltaY
+            }))
+          },
+          updated: new Date().toISOString()
+        }
+      }
+      
+      // For arrow objects, also move start and end points
+      if (obj.type === 'arrow') {
+        const arrowObj = obj as ArrowObject
+        return {
+          ...arrowObj,
+          x,
+          y,
+          object_data: {
+            ...arrowObj.object_data,
+            startX: arrowObj.object_data.startX + deltaX,
+            startY: arrowObj.object_data.startY + deltaY,
+            endX: arrowObj.object_data.endX + deltaX,
+            endY: arrowObj.object_data.endY + deltaY,
+            // Also move control points if they exist
+            ...(arrowObj.object_data.controlPoints && {
+              controlPoints: arrowObj.object_data.controlPoints.map((point: { x: number; y: number }) => ({
+                x: point.x + deltaX,
+                y: point.y + deltaY
+              }))
+            })
+          },
+          updated: new Date().toISOString()
+        }
+      }
+      
+      // For other objects, just update x and y
+      return { ...obj, x, y, updated: new Date().toISOString() }
+    }))
   }, [])
 
   // Save object position after drag (persists to database)
@@ -147,12 +215,14 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
 
   return {
     objects,
-    selectedObjectId,
+    selectedObjectIds,
     isLoading,
     addObject,
     updateObject,
     deleteObject,
     selectObject,
+    selectMultipleObjects,
+    clearSelection,
     moveObject,
     saveObjectPosition,
   }
