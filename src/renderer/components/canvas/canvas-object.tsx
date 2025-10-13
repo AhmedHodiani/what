@@ -2,8 +2,10 @@ import { useCallback } from 'react'
 import type { DrawingObject } from 'lib/types/canvas'
 import { ImageWidget } from './image-widget'
 import { StickyNoteWidget } from './widgets/sticky-note-widget'
+import { TextWidget } from './widgets/text-widget'
 import { FreehandWidget } from './widgets/freehand-widget'
 import { ArrowWidget } from './widgets/arrow-widget'
+import { YouTubeWidget } from './widgets/youtube-widget'
 
 interface CanvasObjectProps {
   object: DrawingObject & { _imageUrl?: string }
@@ -68,11 +70,16 @@ export function CanvasObject({
       )
 
     case 'text':
-      // TODO: Implement TextWidget
       return (
-        <div className="text-white">
-          Text Widget - Coming Soon
-        </div>
+        <TextWidget
+          object={object}
+          isSelected={isSelected}
+          zoom={zoom}
+          onUpdate={onUpdate}
+          onSelect={onSelect}
+          onContextMenu={onContextMenu}
+          onStartDrag={onStartDrag}
+        />
       )
 
     case 'shape':
@@ -102,6 +109,19 @@ export function CanvasObject({
           zoom={zoom}
           onSelect={onSelect}
           onContextMenu={onContextMenu}
+        />
+      )
+
+    case 'youtube':
+      return (
+        <YouTubeWidget
+          object={object}
+          isSelected={isSelected}
+          zoom={zoom}
+          onUpdate={onUpdate}
+          onSelect={onSelect}
+          onContextMenu={onContextMenu}
+          onStartDrag={onStartDrag}
         />
       )
 

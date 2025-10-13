@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { StickyNoteObject, DrawingObject } from 'lib/types/canvas'
 import { WidgetWrapper } from './widget-wrapper'
+import { useAutoResize } from 'renderer/hooks/use-auto-resize'
 
 interface StickyNoteWidgetProps {
   object: StickyNoteObject
@@ -33,6 +34,7 @@ export function StickyNoteWidget({
 }: StickyNoteWidgetProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(object.object_data.text)
+  const [isManuallyResized, setIsManuallyResized] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const paperColor = object.object_data.paperColor || '#ffd700'
@@ -80,6 +82,43 @@ export function StickyNoteWidget({
     }
   }, [object.object_data.text, saveText])
 
+  // Auto-resize based on text content
+  const handleAutoResize = useCallback((width: number, height: number) => {
+    // Don't auto-resize if user has manually resized
+    if (isManuallyResized) return
+    
+    // Only update if dimensions actually changed to avoid infinite loops
+    if (width !== object.width || height !== object.height) {
+      onUpdate(object.id, {
+        width,
+        height,
+      })
+    }
+  }, [isManuallyResized, object.id, object.width, object.height, onUpdate])
+
+  // Use current text (either editing or saved)
+  const currentText = isEditing ? editText : object.object_data.text
+
+  useAutoResize({
+    text: currentText,
+    fontSize,
+    fontFamily: '"Kalam", "Comic Sans MS", cursive',
+    lineHeight: 1.4,
+    fontWeight: '400',
+    fontStyle: 'normal',
+    minWidth: 150,
+    minHeight: 150,
+    maxWidth: 1000,
+    maxHeight: 1000,
+    padding: 48, // More padding for sticky note (includes folded corner space)
+    onResize: handleAutoResize,
+  })
+
+  // Handle manual resize - disable auto-resize
+  const handleManualResize = useCallback(() => {
+    setIsManuallyResized(true)
+  }, [])
+
   return (
     <WidgetWrapper
       object={object}
@@ -89,6 +128,7 @@ export function StickyNoteWidget({
       onSelect={onSelect}
       onContextMenu={onContextMenu}
       onStartDrag={onStartDrag}
+      onManualResize={handleManualResize}
       isResizable={true}
       minWidth={100}
       minHeight={100}

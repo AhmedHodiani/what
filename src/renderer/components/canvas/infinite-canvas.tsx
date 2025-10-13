@@ -1,5 +1,5 @@
 import { useRef, useMemo, useCallback, useState } from 'react'
-import type { Viewport, DrawingObject, StickyNoteObject, FreehandObject, ArrowObject } from 'lib/types/canvas'
+import type { Viewport, DrawingObject, StickyNoteObject, TextObject, FreehandObject, ArrowObject, YouTubeVideoObject } from 'lib/types/canvas'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
 import { generateId } from 'lib/utils/id-generator'
 import { useContainerSize } from 'renderer/hooks/use-container-size'
@@ -17,6 +17,7 @@ import { CanvasToolbar } from './canvas-toolbar'
 import { CanvasPropertiesPanel } from './canvas-properties-panel'
 import { BrushPropertiesPanel } from './brush-properties-panel'
 import { CanvasObject } from './canvas-object'
+import { YouTubeUrlDialog } from './youtube-url-dialog'
 import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
 
 interface InfiniteCanvasProps {
@@ -74,6 +75,10 @@ export function InfiniteCanvas({
     strokeWidth: 15,
     opacity: 1,
   })
+
+  // YouTube dialog state
+  const [showYouTubeDialog, setShowYouTubeDialog] = useState(false)
+  const [youtubeDialogPosition, setYoutubeDialogPosition] = useState({ x: 0, y: 0 })
 
   // Use generic canvas objects hook
   const {
@@ -310,6 +315,35 @@ export function InfiniteCanvas({
           break
         }
         
+        case 'text': {
+          const textBox: TextObject = {
+            id: generateId(),
+            type: 'text',
+            x: worldPos.x - 150, // Center the text box
+            y: worldPos.y - 50,
+            width: 300,
+            height: 100,
+            z_index: objects.length,
+            object_data: {
+              text: '',
+              fontSize: 24,
+              fontFamily: 'Inter, system-ui, sans-serif',
+              fontWeight: 'normal',
+              fontStyle: 'normal',
+              textAlign: 'left',
+              color: '#FFFFFF',
+              backgroundColor: 'transparent',
+              lineHeight: 1.5,
+            },
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+          }
+          await addObject(textBox)
+          selectObject(textBox.id)
+          setTool('select') // Switch back to select mode after creating
+          break
+        }
+        
         case 'image': {
           // Capture mouse position for image placement
           const clickX = e.clientX
@@ -352,6 +386,14 @@ export function InfiniteCanvas({
           break
         }
         
+        case 'youtube': {
+          const worldPos = screenToWorld(e.clientX, e.clientY)
+          // Store position and show dialog
+          setYoutubeDialogPosition({ x: worldPos.x, y: worldPos.y })
+          setShowYouTubeDialog(true)
+          break
+        }
+        
         // TODO: Add other object types (text, shape, etc.)
       }
       return
@@ -389,6 +431,35 @@ export function InfiniteCanvas({
       dimensions.width / viewport.zoom
     } ${dimensions.height / viewport.zoom}`
   }, [viewport, dimensions])
+
+  // YouTube dialog handlers
+  const handleYouTubeConfirm = useCallback(async (url: string, videoId: string) => {
+    const youtubeVideo: YouTubeVideoObject = {
+      id: generateId(),
+      type: 'youtube',
+      x: youtubeDialogPosition.x - 280, // Center the video
+      y: youtubeDialogPosition.y - 158,
+      width: 560,
+      height: 315, // 16:9 aspect ratio
+      z_index: objects.length,
+      object_data: {
+        videoUrl: url,
+        videoId: videoId,
+        title: `Video ${videoId}`,
+      },
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    }
+    await addObject(youtubeVideo)
+    selectObject(youtubeVideo.id)
+    setShowYouTubeDialog(false)
+    setTool('select')
+  }, [youtubeDialogPosition, objects.length, addObject, selectObject, setTool])
+
+  const handleYouTubeCancel = useCallback(() => {
+    setShowYouTubeDialog(false)
+    setTool('select')
+  }, [setTool])
 
   return (
     <div
@@ -670,6 +741,14 @@ export function InfiniteCanvas({
         selectedObject={objects.find(obj => obj.id === selectedObjectId) || null}
         onUpdate={handleUpdateObject}
       />
+
+      {/* YouTube URL dialog */}
+      {showYouTubeDialog && (
+        <YouTubeUrlDialog
+          onConfirm={handleYouTubeConfirm}
+          onCancel={handleYouTubeCancel}
+        />
+      )}
     </div>
   )
 }

@@ -25,6 +25,7 @@ export type DrawingObjectType =
   | 'text'
   | 'shape'
   | 'arrow'
+  | 'youtube'
 
 // Freehand drawing (pen/pencil stroke)
 export interface FreehandObject {
@@ -163,6 +164,24 @@ export interface ArrowObject {
   updated: string
 }
 
+// YouTube Video
+export interface YouTubeVideoObject {
+  id: string
+  type: 'youtube'
+  x: number
+  y: number
+  width: number
+  height: number
+  z_index: number
+  object_data: {
+    videoUrl: string             // Full YouTube URL
+    videoId: string              // Extracted video ID
+    title?: string               // Video title
+  }
+  created: string
+  updated: string
+}
+
 // Union type for all drawing objects
 export type DrawingObject = 
   | FreehandObject 
@@ -171,4 +190,5 @@ export type DrawingObject =
   | TextObject 
   | ShapeObject 
   | ArrowObject
+  | YouTubeVideoObject
 

@@ -20,6 +20,7 @@ const tools: Tool[] = [
   { type: 'freehand', label: 'Pen', icon: '✏️', shortcut: 'P' },
   { type: 'arrow', label: 'Arrow', icon: '→', shortcut: 'A' },
   { type: 'image', label: 'Image', icon: '🖼️', shortcut: 'I' },
+  { type: 'youtube', label: 'YouTube', icon: '📺', shortcut: 'Y' },
 ]
 
 /**

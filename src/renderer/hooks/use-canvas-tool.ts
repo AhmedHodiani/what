@@ -60,6 +60,9 @@ export function useCanvasTool(options: UseCanvasToolOptions = {}) {
         case 'i':
           setTool('image')
           break
+        case 'y':
+          setTool('youtube')
+          break
       }
     }
 

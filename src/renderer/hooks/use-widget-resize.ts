@@ -11,6 +11,7 @@ interface UseWidgetResizeOptions {
   minHeight?: number
   lockAspectRatio?: boolean
   onUpdate: (id: string, updates: { width: number; height: number }) => void
+  onResizeStart?: () => void  // Callback when resize starts
 }
 
 /**
@@ -27,6 +28,7 @@ export function useWidgetResize({
   minHeight = 50,
   lockAspectRatio = false,
   onUpdate,
+  onResizeStart,
 }: UseWidgetResizeOptions) {
   const [isResizing, setIsResizing] = useState(false)
   const [resizeHandle, setResizeHandle] = useState<ResizeHandle | null>(null)
@@ -38,6 +40,9 @@ export function useWidgetResize({
 
       setIsResizing(true)
       setResizeHandle(handle)
+      
+      // Notify parent that manual resize started
+      onResizeStart?.()
 
       const startX = e.clientX
       const startY = e.clientY

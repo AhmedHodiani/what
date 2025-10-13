@@ -14,6 +14,7 @@ interface WidgetWrapperProps {
   onSelect: (id: string) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
   onStartDrag: (e: React.MouseEvent, id: string) => void
+  onManualResize?: () => void  // Callback when user manually resizes
   children: React.ReactNode
 }
 
@@ -40,6 +41,7 @@ export function WidgetWrapper({
   onSelect,
   onContextMenu,
   onStartDrag,
+  onManualResize,
   children,
 }: WidgetWrapperProps) {
   const width = 'width' in object ? object.width : 100
@@ -54,6 +56,7 @@ export function WidgetWrapper({
     minHeight,
     lockAspectRatio,
     onUpdate,
+    onResizeStart: onManualResize,  // Notify parent when resize starts
   })
 
   const handleMouseDown = useCallback(
