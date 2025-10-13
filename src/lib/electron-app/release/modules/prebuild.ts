@@ -7,7 +7,7 @@ import packageJSON from '../../../../../package.json'
 import { getDevFolder } from '../utils/path'
 
 async function createPackageJSONDistVersion() {
-  const { main, scripts, resources, devDependencies, ...rest } = packageJSON
+  const { main, scripts, resources, devDependencies, build: _build, ...rest } = packageJSON
 
   const packageJSONDistVersion = {
     main: './main/index.js',

@@ -94,6 +94,38 @@ const API = {
       }
     },
   },
+  
+  // Auto-updater
+  updater: {
+    checkForUpdates: () => ipcRenderer.invoke('updater-check'),
+    downloadUpdate: () => ipcRenderer.invoke('updater-download'),
+    installUpdate: () => ipcRenderer.invoke('updater-install'),
+    onUpdateAvailable: (callback: (info: { version: string; releaseDate: string; releaseName?: string; releaseNotes?: string }) => void) => {
+      const listener = (_event: any, info: any) => callback(info)
+      ipcRenderer.on('update-available', listener)
+      return () => ipcRenderer.removeListener('update-available', listener)
+    },
+    onUpdateNotAvailable: (callback: (info: { version: string }) => void) => {
+      const listener = (_event: any, info: any) => callback(info)
+      ipcRenderer.on('update-not-available', listener)
+      return () => ipcRenderer.removeListener('update-not-available', listener)
+    },
+    onDownloadProgress: (callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void) => {
+      const listener = (_event: any, progress: any) => callback(progress)
+      ipcRenderer.on('update-download-progress', listener)
+      return () => ipcRenderer.removeListener('update-download-progress', listener)
+    },
+    onUpdateDownloaded: (callback: (info: { version: string }) => void) => {
+      const listener = (_event: any, info: any) => callback(info)
+      ipcRenderer.on('update-downloaded', listener)
+      return () => ipcRenderer.removeListener('update-downloaded', listener)
+    },
+    onUpdateError: (callback: (error: { message: string }) => void) => {
+      const listener = (_event: any, error: any) => callback(error)
+      ipcRenderer.on('update-error', listener)
+      return () => ipcRenderer.removeListener('update-error', listener)
+    },
+  },
 }
 
 contextBridge.exposeInMainWorld('App', API)

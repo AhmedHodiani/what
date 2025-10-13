@@ -6,7 +6,6 @@ Sketch, link, and organize your ideas on an infinite canvas. Everything is saved
 ## 📖 Documentation
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System design, patterns & file structure
 - **[CHECKLIST.md](./CHECKLIST.md)** - Development roadmap & progress (29% complete)
-- **[.github/copilot-instructions.md](./.github/copilot-instructions.md)** - Critical gotchas & debugging
 
 ## Features
 

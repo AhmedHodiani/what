@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Minus, Square, X, Copy, Bug, File, FolderOpen, Save, SaveAll, XCircle, LogOut } from 'lucide-react'
+import { version } from '~/package.json'
 
 interface MenuBarProps {
   onMenuClick?: (menu: string) => void
@@ -37,12 +38,12 @@ export function MenuBar({ onMenuClick, currentFileName, onDebugClick, hasOpenFil
 
   const menus = [
     { id: 'file', label: 'File' },
-    { id: 'edit', label: 'Edit' },
-    { id: 'view', label: 'View' },
-    { id: 'select', label: 'Select' },
-    { id: 'layer', label: 'Layer' },
-    { id: 'window', label: 'Window' },
-    { id: 'help', label: 'Help' },
+    // { id: 'edit', label: 'Edit' },
+    // { id: 'view', label: 'View' },
+    // { id: 'select', label: 'Select' },
+    // { id: 'layer', label: 'Layer' },
+    // { id: 'window', label: 'Window' },
+    // { id: 'help', label: 'Help' },
   ]
 
   const handleMenuClick = (menuId: string) => {
@@ -93,7 +94,7 @@ export function MenuBar({ onMenuClick, currentFileName, onDebugClick, hasOpenFil
       <div className="flex-1 flex items-center app-drag-region">
         {/* App Title */}
         <div className="text-xs font-semibold text-gray-400 px-3 mr-2">
-          What
+          What {version}
         </div>
 
         {/* Menu Items */}

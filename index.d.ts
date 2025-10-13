@@ -41,6 +41,16 @@ declare global {
       shortcuts: {
         onShortcut: (callback: (action: string) => void) => () => void
       }
+      updater: {
+        checkForUpdates: () => Promise<void>
+        downloadUpdate: () => Promise<void>
+        installUpdate: () => void
+        onUpdateAvailable: (callback: (info: { version: string; releaseDate: string; releaseName?: string; releaseNotes?: string }) => void) => () => void
+        onUpdateNotAvailable: (callback: (info: { version: string }) => void) => () => void
+        onDownloadProgress: (callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void) => () => void
+        onUpdateDownloaded: (callback: (info: { version: string }) => void) => () => void
+        onUpdateError: (callback: (error: { message: string }) => void) => () => void
+      }
     }
   }
 }

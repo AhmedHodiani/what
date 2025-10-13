@@ -4,6 +4,7 @@ import 'flexlayout-react/style/light.css'
 import '../styles/flexlayout-theme.css'
 import { InfiniteCanvas, CanvasDemoContent, CanvasErrorBoundary } from 'renderer/components/canvas'
 import { MenuBar } from 'renderer/components/layout/menu-bar'
+import { UpdateNotification } from 'renderer/components/layout/update-notification'
 import { WelcomeScreen } from 'renderer/components/welcome/welcome-screen'
 import type { Viewport } from 'lib/types/canvas'
 import type { FileTab } from 'shared/types/tabs'
@@ -418,6 +419,9 @@ export function MainScreenWithTabs() {
           <WelcomeScreen onNewFile={handleNewFile} onOpenFile={handleOpenFile} />
         )}
       </div>
+
+      {/* Update Notification */}
+      <UpdateNotification />
     </div>
   )
 }

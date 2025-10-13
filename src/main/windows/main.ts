@@ -5,6 +5,7 @@ import { createWindow } from 'lib/electron-app/factories/windows/create'
 import { ENVIRONMENT } from 'shared/constants'
 import { displayName } from '~/package.json'
 import { multiFileManager } from '../services/multi-file-manager'
+import { setupAutoUpdater, checkForUpdates, downloadUpdate, installUpdate } from '../services/auto-updater'
 
 export async function MainWindow() {
   console.log('[Main] 🚀 MainWindow() function called - setting up window and IPC handlers')
@@ -455,6 +456,25 @@ export async function MainWindow() {
       window.webContents.send('keyboard-shortcut', 'close')
     }
   })
+
+  // Auto-updater IPC handlers
+  ipcMain.removeHandler('updater-check')
+  ipcMain.handle('updater-check', async () => {
+    await checkForUpdates()
+  })
+
+  ipcMain.removeHandler('updater-download')
+  ipcMain.handle('updater-download', async () => {
+    await downloadUpdate()
+  })
+
+  ipcMain.removeHandler('updater-install')
+  ipcMain.handle('updater-install', () => {
+    installUpdate()
+  })
+
+  // Setup auto-updater (will check for updates on startup)
+  setupAutoUpdater(window)
 
   window.webContents.on('did-finish-load', () => {
     if (ENVIRONMENT.IS_DEV) {
