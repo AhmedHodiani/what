@@ -53,6 +53,7 @@ export class WhatFileService {
       const dbPath = join(this.workingDir, 'main.db')
       this.db = new Database(dbPath)
       this.db.pragma('journal_mode = DELETE') // Use DELETE mode to avoid WAL files
+      this.db.pragma('auto_vacuum = INCREMENTAL') // Enable auto vacuum to reclaim space on delete
 
       // Initialize database schema
       this.initializeSchema()
@@ -157,6 +158,7 @@ export class WhatFileService {
       // Open SQLite database
       this.db = new Database(dbPath)
       this.db.pragma('journal_mode = DELETE')
+      this.db.pragma('auto_vacuum = INCREMENTAL') // Enable auto vacuum to reclaim space on delete
 
       // Verify schema
       this.verifySchema()
@@ -215,6 +217,7 @@ export class WhatFileService {
       const dbPath = join(this.workingDir, 'main.db')
       this.db = new Database(dbPath)
       this.db.pragma('journal_mode = DELETE')
+      this.db.pragma('auto_vacuum = INCREMENTAL')
 
       this.currentFile.isModified = false
       this.currentFile.lastModified = new Date()
@@ -273,6 +276,7 @@ export class WhatFileService {
     // Reopen database
     this.db = new Database(dbPath)
     this.db.pragma('journal_mode = DELETE')
+    this.db.pragma('auto_vacuum = INCREMENTAL') // Enable auto vacuum to reclaim space on delete
   }
 
   /**
@@ -654,6 +658,16 @@ export class WhatFileService {
 
     // Delete the object from database
     this.db.prepare('DELETE FROM objects WHERE id = ?').run(id)
+    
+    // Run full VACUUM to reclaim all space immediately
+    // This completely rebuilds the database file and shrinks it to minimum size
+    try {
+      this.db.prepare('VACUUM').run()
+      console.log(`[WhatFile] Vacuumed database after deleting object ${id}`)
+    } catch (error) {
+      console.error('[WhatFile] Failed to vacuum after delete:', error)
+    }
+    
     this.markAsModified()
   }
 
