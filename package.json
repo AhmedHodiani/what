@@ -85,6 +85,15 @@
         "owner": "ahmedhodiani",
         "repo": "what"
       }
-    ]
+    ],
+    "linux": {
+      "target": ["AppImage", "deb", "rpm"]
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "mac": {
+      "target": ["dmg"]
+    }
   }
 }
