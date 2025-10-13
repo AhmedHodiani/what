@@ -27,19 +27,11 @@ jobs:
       - run: pnpm install
 
       # Linux-specific setup
-      - name: apt-update
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update
-
-      - name: autoremove
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt autoremove
-
-      - name: Install dependencies for building Electron on Linux
+      - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get install libarchive-tools rpm
-          sudo snap install snapcraft --classic
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools rpm libfuse2 squashfs-tools
 
       - name: Release Electron app
         uses: daltonmenezes/action-electron-builder@v1.0.1
