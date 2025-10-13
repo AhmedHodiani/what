@@ -1,4 +1,4 @@
-import { useRef, useMemo, useCallback, useState } from 'react'
+import { useRef, useMemo, useCallback, useState, useEffect } from 'react'
 import type { Viewport, DrawingObject, StickyNoteObject, TextObject, FreehandObject, ArrowObject, YouTubeVideoObject, ShapeObject } from 'lib/types/canvas'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
 import { generateId } from 'lib/utils/id-generator'
@@ -20,6 +20,8 @@ import { CanvasObject } from './canvas-object'
 import { YouTubeUrlDialog } from './youtube-url-dialog'
 import { ShapePickerDialog } from './shape-picker-dialog'
 import type { ShapeType } from './shape-picker-dialog'
+import { ContextMenu } from './context-menu'
+import { ConfirmationDialog } from './confirmation-dialog'
 import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
 
 interface InfiniteCanvasProps {
@@ -86,12 +88,20 @@ export function InfiniteCanvas({
   const [showShapeDialog, setShowShapeDialog] = useState(false)
   const [shapeDialogPosition, setShapeDialogPosition] = useState({ x: 0, y: 0 })
 
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; objectId: string } | null>(null)
+
+  // Confirmation dialog state
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [objectToDelete, setObjectToDelete] = useState<string | null>(null)
+
   // Use generic canvas objects hook
   const {
     objects,
     selectedObjectId,
     addObject,
     updateObject,
+    deleteObject,
     selectObject,
     moveObject,
     saveObjectPosition,
@@ -244,8 +254,15 @@ export function InfiniteCanvas({
   }, [selectObject])
 
   const handleContextMenu = useCallback((event: React.MouseEvent, id: string) => {
-    // TODO: Show context menu for object
-    console.log('Context menu for object:', id, event)
+    event.preventDefault()
+    event.stopPropagation()
+    
+    // Show context menu at mouse position
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      objectId: id,
+    })
   }, [])
 
   // Handle object dragging - generic for all object types
@@ -508,6 +525,48 @@ export function InfiniteCanvas({
     setShowShapeDialog(false)
     setTool('select')
   }, [setTool])
+
+  // Delete handlers
+  const handleDeleteClick = useCallback(() => {
+    if (contextMenu) {
+      setObjectToDelete(contextMenu.objectId)
+      setShowDeleteConfirmation(true)
+      setContextMenu(null)
+    }
+  }, [contextMenu])
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (objectToDelete) {
+      await deleteObject(objectToDelete)
+      setShowDeleteConfirmation(false)
+      setObjectToDelete(null)
+    }
+  }, [objectToDelete, deleteObject])
+
+  const handleDeleteCancel = useCallback(() => {
+    setShowDeleteConfirmation(false)
+    setObjectToDelete(null)
+  }, [])
+
+  // Keyboard shortcuts (Delete key)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Delete selected object with Delete or Backspace key
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedObjectId && isActive) {
+        // Don't delete if user is typing in an input/textarea
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+          return
+        }
+        
+        e.preventDefault()
+        setObjectToDelete(selectedObjectId)
+        setShowDeleteConfirmation(true)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedObjectId, isActive])
 
   return (
     <div
@@ -806,6 +865,28 @@ export function InfiniteCanvas({
           onSelectShape={handleShapeSelect}
         />
       )}
+
+      {/* Context menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onDelete={handleDeleteClick}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {/* Delete confirmation dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteConfirmation}
+        title="Delete Object"
+        message="Are you sure you want to delete this object? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </div>
   )
 }
