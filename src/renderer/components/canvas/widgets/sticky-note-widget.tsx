@@ -34,12 +34,14 @@ export function StickyNoteWidget({
 }: StickyNoteWidgetProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(object.object_data.text)
-  const [isManuallyResized, setIsManuallyResized] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const paperColor = object.object_data.paperColor || '#ffd700'
   const fontColor = object.object_data.fontColor || '#333333'
   const fontSize = object.object_data.fontSize || 16
+  
+  // Check if auto-resize is enabled (default: true)
+  const autoResizeEnabled = object.object_data.autoResize !== false
 
   // Auto-focus when entering edit mode
   useEffect(() => {
@@ -82,22 +84,19 @@ export function StickyNoteWidget({
     }
   }, [object.object_data.text, saveText])
 
-  // Auto-resize based on text content
-  const handleAutoResize = useCallback((width: number, height: number) => {
-    // Don't auto-resize if user has manually resized
-    if (isManuallyResized) return
-    
-    // Only update if dimensions actually changed to avoid infinite loops
-    if (width !== object.width || height !== object.height) {
-      onUpdate(object.id, {
-        width,
-        height,
-      })
-    }
-  }, [isManuallyResized, object.id, object.width, object.height, onUpdate])
-
   // Use current text (either editing or saved)
   const currentText = isEditing ? editText : object.object_data.text
+
+  // Auto-resize callback
+  const handleAutoResize = useCallback(
+    (width: number, height: number) => {
+      // Skip auto-resize if manually resized
+      if (!autoResizeEnabled) return
+
+      onUpdate?.(object.id, { width, height })
+    },
+    [autoResizeEnabled, object.id, onUpdate],
+  )
 
   useAutoResize({
     text: currentText,
@@ -116,8 +115,14 @@ export function StickyNoteWidget({
 
   // Handle manual resize - disable auto-resize
   const handleManualResize = useCallback(() => {
-    setIsManuallyResized(true)
-  }, [])
+    // Disable auto-resize permanently for this object
+    onUpdate?.(object.id, {
+      object_data: {
+        ...object.object_data,
+        autoResize: false,
+      },
+    })
+  }, [object.id, object.object_data, onUpdate])
 
   return (
     <WidgetWrapper

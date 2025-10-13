@@ -60,6 +60,7 @@ export interface StickyNoteObject {
     fontColor?: string           // Text color
     fontSize?: number            // Text size
     fontFamily?: string          // Font family
+    autoResize?: boolean         // Auto-resize to fit content (default: true)
   }
   created: string
   updated: string
@@ -110,6 +111,7 @@ export interface TextObject {
     color?: string               // Text color
     backgroundColor?: string     // Background color
     lineHeight?: number          // Line spacing
+    autoResize?: boolean         // Auto-resize to fit content (default: true)
   }
   created: string
   updated: string

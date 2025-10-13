@@ -34,8 +34,10 @@ export function TextWidget({
 }: TextWidgetProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [text, setText] = useState(object.object_data.text || '')
-  const [isManuallyResized, setIsManuallyResized] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  
+  // Check if auto-resize is enabled (default: true)
+  const autoResizeEnabled = object.object_data.autoResize !== false
 
   // Auto-focus textarea when editing starts
   useEffect(() => {
@@ -98,8 +100,8 @@ export function TextWidget({
 
   // Auto-resize based on text content
   const handleAutoResize = useCallback((width: number, height: number) => {
-    // Don't auto-resize if user has manually resized
-    if (isManuallyResized) return
+    // Don't auto-resize if user has manually resized (autoResize flag disabled)
+    if (!autoResizeEnabled) return
     
     // Only update if dimensions actually changed to avoid infinite loops
     if (width !== object.width || height !== object.height) {
@@ -108,7 +110,7 @@ export function TextWidget({
         height,
       })
     }
-  }, [isManuallyResized, object.id, object.width, object.height, onUpdate])
+  }, [autoResizeEnabled, object.id, object.width, object.height, onUpdate])
 
   useAutoResize({
     text,
@@ -125,10 +127,15 @@ export function TextWidget({
     onResize: handleAutoResize,
   })
 
-  // Handle manual resize - disable auto-resize
+  // Handle manual resize - disable auto-resize permanently
   const handleManualResize = useCallback(() => {
-    setIsManuallyResized(true)
-  }, [])
+    onUpdate(object.id, {
+      object_data: {
+        ...object.object_data,
+        autoResize: false,
+      },
+    })
+  }, [object.id, object.object_data, onUpdate])
 
   return (
     <WidgetWrapper
