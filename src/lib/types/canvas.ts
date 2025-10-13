@@ -26,6 +26,7 @@ export type DrawingObjectType =
   | 'shape'
   | 'arrow'
   | 'youtube'
+  | 'emoji'
 
 // Freehand drawing (pen/pencil stroke)
 export interface FreehandObject {
@@ -184,6 +185,22 @@ export interface YouTubeVideoObject {
   updated: string
 }
 
+// Emoji object
+export interface EmojiObject {
+  id: string
+  type: 'emoji'
+  x: number
+  y: number
+  width: number
+  height: number
+  z_index: number
+  object_data: {
+    emoji: string                // The emoji character
+  }
+  created: string
+  updated: string
+}
+
 // Union type for all drawing objects
 export type DrawingObject = 
   | FreehandObject 
@@ -193,4 +210,5 @@ export type DrawingObject =
   | ShapeObject 
   | ArrowObject
   | YouTubeVideoObject
+  | EmojiObject
 

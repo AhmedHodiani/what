@@ -21,6 +21,7 @@ const tools: Tool[] = [
   { type: 'arrow', label: 'Arrow', icon: '→', shortcut: 'A' },
   { type: 'image', label: 'Image', icon: '🖼️', shortcut: 'I' },
   { type: 'youtube', label: 'YouTube', icon: '📺', shortcut: 'Y' },
+  { type: 'emoji', label: 'Emoji', icon: '😀', shortcut: 'E' },
 ]
 
 /**

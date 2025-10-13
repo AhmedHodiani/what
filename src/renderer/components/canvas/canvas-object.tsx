@@ -7,6 +7,7 @@ import { FreehandWidget } from './widgets/freehand-widget'
 import { ArrowWidget } from './widgets/arrow-widget'
 import { YouTubeWidget } from './widgets/youtube-widget'
 import { ShapeWidget } from './widgets/shape-widget'
+import { EmojiWidget } from './widgets/emoji-widget'
 
 interface CanvasObjectProps {
   object: DrawingObject & { _imageUrl?: string }
@@ -123,6 +124,19 @@ export function CanvasObject({
     case 'youtube':
       return (
         <YouTubeWidget
+          object={object}
+          isSelected={isSelected}
+          zoom={zoom}
+          onUpdate={onUpdate}
+          onSelect={onSelect}
+          onContextMenu={onContextMenu}
+          onStartDrag={onStartDrag}
+        />
+      )
+
+    case 'emoji':
+      return (
+        <EmojiWidget
           object={object}
           isSelected={isSelected}
           zoom={zoom}

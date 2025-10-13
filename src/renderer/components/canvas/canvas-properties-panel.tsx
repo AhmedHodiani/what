@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import type { StickyNoteObject, DrawingObject } from 'lib/types/canvas'
 import { TextPropertiesPanel } from './text-properties-panel'
 import { ShapePropertiesPanel } from './shape-properties-panel'
+import { EmojiPropertiesPanel } from './properties-panels/emoji-properties-panel'
 
 interface CanvasPropertiesPanelProps {
   selectedObject: DrawingObject | null
@@ -67,6 +68,14 @@ export function CanvasPropertiesPanel({
     case 'shape':
       return (
         <ShapePropertiesPanel
+          object={selectedObject}
+          onUpdate={onUpdate}
+        />
+      )
+
+    case 'emoji':
+      return (
+        <EmojiPropertiesPanel
           object={selectedObject}
           onUpdate={onUpdate}
         />

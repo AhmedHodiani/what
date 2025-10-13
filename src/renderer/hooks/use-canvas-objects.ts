@@ -196,6 +196,9 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
 
   // Save object position after drag (persists to database)
   const saveObjectPosition = useCallback(async (id: string, x: number, y: number) => {
+    // Skip saving if no file is open (no tabId)
+    if (!tabId) return
+    
     const object = objectsRef.current.find(obj => obj.id === id)
     if (!object) return
 

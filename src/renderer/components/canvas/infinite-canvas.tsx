@@ -481,6 +481,28 @@ export function InfiniteCanvas({
           break
         }
         
+        case 'emoji': {
+          const worldPos = screenToWorld(e.clientX, e.clientY)
+          const newEmoji = {
+            id: `emoji_${Date.now()}`,
+            type: 'emoji' as const,
+            x: worldPos.x - 40, // Center horizontally (80px / 2)
+            y: worldPos.y - 40, // Center vertically (80px / 2)
+            width: 80,
+            height: 80,
+            z_index: objects.length,
+            object_data: {
+              emoji: '😀', // Default emoji
+            },
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+          }
+          await addObject(newEmoji)
+          selectObject(newEmoji.id)
+          setTool('select')
+          break
+        }
+        
         // TODO: Add other object types
       }
       return
