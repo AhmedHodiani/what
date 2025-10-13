@@ -40,6 +40,15 @@ const API = {
         ipcRenderer.removeListener('file-opened', listener)
       }
     },
+    onFileClosed: (callback: (data: { tabId: string }) => void) => {
+      const listener = (_event: any, data: { tabId: string }) => {
+        callback(data)
+      }
+      ipcRenderer.on('file-closed', listener)
+      return () => {
+        ipcRenderer.removeListener('file-closed', listener)
+      }
+    },
     // Canvas operations
     getCanvas: (canvasId: string, tabId?: string) => ipcRenderer.invoke('file-get-canvas', canvasId, tabId),
     saveViewport: (canvasId: string, x: number, y: number, zoom: number, tabId?: string) => {
@@ -71,6 +80,19 @@ const API = {
     getAll: () => ipcRenderer.invoke('tabs-get-all'),
     setActive: (tabId: string) => ipcRenderer.invoke('tabs-set-active', tabId),
     getActiveId: () => ipcRenderer.invoke('tabs-get-active-id'),
+  },
+  
+  // Keyboard shortcuts
+  shortcuts: {
+    onShortcut: (callback: (action: string) => void) => {
+      const listener = (_event: any, action: string) => {
+        callback(action)
+      }
+      ipcRenderer.on('keyboard-shortcut', listener)
+      return () => {
+        ipcRenderer.removeListener('keyboard-shortcut', listener)
+      }
+    },
   },
 }
 

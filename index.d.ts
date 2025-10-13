@@ -19,7 +19,8 @@ declare global {
         saveAs: () => Promise<any>
         close: (tabId?: string) => Promise<boolean>
         getCurrentFile: () => Promise<any>
-        onFileOpened: (callback: (data: { file: any; tabId: string }) => void) => void
+        onFileOpened: (callback: (data: { file: any; tabId: string }) => void) => () => void
+        onFileClosed: (callback: (data: { tabId: string }) => void) => () => void
         getCanvas: (canvasId: string, tabId?: string) => Promise<any>
         saveViewport: (canvasId: string, x: number, y: number, zoom: number, tabId?: string) => Promise<void>
         getMetadata: (tabId?: string) => Promise<any>
@@ -36,6 +37,9 @@ declare global {
         getAll: () => Promise<any[]>
         setActive: (tabId: string) => Promise<boolean>
         getActiveId: () => Promise<string | null>
+      }
+      shortcuts: {
+        onShortcut: (callback: (action: string) => void) => () => void
       }
     }
   }

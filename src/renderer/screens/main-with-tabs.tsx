@@ -172,7 +172,32 @@ export function MainScreenWithTabs() {
       setActiveTabId(tabId)
     })
     
-    return cleanup
+    // Listen for files being closed
+    const cleanupClosed = window.App.file.onFileClosed(({ tabId }) => {
+      console.log('[MainScreen] File closed via menu:', tabId)
+      
+      // Remove from tabs state
+      setTabs((prevTabs) => prevTabs.filter((t) => t.id !== tabId))
+      
+      // Remove from FlexLayout
+      const existingNode = model.getNodeById(tabId)
+      if (existingNode) {
+        model.doAction(Actions.deleteTab(tabId))
+      }
+      
+      // Clean up viewport cache and timeout
+      viewportsRef.current.delete(tabId)
+      const timeout = saveTimeoutRefs.current.get(tabId)
+      if (timeout) {
+        clearTimeout(timeout)
+        saveTimeoutRefs.current.delete(tabId)
+      }
+    })
+    
+    return () => {
+      cleanup()
+      cleanupClosed()
+    }
   }, [model])
 
   // Handle viewport changes for a specific tab
@@ -210,6 +235,37 @@ export function MainScreenWithTabs() {
       }
     }
   }, [])
+  
+  // Listen for keyboard shortcuts
+  useEffect(() => {
+    const cleanup = window.App.shortcuts.onShortcut(async (action) => {
+      console.log('[MainScreen] Keyboard shortcut:', action)
+      
+      switch (action) {
+        case 'new':
+          await window.App.file.new()
+          break
+        case 'open':
+          await window.App.file.open()
+          break
+        case 'save':
+          if (activeTabId) {
+            await window.App.file.save(activeTabId)
+          }
+          break
+        case 'saveAs':
+          await window.App.file.saveAs()
+          break
+        case 'close':
+          if (activeTabId) {
+            await window.App.file.close(activeTabId)
+          }
+          break
+      }
+    })
+    
+    return cleanup
+  }, [activeTabId])
 
   const handleNewFile = async () => {
     await window.App.file.new()

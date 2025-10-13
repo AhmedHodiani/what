@@ -161,15 +161,25 @@ export async function MainWindow() {
   })
 
   ipcMain.removeHandler('file-close')
-  ipcMain.handle('file-close', async (_event, tabId?: string) => {
+  ipcMain.handle('file-close', async (event, tabId?: string) => {
+    let closedTabId: string | null = null
+    
     if (tabId) {
       multiFileManager.closeTab(tabId)
+      closedTabId = tabId
     } else {
       const activeTabId = multiFileManager.getActiveTabId()
       if (activeTabId) {
         multiFileManager.closeTab(activeTabId)
+        closedTabId = activeTabId
       }
     }
+    
+    // Notify renderer that tab was closed
+    if (closedTabId) {
+      event.sender.send('file-closed', { tabId: closedTabId })
+    }
+    
     return true
   })
 
@@ -406,6 +416,44 @@ export async function MainWindow() {
 
   window.on('unmaximize', () => {
     window.webContents.send('window-maximize-change', false)
+  })
+
+  // Register keyboard shortcuts
+  window.webContents.on('before-input-event', (event, input) => {
+    const { control, shift, alt, key } = input
+    
+    // Only handle key down events
+    if (input.type !== 'keyDown') return
+    
+    // Ctrl+N - New File
+    if (control && !shift && !alt && key.toLowerCase() === 'n') {
+      event.preventDefault()
+      window.webContents.send('keyboard-shortcut', 'new')
+    }
+    
+    // Ctrl+O - Open File
+    if (control && !shift && !alt && key.toLowerCase() === 'o') {
+      event.preventDefault()
+      window.webContents.send('keyboard-shortcut', 'open')
+    }
+    
+    // Ctrl+S - Save
+    if (control && !shift && !alt && key.toLowerCase() === 's') {
+      event.preventDefault()
+      window.webContents.send('keyboard-shortcut', 'save')
+    }
+    
+    // Ctrl+Shift+S - Save As
+    if (control && shift && !alt && key.toLowerCase() === 's') {
+      event.preventDefault()
+      window.webContents.send('keyboard-shortcut', 'saveAs')
+    }
+    
+    // Ctrl+W - Close File
+    if (control && !shift && !alt && key.toLowerCase() === 'w') {
+      event.preventDefault()
+      window.webContents.send('keyboard-shortcut', 'close')
+    }
   })
 
   window.webContents.on('did-finish-load', () => {
