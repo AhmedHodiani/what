@@ -309,6 +309,49 @@ export function InfiniteCanvas({
           setTool('select') // Switch back to select mode after creating
           break
         }
+        
+        case 'image': {
+          // Capture mouse position for image placement
+          const clickX = e.clientX
+          const clickY = e.clientY
+          
+          // Open file picker for image
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.accept = 'image/*'
+          input.onchange = async (event) => {
+            const file = (event.target as HTMLInputElement).files?.[0]
+            if (!file) return
+            
+            try {
+              // Read file as data URL
+              const reader = new FileReader()
+              reader.onload = async (readerEvent) => {
+                const dataUrl = readerEvent.target?.result as string
+                
+                // Load image to get dimensions
+                const img = new Image()
+                img.onload = async () => {
+                  await handleImagePaste({
+                    file,
+                    dataUrl,
+                    width: img.width,
+                    height: img.height,
+                  }, { x: clickX, y: clickY })
+                  
+                  setTool('select') // Switch back to select mode after creating
+                }
+                img.src = dataUrl
+              }
+              reader.readAsDataURL(file)
+            } catch (error) {
+              console.error('Failed to load image:', error)
+            }
+          }
+          input.click()
+          break
+        }
+        
         // TODO: Add other object types (text, shape, etc.)
       }
       return
@@ -316,7 +359,7 @@ export function InfiniteCanvas({
     
     // Otherwise, deselect (clicked on canvas background)
     selectObject(null)
-  }, [currentTool, screenToWorld, objects.length, addObject, selectObject, setTool])
+  }, [currentTool, screenToWorld, objects.length, addObject, selectObject, setTool, handleImagePaste])
 
   // Handle panning - use functional update to always get latest viewport
   const { handleMouseDown } = useCanvasPan(containerRef, (deltaX, deltaY) => {
