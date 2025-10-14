@@ -23,6 +23,7 @@ export async function MainWindow() {
     autoHideMenuBar: true,
     frame: false,
     titleBarStyle: 'hidden',
+    icon: join(__dirname, '../../resources/build/icons/png/512x512.png'), // Dev mode icon
 
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

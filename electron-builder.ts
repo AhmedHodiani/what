@@ -4,7 +4,6 @@ import type { Configuration } from 'electron-builder'
 import {
   name,
   version,
-  resources,
   description,
   displayName,
   author as _author,
@@ -25,6 +24,7 @@ export default {
   directories: {
     app: 'node_modules/.dev',
     output: `dist/v${version}`,
+    buildResources: 'src/resources/build', // Electron-builder will look for icons here
   },
   
   asar: true,
@@ -34,14 +34,13 @@ export default {
       ext: 'what',
       name: 'What File',
       description: 'What visual thinking canvas file',
-      icon: `${resources}/build/icons/icon.icns`,
       role: 'Editor',
+      icon: 'icons/file/file', // Relative to buildResources
     },
   ],
 
   mac: {
     artifactName,
-    icon: `${resources}/build/icons/icon.icns`,
     category: 'public.app-category.utilities',
     target: ['zip', 'dmg', 'dir'],
   },
@@ -56,7 +55,6 @@ export default {
 
   win: {
     artifactName,
-    icon: `${resources}/build/icons/icon.ico`,
-    target: ['zip', 'portable'],
+    target: ['nsis'],
   },
 } satisfies Configuration

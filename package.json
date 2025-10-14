@@ -2,7 +2,7 @@
   "displayName": "What",
   "name": "what",
   "description": "A local-first visual thinking app. Draw, map, and organize your ideas on an infinite canvas. Files are stored in a single .what format — fast, self-contained, and portable. Built with Electron, powered by SQLite, made for clarity.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": "./node_modules/.dev/main/index.js",
   "resources": "src/resources",
   "author": {
@@ -63,6 +63,7 @@
     "electron": "^37.3.1",
     "electron-builder": "^26.0.12",
     "electron-extension-installer": "^2.0.0",
+    "electron-icon-maker": "^0.0.5",
     "electron-vite": "^4.0.0",
     "npm-run-all": "^4.1.5",
     "open": "^10.1.0",
@@ -77,7 +78,8 @@
   },
   "build": {
     "directories": {
-      "app": "node_modules/.dev"
+      "app": "node_modules/.dev",
+      "buildResources": "src/resources/build"
     },
     "publish": [
       {
@@ -87,13 +89,21 @@
       }
     ],
     "linux": {
-      "target": ["AppImage", "deb", "rpm"]
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ]
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "mac": {
-      "target": ["dmg"]
+      "target": [
+        "dmg"
+      ]
     }
   }
 }
