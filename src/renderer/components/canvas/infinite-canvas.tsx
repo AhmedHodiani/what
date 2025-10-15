@@ -1,5 +1,15 @@
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react'
-import type { Viewport, DrawingObject, StickyNoteObject, TextObject, FreehandObject, ArrowObject, YouTubeVideoObject, ShapeObject } from 'lib/types/canvas'
+import type {
+  Viewport,
+  DrawingObject,
+  StickyNoteObject,
+  TextObject,
+  FreehandObject,
+  ArrowObject,
+  YouTubeVideoObject,
+  ShapeObject,
+} from 'lib/types/canvas'
+import { logger } from '../../../shared/logger'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
 import { generateId } from 'lib/utils/id-generator'
 import { useContainerSize } from 'renderer/hooks/use-container-size'
@@ -39,13 +49,13 @@ interface InfiniteCanvasProps {
 
 /**
  * InfiniteCanvas - A zoomable, pannable SVG canvas component.
- * 
+ *
  * Features:
  * - Pan with left-click drag
  * - Zoom with mouse wheel (towards cursor)
  * - Responsive to container size changes
  * - Optional grid and viewport display
- * 
+ *
  * @example
  * ```tsx
  * <InfiniteCanvas
@@ -69,14 +79,14 @@ export function InfiniteCanvas({
   children,
 }: InfiniteCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
-  
+
   // Track active drag handlers for cleanup
   const activeDragHandlersRef = useRef<{
     handleDragMove?: (e: MouseEvent) => void
     handleDragEnd?: () => void
     trackMouseEvent?: (e: MouseEvent) => void
   }>({})
-  
+
   // Tool selection
   const { currentTool, setTool } = useCanvasTool()
 
@@ -89,23 +99,38 @@ export function InfiniteCanvas({
 
   // YouTube dialog state
   const [showYouTubeDialog, setShowYouTubeDialog] = useState(false)
-  const [youtubeDialogPosition, setYoutubeDialogPosition] = useState({ x: 0, y: 0 })
+  const [youtubeDialogPosition, setYoutubeDialogPosition] = useState({
+    x: 0,
+    y: 0,
+  })
 
   // Shape picker dialog state
   const [showShapeDialog, setShowShapeDialog] = useState(false)
   const [shapeDialogPosition, setShapeDialogPosition] = useState({ x: 0, y: 0 })
 
   // Context menu state
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; objectId: string } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    objectId: string
+  } | null>(null)
 
   // Confirmation dialog state
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [objectToDelete, setObjectToDelete] = useState<string | 'multiple' | null>(null)
+  const [objectToDelete, setObjectToDelete] = useState<
+    string | 'multiple' | null
+  >(null)
 
   // Rectangle selection state
   const [isRectangleSelecting, setIsRectangleSelecting] = useState(false)
-  const [rectangleStart, setRectangleStart] = useState<{ x: number; y: number } | null>(null)
-  const [rectangleEnd, setRectangleEnd] = useState<{ x: number; y: number } | null>(null)
+  const [rectangleStart, setRectangleStart] = useState<{
+    x: number
+    y: number
+  } | null>(null)
+  const [rectangleEnd, setRectangleEnd] = useState<{
+    x: number
+    y: number
+  } | null>(null)
 
   // Use generic canvas objects hook
   const {
@@ -123,7 +148,10 @@ export function InfiniteCanvas({
 
   // Sanitize initial viewport to ensure valid values
   const safeInitialViewport = useMemo(
-    () => (initialViewport ? sanitizeViewport(initialViewport, minZoom, maxZoom) : undefined),
+    () =>
+      initialViewport
+        ? sanitizeViewport(initialViewport, minZoom, maxZoom)
+        : undefined,
     [initialViewport, minZoom, maxZoom]
   )
 
@@ -135,21 +163,24 @@ export function InfiniteCanvas({
   })
 
   // Convert screen coordinates to world coordinates
-  const screenToWorld = useCallback((screenX: number, screenY: number) => {
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return { x: 0, y: 0 }
-    
-    const halfWidth = dimensions.width / (2 * viewport.zoom)
-    const halfHeight = dimensions.height / (2 * viewport.zoom)
-    
-    const relativeX = screenX - rect.left
-    const relativeY = screenY - rect.top
-    
-    const worldX = viewport.x - halfWidth + (relativeX / viewport.zoom)
-    const worldY = viewport.y - halfHeight + (relativeY / viewport.zoom)
-    
-    return { x: worldX, y: worldY }
-  }, [containerRef, dimensions, viewport])
+  const screenToWorld = useCallback(
+    (screenX: number, screenY: number) => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return { x: 0, y: 0 }
+
+      const halfWidth = dimensions.width / (2 * viewport.zoom)
+      const halfHeight = dimensions.height / (2 * viewport.zoom)
+
+      const relativeX = screenX - rect.left
+      const relativeY = screenY - rect.top
+
+      const worldX = viewport.x - halfWidth + relativeX / viewport.zoom
+      const worldY = viewport.y - halfHeight + relativeY / viewport.zoom
+
+      return { x: worldX, y: worldY }
+    },
+    [containerRef, dimensions, viewport]
+  )
 
   // Freehand drawing
   const {
@@ -195,343 +226,391 @@ export function InfiniteCanvas({
     ),
   })
 
-    // Handle clipboard paste for images
-  const handleImagePaste = useCallback(async (image: { file: File; dataUrl: string; width: number; height: number }, mousePosition?: { x: number; y: number }) => {
-    try {
-      // Convert data URL to buffer
-      const base64 = image.dataUrl.split(',')[1]
-      const binaryString = atob(base64)
-      const buffer = new ArrayBuffer(binaryString.length)
-      const view = new Uint8Array(buffer)
-      for (let i = 0; i < binaryString.length; i++) {
-        view[i] = binaryString.charCodeAt(i)
-      }
-      
-      // Save asset
-      const assetId = await window.App.file.saveAsset(
-        `image-${Date.now()}.png`,
-        buffer,
-        'image/png',
-        tabId || undefined
-      )
-      
-      // Get asset as data URL for display
-      const assetDataUrl = await window.App.file.getAssetDataUrl(assetId, tabId || undefined)
-      if (!assetDataUrl) {
-        throw new Error('Failed to retrieve asset data URL')
-      }
-      
-      // Get world position (use mouse position if available, otherwise center)
-      const worldPos = mousePosition 
-        ? screenToWorld(mousePosition.x, mousePosition.y)
-        : screenToWorld(dimensions.width / 2, dimensions.height / 2)
-      
-      // Create image object with data URL
-      const newImage: DrawingObject & { _imageUrl?: string } = {
-        id: `img-${Date.now()}`,
-        type: 'image',
-        x: worldPos.x - image.width / 2,
-        y: worldPos.y - image.height / 2,
-        width: image.width,
-        height: image.height,
-        z_index: objects.length,
-        object_data: {
-          assetId,
-          originalWidth: image.width,
-          originalHeight: image.height,
-        },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        _imageUrl: assetDataUrl, // Store data URL for immediate display
-      }
-      
-      await addObject(newImage)
-      selectObject(newImage.id)
-    } catch (error) {
-      console.error('Failed to paste image:', error)
-    }
-  }, [dimensions, screenToWorld, objects.length, addObject, selectObject, tabId])
+  // Handle clipboard paste for images
+  const handleImagePaste = useCallback(
+    async (
+      image: { file: File; dataUrl: string; width: number; height: number },
+      mousePosition?: { x: number; y: number }
+    ) => {
+      try {
+        // Convert data URL to buffer
+        const base64 = image.dataUrl.split(',')[1]
+        const binaryString = atob(base64)
+        const buffer = new ArrayBuffer(binaryString.length)
+        const view = new Uint8Array(buffer)
+        for (let i = 0; i < binaryString.length; i++) {
+          view[i] = binaryString.charCodeAt(i)
+        }
 
-  useClipboardPaste({ 
-    onImagePaste: handleImagePaste, 
+        // Save asset
+        const assetId = await window.App.file.saveAsset(
+          `image-${Date.now()}.png`,
+          buffer,
+          'image/png',
+          tabId || undefined
+        )
+
+        // Get asset as data URL for display
+        const assetDataUrl = await window.App.file.getAssetDataUrl(
+          assetId,
+          tabId || undefined
+        )
+        if (!assetDataUrl) {
+          throw new Error('Failed to retrieve asset data URL')
+        }
+
+        // Get world position (use mouse position if available, otherwise center)
+        const worldPos = mousePosition
+          ? screenToWorld(mousePosition.x, mousePosition.y)
+          : screenToWorld(dimensions.width / 2, dimensions.height / 2)
+
+        // Create image object with data URL
+        const newImage: DrawingObject & { _imageUrl?: string } = {
+          id: `img-${Date.now()}`,
+          type: 'image',
+          x: worldPos.x - image.width / 2,
+          y: worldPos.y - image.height / 2,
+          width: image.width,
+          height: image.height,
+          z_index: objects.length,
+          object_data: {
+            assetId,
+            originalWidth: image.width,
+            originalHeight: image.height,
+          },
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+          _imageUrl: assetDataUrl, // Store data URL for immediate display
+        }
+
+        await addObject(newImage)
+        selectObject(newImage.id)
+      } catch (error) {
+        logger.error('Failed to paste image:', error)
+      }
+    },
+    [dimensions, screenToWorld, objects.length, addObject, selectObject, tabId]
+  )
+
+  useClipboardPaste({
+    onImagePaste: handleImagePaste,
     enabled: isActive,
     containerRef, // Pass container ref for accurate mouse position tracking
   })
 
   // Object management callbacks - now using generic methods
-  const handleUpdateObject = useCallback(async (
-    id: string, 
-    updates: Partial<DrawingObject>,
-    options?: { skipSave?: boolean }
-  ) => {
-    await updateObject(id, updates, options)
-  }, [updateObject])
+  const handleUpdateObject = useCallback(
+    async (
+      id: string,
+      updates: Partial<DrawingObject>,
+      options?: { skipSave?: boolean }
+    ) => {
+      await updateObject(id, updates, options)
+    },
+    [updateObject]
+  )
 
-  const handleSelectObject = useCallback((id: string, event?: React.MouseEvent) => {
-    const isCtrlPressed = event ? (event.ctrlKey || event.metaKey) : false
-    selectObject(id, isCtrlPressed)
-  }, [selectObject])
+  const handleSelectObject = useCallback(
+    (id: string, event?: React.MouseEvent) => {
+      const isCtrlPressed = event ? event.ctrlKey || event.metaKey : false
+      selectObject(id, isCtrlPressed)
+    },
+    [selectObject]
+  )
 
-  const handleContextMenu = useCallback((event: React.MouseEvent, id: string) => {
-    event.preventDefault()
-    event.stopPropagation()
-    
-    // If the right-clicked object is not in the current selection, select only it
-    // If it's already selected as part of multi-selection, keep the multi-selection
-    if (!selectedObjectIds.includes(id)) {
-      selectObject(id)
-    }
-    
-    // Show context menu at mouse position
-    setContextMenu({
-      x: event.clientX,
-      y: event.clientY,
-      objectId: id,
-    })
-  }, [selectedObjectIds, selectObject])
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent, id: string) => {
+      event.preventDefault()
+      event.stopPropagation()
+
+      // If the right-clicked object is not in the current selection, select only it
+      // If it's already selected as part of multi-selection, keep the multi-selection
+      if (!selectedObjectIds.includes(id)) {
+        selectObject(id)
+      }
+
+      // Show context menu at mouse position
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        objectId: id,
+      })
+    },
+    [selectedObjectIds, selectObject]
+  )
 
   // Handle object dragging - generic for all object types
-  const handleStartDrag = useCallback((e: React.MouseEvent, objectId: string) => {
-    e.stopPropagation() // Stop canvas pan from triggering
-    
-    const object = objects.find(o => o.id === objectId)
-    if (!object) return
+  const handleStartDrag = useCallback(
+    (e: React.MouseEvent, objectId: string) => {
+      e.stopPropagation() // Stop canvas pan from triggering
 
-    // Check if the clicked object is in the current selection
-    const isObjectSelected = selectedObjectIds.includes(objectId)
-    let objectsToMove = selectedObjectIds
-    
-    if (!isObjectSelected) {
-      // If not selected, select only this object
-      objectsToMove = [objectId]
-      selectObject(objectId)
-    }
+      const object = objects.find(o => o.id === objectId)
+      if (!object) return
 
-    // Store original positions for all objects that will be moved
-    const originalPositions = new Map<string, { x: number; y: number }>()
-    objects.forEach(obj => {
-      if (objectsToMove.includes(obj.id)) {
-        originalPositions.set(obj.id, { x: obj.x, y: obj.y })
+      // Check if the clicked object is in the current selection
+      const isObjectSelected = selectedObjectIds.includes(objectId)
+      let objectsToMove = selectedObjectIds
+
+      if (!isObjectSelected) {
+        // If not selected, select only this object
+        objectsToMove = [objectId]
+        selectObject(objectId)
       }
-    })
 
-    const startWorldPos = screenToWorld(e.clientX, e.clientY)
-
-    const handleDragMove = (moveEvent: MouseEvent) => {
-      const currentWorldPos = screenToWorld(moveEvent.clientX, moveEvent.clientY)
-      const deltaX = currentWorldPos.x - startWorldPos.x
-      const deltaY = currentWorldPos.y - startWorldPos.y
-
-      // Move all selected objects by the same delta
-      objectsToMove.forEach(objId => {
-        const originalPos = originalPositions.get(objId)
-        if (originalPos) {
-          const finalX = originalPos.x + deltaX
-          const finalY = originalPos.y + deltaY
-          moveObject(objId, finalX, finalY)
+      // Store original positions for all objects that will be moved
+      const originalPositions = new Map<string, { x: number; y: number }>()
+      objects.forEach(obj => {
+        if (objectsToMove.includes(obj.id)) {
+          originalPositions.set(obj.id, { x: obj.x, y: obj.y })
         }
       })
-    }
 
-    const handleDragEnd = async () => {
-      document.removeEventListener('mousemove', handleDragMove)
-      document.removeEventListener('mouseup', handleDragEnd)
-      document.removeEventListener('mousemove', trackMouseEvent)
-      
-      // Clear from active handlers
-      activeDragHandlersRef.current = {}
-      
-      // Save final positions to database for all moved objects
-      const currentWorldPos = screenToWorld((window as any).lastMouseEvent?.clientX || e.clientX, (window as any).lastMouseEvent?.clientY || e.clientY)
-      const deltaX = currentWorldPos.x - startWorldPos.x
-      const deltaY = currentWorldPos.y - startWorldPos.y
+      const startWorldPos = screenToWorld(e.clientX, e.clientY)
 
-      // Save all object positions
-      for (const objId of objectsToMove) {
-        const originalPos = originalPositions.get(objId)
-        if (originalPos) {
-          const finalX = originalPos.x + deltaX
-          const finalY = originalPos.y + deltaY
-          await saveObjectPosition(objId, finalX, finalY)
+      const handleDragMove = (moveEvent: MouseEvent) => {
+        const currentWorldPos = screenToWorld(
+          moveEvent.clientX,
+          moveEvent.clientY
+        )
+        const deltaX = currentWorldPos.x - startWorldPos.x
+        const deltaY = currentWorldPos.y - startWorldPos.y
+
+        // Move all selected objects by the same delta
+        objectsToMove.forEach(objId => {
+          const originalPos = originalPositions.get(objId)
+          if (originalPos) {
+            const finalX = originalPos.x + deltaX
+            const finalY = originalPos.y + deltaY
+            moveObject(objId, finalX, finalY)
+          }
+        })
+      }
+
+      const handleDragEnd = async () => {
+        document.removeEventListener('mousemove', handleDragMove)
+        document.removeEventListener('mouseup', handleDragEnd)
+        document.removeEventListener('mousemove', trackMouseEvent)
+
+        // Clear from active handlers
+        activeDragHandlersRef.current = {}
+
+        // Save final positions to database for all moved objects
+        const currentWorldPos = screenToWorld(
+          (window as any).lastMouseEvent?.clientX || e.clientX,
+          (window as any).lastMouseEvent?.clientY || e.clientY
+        )
+        const deltaX = currentWorldPos.x - startWorldPos.x
+        const deltaY = currentWorldPos.y - startWorldPos.y
+
+        // Save all object positions
+        for (const objId of objectsToMove) {
+          const originalPos = originalPositions.get(objId)
+          if (originalPos) {
+            const finalX = originalPos.x + deltaX
+            const finalY = originalPos.y + deltaY
+            await saveObjectPosition(objId, finalX, finalY)
+          }
         }
       }
-    }
 
-    // Track last mouse event for saving positions
-    const trackMouseEvent = (e: MouseEvent) => {
-      (window as any).lastMouseEvent = e
-    }
-    
-    // Store handlers for cleanup
-    activeDragHandlersRef.current = {
-      handleDragMove,
-      handleDragEnd,
-      trackMouseEvent
-    }
-    
-    document.addEventListener('mousemove', trackMouseEvent)
-    document.addEventListener('mousemove', handleDragMove)
-    document.addEventListener('mouseup', handleDragEnd)
-  }, [objects, selectedObjectIds, screenToWorld, moveObject, saveObjectPosition, selectObject])
+      // Track last mouse event for saving positions
+      const trackMouseEvent = (e: MouseEvent) => {
+        ;(window as any).lastMouseEvent = e
+      }
+
+      // Store handlers for cleanup
+      activeDragHandlersRef.current = {
+        handleDragMove,
+        handleDragEnd,
+        trackMouseEvent,
+      }
+
+      document.addEventListener('mousemove', trackMouseEvent)
+      document.addEventListener('mousemove', handleDragMove)
+      document.addEventListener('mouseup', handleDragEnd)
+    },
+    [
+      objects,
+      selectedObjectIds,
+      screenToWorld,
+      moveObject,
+      saveObjectPosition,
+      selectObject,
+    ]
+  )
 
   // Handle canvas click (deselect objects when clicking on background)
-  const handleCanvasBackgroundClick = useCallback(async (e: React.MouseEvent) => {
-    // Check if we clicked on a widget (marked by widget-wrapper)
-    if ((e as any)._clickedWidget) {
-      return // Don't deselect if we clicked on a widget
-    }
-    
-    // If a creation tool is selected, create that object type
-    if (currentTool !== 'select') {
-      const worldPos = screenToWorld(e.clientX, e.clientY)
-      
-      switch (currentTool) {
-        case 'sticky-note': {
-          const stickyNote: StickyNoteObject = {
-            id: generateId(),
-            type: 'sticky-note',
-            x: worldPos.x - 100, // Center the note
-            y: worldPos.y - 100,
-            width: 200,
-            height: 200,
-            z_index: objects.length,
-            object_data: {
-              text: '',
-              paperColor: '#ffd700', // Classic yellow
-              fontColor: '#333333',
-              fontSize: 16,
-              fontFamily: 'Kalam',
-            },
-            created: new Date().toISOString(),
-            updated: new Date().toISOString(),
-          }
-          await addObject(stickyNote)
-          selectObject(stickyNote.id)
-          setTool('select') // Switch back to select mode after creating
-          break
-        }
-        
-        case 'text': {
-          const textBox: TextObject = {
-            id: generateId(),
-            type: 'text',
-            x: worldPos.x - 150, // Center the text box
-            y: worldPos.y - 50,
-            width: 300,
-            height: 100,
-            z_index: objects.length,
-            object_data: {
-              text: '',
-              fontSize: 24,
-              fontFamily: 'Inter, system-ui, sans-serif',
-              fontWeight: 'normal',
-              fontStyle: 'normal',
-              textAlign: 'left',
-              color: '#FFFFFF',
-              backgroundColor: 'transparent',
-              lineHeight: 1.5,
-            },
-            created: new Date().toISOString(),
-            updated: new Date().toISOString(),
-          }
-          await addObject(textBox)
-          selectObject(textBox.id)
-          setTool('select') // Switch back to select mode after creating
-          break
-        }
-        
-        case 'image': {
-          // Capture mouse position for image placement
-          const clickX = e.clientX
-          const clickY = e.clientY
-          
-          // Open file picker for image
-          const input = document.createElement('input')
-          input.type = 'file'
-          input.accept = 'image/*'
-          input.onchange = async (event) => {
-            const file = (event.target as HTMLInputElement).files?.[0]
-            if (!file) return
-            
-            try {
-              // Read file as data URL
-              const reader = new FileReader()
-              reader.onload = async (readerEvent) => {
-                const dataUrl = readerEvent.target?.result as string
-                
-                // Load image to get dimensions
-                const img = new Image()
-                img.onload = async () => {
-                  await handleImagePaste({
-                    file,
-                    dataUrl,
-                    width: img.width,
-                    height: img.height,
-                  }, { x: clickX, y: clickY })
-                  
-                  setTool('select') // Switch back to select mode after creating
-                }
-                img.src = dataUrl
-              }
-              reader.readAsDataURL(file)
-            } catch (error) {
-              console.error('Failed to load image:', error)
-            }
-          }
-          input.click()
-          break
-        }
-        
-        case 'youtube': {
-          const worldPos = screenToWorld(e.clientX, e.clientY)
-          // Store position and show dialog
-          setYoutubeDialogPosition({ x: worldPos.x, y: worldPos.y })
-          setShowYouTubeDialog(true)
-          break
-        }
-        
-        case 'shape': {
-          const worldPos = screenToWorld(e.clientX, e.clientY)
-          // Store position and show shape picker dialog
-          setShapeDialogPosition({ x: worldPos.x, y: worldPos.y })
-          setShowShapeDialog(true)
-          break
-        }
-        
-        case 'emoji': {
-          const worldPos = screenToWorld(e.clientX, e.clientY)
-          const newEmoji = {
-            id: `emoji_${Date.now()}`,
-            type: 'emoji' as const,
-            x: worldPos.x - 40, // Center horizontally (80px / 2)
-            y: worldPos.y - 40, // Center vertically (80px / 2)
-            width: 80,
-            height: 80,
-            z_index: objects.length,
-            object_data: {
-              emoji: '😀', // Default emoji
-            },
-            created: new Date().toISOString(),
-            updated: new Date().toISOString(),
-          }
-          await addObject(newEmoji)
-          selectObject(newEmoji.id)
-          setTool('select')
-          break
-        }
-        
-        // TODO: Add other object types
+  const handleCanvasBackgroundClick = useCallback(
+    async (e: React.MouseEvent) => {
+      // Check if we clicked on a widget (marked by widget-wrapper)
+      if ((e as any)._clickedWidget) {
+        return // Don't deselect if we clicked on a widget
       }
-      return
-    }
-    
-    // Otherwise, deselect (clicked on canvas background)
-    selectObject(null)
-  }, [currentTool, screenToWorld, objects.length, addObject, selectObject, setTool, handleImagePaste])
+
+      // If a creation tool is selected, create that object type
+      if (currentTool !== 'select') {
+        const worldPos = screenToWorld(e.clientX, e.clientY)
+
+        switch (currentTool) {
+          case 'sticky-note': {
+            const stickyNote: StickyNoteObject = {
+              id: generateId(),
+              type: 'sticky-note',
+              x: worldPos.x - 100, // Center the note
+              y: worldPos.y - 100,
+              width: 200,
+              height: 200,
+              z_index: objects.length,
+              object_data: {
+                text: '',
+                paperColor: '#ffd700', // Classic yellow
+                fontColor: '#333333',
+                fontSize: 16,
+                fontFamily: 'Kalam',
+              },
+              created: new Date().toISOString(),
+              updated: new Date().toISOString(),
+            }
+            await addObject(stickyNote)
+            selectObject(stickyNote.id)
+            setTool('select') // Switch back to select mode after creating
+            break
+          }
+
+          case 'text': {
+            const textBox: TextObject = {
+              id: generateId(),
+              type: 'text',
+              x: worldPos.x - 150, // Center the text box
+              y: worldPos.y - 50,
+              width: 300,
+              height: 100,
+              z_index: objects.length,
+              object_data: {
+                text: '',
+                fontSize: 24,
+                fontFamily: 'Inter, system-ui, sans-serif',
+                fontWeight: 'normal',
+                fontStyle: 'normal',
+                textAlign: 'left',
+                color: '#FFFFFF',
+                backgroundColor: 'transparent',
+                lineHeight: 1.5,
+              },
+              created: new Date().toISOString(),
+              updated: new Date().toISOString(),
+            }
+            await addObject(textBox)
+            selectObject(textBox.id)
+            setTool('select') // Switch back to select mode after creating
+            break
+          }
+
+          case 'image': {
+            // Capture mouse position for image placement
+            const clickX = e.clientX
+            const clickY = e.clientY
+
+            // Open file picker for image
+            const input = document.createElement('input')
+            input.type = 'file'
+            input.accept = 'image/*'
+            input.onchange = async event => {
+              const file = (event.target as HTMLInputElement).files?.[0]
+              if (!file) return
+
+              try {
+                // Read file as data URL
+                const reader = new FileReader()
+                reader.onload = async readerEvent => {
+                  const dataUrl = readerEvent.target?.result as string
+
+                  // Load image to get dimensions
+                  const img = new Image()
+                  img.onload = async () => {
+                    await handleImagePaste(
+                      {
+                        file,
+                        dataUrl,
+                        width: img.width,
+                        height: img.height,
+                      },
+                      { x: clickX, y: clickY }
+                    )
+
+                    setTool('select') // Switch back to select mode after creating
+                  }
+                  img.src = dataUrl
+                }
+                reader.readAsDataURL(file)
+              } catch (error) {
+                logger.error('Failed to load image:', error)
+              }
+            }
+            input.click()
+            break
+          }
+
+          case 'youtube': {
+            const worldPos = screenToWorld(e.clientX, e.clientY)
+            // Store position and show dialog
+            setYoutubeDialogPosition({ x: worldPos.x, y: worldPos.y })
+            setShowYouTubeDialog(true)
+            break
+          }
+
+          case 'shape': {
+            const worldPos = screenToWorld(e.clientX, e.clientY)
+            // Store position and show shape picker dialog
+            setShapeDialogPosition({ x: worldPos.x, y: worldPos.y })
+            setShowShapeDialog(true)
+            break
+          }
+
+          case 'emoji': {
+            const worldPos = screenToWorld(e.clientX, e.clientY)
+            const newEmoji = {
+              id: `emoji_${Date.now()}`,
+              type: 'emoji' as const,
+              x: worldPos.x - 40, // Center horizontally (80px / 2)
+              y: worldPos.y - 40, // Center vertically (80px / 2)
+              width: 80,
+              height: 80,
+              z_index: objects.length,
+              object_data: {
+                emoji: '😀', // Default emoji
+              },
+              created: new Date().toISOString(),
+              updated: new Date().toISOString(),
+            }
+            await addObject(newEmoji)
+            selectObject(newEmoji.id)
+            setTool('select')
+            break
+          }
+
+          // TODO: Add other object types
+        }
+        return
+      }
+
+      // Otherwise, deselect (clicked on canvas background)
+      selectObject(null)
+    },
+    [
+      currentTool,
+      screenToWorld,
+      objects.length,
+      addObject,
+      selectObject,
+      setTool,
+      handleImagePaste,
+    ]
+  )
 
   // Handle panning - use functional update to always get latest viewport
   const { handleMouseDown } = useCanvasPan(containerRef, (deltaX, deltaY) => {
-    setViewport((prev) => ({
+    setViewport(prev => ({
       x: prev.x - deltaX / prev.zoom,
       y: prev.y - deltaY / prev.zoom,
       zoom: prev.zoom,
@@ -559,28 +638,31 @@ export function InfiniteCanvas({
   }, [viewport, dimensions])
 
   // YouTube dialog handlers
-  const handleYouTubeConfirm = useCallback(async (url: string, videoId: string) => {
-    const youtubeVideo: YouTubeVideoObject = {
-      id: generateId(),
-      type: 'youtube',
-      x: youtubeDialogPosition.x - 280, // Center the video
-      y: youtubeDialogPosition.y - 158,
-      width: 560,
-      height: 315, // 16:9 aspect ratio
-      z_index: objects.length,
-      object_data: {
-        videoUrl: url,
-        videoId: videoId,
-        title: `Video ${videoId}`,
-      },
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    }
-    await addObject(youtubeVideo)
-    selectObject(youtubeVideo.id)
-    setShowYouTubeDialog(false)
-    setTool('select')
-  }, [youtubeDialogPosition, objects.length, addObject, selectObject, setTool])
+  const handleYouTubeConfirm = useCallback(
+    async (url: string, videoId: string) => {
+      const youtubeVideo: YouTubeVideoObject = {
+        id: generateId(),
+        type: 'youtube',
+        x: youtubeDialogPosition.x - 280, // Center the video
+        y: youtubeDialogPosition.y - 158,
+        width: 560,
+        height: 315, // 16:9 aspect ratio
+        z_index: objects.length,
+        object_data: {
+          videoUrl: url,
+          videoId: videoId,
+          title: `Video ${videoId}`,
+        },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }
+      await addObject(youtubeVideo)
+      selectObject(youtubeVideo.id)
+      setShowYouTubeDialog(false)
+      setTool('select')
+    },
+    [youtubeDialogPosition, objects.length, addObject, selectObject, setTool]
+  )
 
   const handleYouTubeCancel = useCallback(() => {
     setShowYouTubeDialog(false)
@@ -588,33 +670,36 @@ export function InfiniteCanvas({
   }, [setTool])
 
   // Shape picker dialog handlers
-  const handleShapeSelect = useCallback(async (shapeType: ShapeType) => {
-    const shape: ShapeObject = {
-      id: generateId(),
-      type: 'shape',
-      x: shapeDialogPosition.x - 100, // Center the shape
-      y: shapeDialogPosition.y - 100,
-      width: 200,
-      height: 200,
-      z_index: objects.length,
-      object_data: {
-        shapeType: shapeType,
-        fill: '#3b82f6',
-        stroke: '#1e40af',
-        strokeWidth: 2,
-        cornerRadius: 0,
-        points: shapeType === 'star' ? 5 : 6,
-        rotation: 0,
-        opacity: 1,
-      },
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    }
-    await addObject(shape)
-    selectObject(shape.id)
-    setShowShapeDialog(false)
-    setTool('select')
-  }, [shapeDialogPosition, objects.length, addObject, selectObject, setTool])
+  const handleShapeSelect = useCallback(
+    async (shapeType: ShapeType) => {
+      const shape: ShapeObject = {
+        id: generateId(),
+        type: 'shape',
+        x: shapeDialogPosition.x - 100, // Center the shape
+        y: shapeDialogPosition.y - 100,
+        width: 200,
+        height: 200,
+        z_index: objects.length,
+        object_data: {
+          shapeType: shapeType,
+          fill: '#3b82f6',
+          stroke: '#1e40af',
+          strokeWidth: 2,
+          cornerRadius: 0,
+          points: shapeType === 'star' ? 5 : 6,
+          rotation: 0,
+          opacity: 1,
+        },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }
+      await addObject(shape)
+      selectObject(shape.id)
+      setShowShapeDialog(false)
+      setTool('select')
+    },
+    [shapeDialogPosition, objects.length, addObject, selectObject, setTool]
+  )
 
   const handleShapeCancel = useCallback(() => {
     setShowShapeDialog(false)
@@ -625,7 +710,10 @@ export function InfiniteCanvas({
   const handleDeleteClick = useCallback(() => {
     if (contextMenu) {
       // If the right-clicked object is part of multi-selection, delete all selected objects
-      if (selectedObjectIds.includes(contextMenu.objectId) && selectedObjectIds.length > 1) {
+      if (
+        selectedObjectIds.includes(contextMenu.objectId) &&
+        selectedObjectIds.length > 1
+      ) {
         setObjectToDelete('multiple')
       } else {
         setObjectToDelete(contextMenu.objectId)
@@ -659,15 +747,24 @@ export function InfiniteCanvas({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Delete selected object(s) with Delete or Backspace key
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedObjectIds.length > 0 && isActive) {
+      if (
+        (e.key === 'Delete' || e.key === 'Backspace') &&
+        selectedObjectIds.length > 0 &&
+        isActive
+      ) {
         // Don't delete if user is typing in an input/textarea
-        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        if (
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement
+        ) {
           return
         }
-        
+
         e.preventDefault()
         // For single selection, use the ID. For multiple, use 'multiple' marker
-        setObjectToDelete(selectedObjectIds.length === 1 ? selectedObjectIds[0] : 'multiple')
+        setObjectToDelete(
+          selectedObjectIds.length === 1 ? selectedObjectIds[0] : 'multiple'
+        )
         setShowDeleteConfirmation(true)
       }
     }
@@ -695,43 +792,47 @@ export function InfiniteCanvas({
 
   return (
     <div
-      ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-[#0a0a0a] select-none"
-      style={{
-        cursor: currentTool === 'freehand' || currentTool === 'arrow'
-          ? 'crosshair' 
-          : (isFreehandDrawing || isArrowDrawing)
-            ? 'grabbing' 
-            : 'grab'
-      }}
       onMouseDown={handleMouseDown}
+      ref={containerRef}
+      style={{
+        cursor:
+          currentTool === 'freehand' || currentTool === 'arrow'
+            ? 'crosshair'
+            : isFreehandDrawing || isArrowDrawing
+              ? 'grabbing'
+              : 'grab',
+      }}
     >
       <svg
-        ref={svgRef}
         className="block w-full h-full"
-        width={dimensions.width}
         height={dimensions.height}
-        viewBox={viewBox}
         onClick={handleCanvasBackgroundClick}
-        onContextMenu={(e) => {
+        onContextMenu={e => {
           // Handle right-click for rectangle selection on canvas background
           const clickedOnWidget = (e as any)._clickedWidget
           if (!clickedOnWidget) {
             e.preventDefault()
             e.stopPropagation()
             const point = screenToWorld(e.clientX, e.clientY)
-            console.log('Right-click on canvas - starting rectangle selection', point)
+            logger.debug(
+              'Right-click on canvas - starting rectangle selection',
+              point
+            )
             setIsRectangleSelecting(true)
             setRectangleStart(point)
             setRectangleEnd(point)
             setContextMenu(null) // Close any existing context menu
           }
         }}
-        onMouseDown={(e) => {
+        onMouseDown={e => {
           // Handle freehand drawing
           if (currentTool === 'freehand') {
             e.stopPropagation()
-            const started = handleFreehandStart(e, containerRef as React.RefObject<HTMLDivElement>)
+            const started = handleFreehandStart(
+              e,
+              containerRef as React.RefObject<HTMLDivElement>
+            )
             if (started) {
               e.preventDefault()
             }
@@ -739,13 +840,28 @@ export function InfiniteCanvas({
           // Handle arrow drawing
           else if (currentTool === 'arrow') {
             e.stopPropagation()
-            const started = handleArrowStart(e, containerRef as React.RefObject<HTMLDivElement>)
+            const started = handleArrowStart(
+              e,
+              containerRef as React.RefObject<HTMLDivElement>
+            )
             if (started) {
               e.preventDefault()
             }
           }
         }}
-        onMouseMove={(e) => {
+        onMouseLeave={() => {
+          // Cancel rectangle selection if mouse leaves canvas
+          if (isRectangleSelecting) {
+            setIsRectangleSelecting(false)
+            setRectangleStart(null)
+            setRectangleEnd(null)
+          } else if (isFreehandDrawing) {
+            handleFreehandEnd()
+          } else if (isArrowDrawing) {
+            handleArrowEnd()
+          }
+        }}
+        onMouseMove={e => {
           if (isRectangleSelecting && rectangleStart) {
             // Update rectangle selection end point
             e.stopPropagation()
@@ -768,8 +884,10 @@ export function InfiniteCanvas({
             const maxY = Math.max(rectangleStart.y, rectangleEnd.y)
 
             // Check if this was just a click (no drag) or an actual rectangle selection
-            const isClick = Math.abs(rectangleEnd.x - rectangleStart.x) < 5 && Math.abs(rectangleEnd.y - rectangleStart.y) < 5
-            
+            const isClick =
+              Math.abs(rectangleEnd.x - rectangleStart.x) < 5 &&
+              Math.abs(rectangleEnd.y - rectangleStart.y) < 5
+
             if (isClick) {
               // Just a right-click, clear selection
               clearSelection()
@@ -781,7 +899,7 @@ export function InfiniteCanvas({
                 let objMaxX = obj.x + 100 // default size
                 let objMinY = obj.y
                 let objMaxY = obj.y + 100 // default size
-                
+
                 // Get actual dimensions based on object type
                 if (obj.type === 'freehand') {
                   // For freehand, calculate bounds from points
@@ -794,9 +912,10 @@ export function InfiniteCanvas({
                     objMaxX = Math.max(...xs)
                     objMinY = Math.min(...ys)
                     objMaxY = Math.max(...ys)
-                    
+
                     // Add stroke padding for easier selection
-                    const strokePadding = (freehandObj.object_data.strokeWidth || 5) * 2
+                    const strokePadding =
+                      (freehandObj.object_data.strokeWidth || 5) * 2
                     objMinX -= strokePadding
                     objMaxX += strokePadding
                     objMinY -= strokePadding
@@ -813,9 +932,10 @@ export function InfiniteCanvas({
                     objMaxX = Math.max(...xs)
                     objMinY = Math.min(...ys)
                     objMaxY = Math.max(...ys)
-                    
+
                     // Add stroke padding for easier selection
-                    const strokePadding = (arrowObj.object_data.strokeWidth || 5) * 2
+                    const strokePadding =
+                      (arrowObj.object_data.strokeWidth || 5) * 2
                     objMinX -= strokePadding
                     objMaxX += strokePadding
                     objMinY -= strokePadding
@@ -826,9 +946,14 @@ export function InfiniteCanvas({
                   objMaxX = obj.x + obj.width
                   objMaxY = obj.y + obj.height
                 }
-                
+
                 // Rectangle intersection test
-                if (objMaxX >= minX && objMinX <= maxX && objMaxY >= minY && objMinY <= maxY) {
+                if (
+                  objMaxX >= minX &&
+                  objMinX <= maxX &&
+                  objMaxY >= minY &&
+                  objMinY <= maxY
+                ) {
                   selectedIds.push(obj.id)
                 }
               })
@@ -851,86 +976,72 @@ export function InfiniteCanvas({
             handleArrowEnd()
           }
         }}
-        onMouseLeave={() => {
-          // Cancel rectangle selection if mouse leaves canvas
-          if (isRectangleSelecting) {
-            setIsRectangleSelecting(false)
-            setRectangleStart(null)
-            setRectangleEnd(null)
-          } else if (isFreehandDrawing) {
-            handleFreehandEnd()
-          } else if (isArrowDrawing) {
-            handleArrowEnd()
-          }
-        }}
+        ref={svgRef}
+        viewBox={viewBox}
+        width={dimensions.width}
       >
         {/* Grid pattern */}
-        {showGrid && <CanvasGrid viewport={viewport} dimensions={dimensions} />}
+        {showGrid && <CanvasGrid dimensions={dimensions} viewport={viewport} />}
 
         {/* Canvas content */}
         {children}
-        
+
         {/* Render all drawing objects */}
         {objects.map(obj => {
           // Freehand and arrow objects render directly as SVG (not in foreignObject)
           if (obj.type === 'freehand' || obj.type === 'arrow') {
             return (
               <ErrorBoundary
-                key={obj.id}
-                fallback={(error) => (
-                  <text x={obj.x} y={obj.y} fill="#ff0000" fontSize="12">
+                fallback={error => (
+                  <text fill="#ff0000" fontSize="12" x={obj.x} y={obj.y}>
                     ❌ Error rendering {obj.type}: {error.message}
                   </text>
                 )}
+                key={obj.id}
               >
                 <CanvasObject
-                  object={obj}
                   isSelected={selectedObjectIds.includes(obj.id)}
-                  zoom={viewport.zoom}
-                  onUpdate={handleUpdateObject}
-                  onSelect={handleSelectObject}
+                  object={obj}
                   onContextMenu={handleContextMenu}
+                  onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}
+                  onUpdate={handleUpdateObject}
+                  zoom={viewport.zoom}
                 />
               </ErrorBoundary>
             )
           }
-          
+
           // Other objects use foreignObject wrapper
           const width = 'width' in obj ? obj.width : 100
           const height = 'height' in obj ? obj.height : 100
-          
+
           return (
             <ErrorBoundary
-              key={obj.id}
-              fallback={(error) => (
-                <text x={obj.x} y={obj.y} fill="#ff0000" fontSize="12">
+              fallback={error => (
+                <text fill="#ff0000" fontSize="12" x={obj.x} y={obj.y}>
                   ❌ Error rendering {obj.type}: {error.message}
                 </text>
               )}
+              key={obj.id}
             >
-              <foreignObject
-                x={obj.x}
-                y={obj.y}
-                width={width}
-                height={height}
-              >
+              <foreignObject height={height} width={width} x={obj.x} y={obj.y}>
                 <CanvasObject
-                  object={obj}
                   isSelected={selectedObjectIds.includes(obj.id)}
-                  zoom={viewport.zoom}
-                  onUpdate={handleUpdateObject}
-                  onSelect={handleSelectObject}
+                  object={obj}
                   onContextMenu={handleContextMenu}
+                  onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}
+                  onUpdate={handleUpdateObject}
+                  zoom={viewport.zoom}
                 />
               </foreignObject>
             </ErrorBoundary>
           )
         })}
-        
+
         {/* Freehand/Arrow drawing preview */}
-        {(isFreehandDrawing && freehandPath.length > 0) && (
+        {isFreehandDrawing && freehandPath.length > 0 && (
           <path
             d={
               freehandPath.length === 1
@@ -950,17 +1061,17 @@ export function InfiniteCanvas({
                       })
                       .join(' ')}`
             }
+            fill="none"
             stroke={brushProperties.strokeColor}
-            strokeWidth={brushProperties.strokeWidth}
-            strokeOpacity={brushProperties.opacity}
             strokeLinecap="round"
             strokeLinejoin="round"
-            fill="none"
+            strokeOpacity={brushProperties.opacity}
+            strokeWidth={brushProperties.strokeWidth}
           />
         )}
-        
+
         {/* Arrow drawing preview (with arrowhead) */}
-        {(isArrowDrawing && arrowPath.length > 0) && (
+        {isArrowDrawing && arrowPath.length > 0 && (
           <>
             <path
               d={
@@ -981,134 +1092,158 @@ export function InfiniteCanvas({
                         })
                         .join(' ')}`
               }
+              fill="none"
               stroke={brushProperties.strokeColor}
-              strokeWidth={brushProperties.strokeWidth}
-              strokeOpacity={brushProperties.opacity}
               strokeLinecap="round"
               strokeLinejoin="round"
-              fill="none"
+              strokeOpacity={brushProperties.opacity}
+              strokeWidth={brushProperties.strokeWidth}
             />
             {/* Preview arrowhead */}
-            {arrowPath.length >= 2 && (() => {
-              const lastPoint = arrowPath[arrowPath.length - 1]
-              
-              // Look back further for stable angle - avoid jitter
-              let referencePoint = arrowPath[arrowPath.length - 2]
-              const lookbackDistance = 20
-              
-              for (let i = arrowPath.length - 2; i >= 0; i--) {
-                const dist = Math.sqrt(
-                  Math.pow(lastPoint.x - arrowPath[i].x, 2) + 
-                  Math.pow(lastPoint.y - arrowPath[i].y, 2)
-                )
-                if (dist >= lookbackDistance) {
-                  referencePoint = arrowPath[i]
-                  break
+            {arrowPath.length >= 2 &&
+              (() => {
+                const lastPoint = arrowPath[arrowPath.length - 1]
+
+                // Look back further for stable angle - avoid jitter
+                let referencePoint = arrowPath[arrowPath.length - 2]
+                const lookbackDistance = 20
+
+                for (let i = arrowPath.length - 2; i >= 0; i--) {
+                  const dist = Math.sqrt(
+                    (lastPoint.x - arrowPath[i].x) ** 2 +
+                      (lastPoint.y - arrowPath[i].y) ** 2
+                  )
+                  if (dist >= lookbackDistance) {
+                    referencePoint = arrowPath[i]
+                    break
+                  }
                 }
-              }
-              
-              const angle = Math.atan2(
-                lastPoint.y - referencePoint.y,
-                lastPoint.x - referencePoint.x
-              )
-              
-              // Better proportions for hand-drawn look
-              const arrowLength = Math.max(brushProperties.strokeWidth * 3, 15)
-              const arrowWidth = arrowLength * 0.5
-              const tipX = lastPoint.x
-              const tipY = lastPoint.y
-              const baseX = tipX - arrowLength * Math.cos(angle)
-              const baseY = tipY - arrowLength * Math.sin(angle)
-              const leftX = baseX - arrowWidth * Math.sin(angle)
-              const leftY = baseY + arrowWidth * Math.cos(angle)
-              const rightX = baseX + arrowWidth * Math.sin(angle)
-              const rightY = baseY - arrowWidth * Math.cos(angle)
-              
-              // Add curve for hand-drawn feel
-              const curveDepth = arrowLength * 0.3
-              const leftCtrlX = baseX - curveDepth * Math.cos(angle) - arrowWidth * 0.7 * Math.sin(angle)
-              const leftCtrlY = baseY - curveDepth * Math.sin(angle) + arrowWidth * 0.7 * Math.cos(angle)
-              const rightCtrlX = baseX - curveDepth * Math.cos(angle) + arrowWidth * 0.7 * Math.sin(angle)
-              const rightCtrlY = baseY - curveDepth * Math.sin(angle) - arrowWidth * 0.7 * Math.cos(angle)
-              
-              return (
-                <path
-                  d={`M ${tipX} ${tipY} 
+
+                const angle = Math.atan2(
+                  lastPoint.y - referencePoint.y,
+                  lastPoint.x - referencePoint.x
+                )
+
+                // Better proportions for hand-drawn look
+                const arrowLength = Math.max(
+                  brushProperties.strokeWidth * 3,
+                  15
+                )
+                const arrowWidth = arrowLength * 0.5
+                const tipX = lastPoint.x
+                const tipY = lastPoint.y
+                const baseX = tipX - arrowLength * Math.cos(angle)
+                const baseY = tipY - arrowLength * Math.sin(angle)
+                const leftX = baseX - arrowWidth * Math.sin(angle)
+                const leftY = baseY + arrowWidth * Math.cos(angle)
+                const rightX = baseX + arrowWidth * Math.sin(angle)
+                const rightY = baseY - arrowWidth * Math.cos(angle)
+
+                // Add curve for hand-drawn feel
+                const curveDepth = arrowLength * 0.3
+                const leftCtrlX =
+                  baseX -
+                  curveDepth * Math.cos(angle) -
+                  arrowWidth * 0.7 * Math.sin(angle)
+                const leftCtrlY =
+                  baseY -
+                  curveDepth * Math.sin(angle) +
+                  arrowWidth * 0.7 * Math.cos(angle)
+                const rightCtrlX =
+                  baseX -
+                  curveDepth * Math.cos(angle) +
+                  arrowWidth * 0.7 * Math.sin(angle)
+                const rightCtrlY =
+                  baseY -
+                  curveDepth * Math.sin(angle) -
+                  arrowWidth * 0.7 * Math.cos(angle)
+
+                return (
+                  <path
+                    d={`M ${tipX} ${tipY} 
                       Q ${leftCtrlX} ${leftCtrlY}, ${leftX} ${leftY}
                       L ${rightX} ${rightY}
                       Q ${rightCtrlX} ${rightCtrlY}, ${tipX} ${tipY}
                       Z`}
-                  fill={brushProperties.strokeColor}
-                  opacity={brushProperties.opacity}
-                  stroke={brushProperties.strokeColor}
-                  strokeWidth={brushProperties.strokeWidth * 0.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              )
-            })()}
+                    fill={brushProperties.strokeColor}
+                    opacity={brushProperties.opacity}
+                    stroke={brushProperties.strokeColor}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={brushProperties.strokeWidth * 0.5}
+                  />
+                )
+              })()}
           </>
         )}
-        
+
         {/* Rectangle selection visual */}
         {isRectangleSelecting && rectangleStart && rectangleEnd && (
           <rect
+            fill="rgba(0, 255, 255, 0.1)"
+            height={Math.abs(rectangleEnd.y - rectangleStart.y)}
+            pointerEvents="none"
+            stroke="#00ffff"
+            strokeDasharray={`${5 / viewport.zoom},${5 / viewport.zoom}`}
+            strokeWidth={2 / viewport.zoom}
+            width={Math.abs(rectangleEnd.x - rectangleStart.x)}
             x={Math.min(rectangleStart.x, rectangleEnd.x)}
             y={Math.min(rectangleStart.y, rectangleEnd.y)}
-            width={Math.abs(rectangleEnd.x - rectangleStart.x)}
-            height={Math.abs(rectangleEnd.y - rectangleStart.y)}
-            fill="rgba(0, 255, 255, 0.1)"
-            stroke="#00ffff"
-            strokeWidth={2 / viewport.zoom}
-            strokeDasharray={`${5 / viewport.zoom},${5 / viewport.zoom}`}
-            pointerEvents="none"
           />
         )}
       </svg>
 
       {/* Viewport info overlay */}
       {showViewportInfo && (
-        <CanvasViewportDisplay 
-          viewport={viewport} 
+        <CanvasViewportDisplay
           objectCount={objects.length}
           tabId={tabId}
+          viewport={viewport}
         />
       )}
-      
+
       {/* Canvas toolbar */}
-      {showToolbar && <CanvasToolbar selectedTool={currentTool} onToolSelect={setTool} />}
-      
+      {showToolbar && (
+        <CanvasToolbar onToolSelect={setTool} selectedTool={currentTool} />
+      )}
+
       {/* Brush properties panel for freehand and arrow tools */}
       {(currentTool === 'freehand' || currentTool === 'arrow') && (
         <BrushPropertiesPanel
-          selectedObject={objects.find((obj) => selectedObjectIds.includes(obj.id)) || null}
-          strokeColor={brushProperties.strokeColor}
-          strokeWidth={brushProperties.strokeWidth}
-          opacity={brushProperties.opacity}
-          onStrokeColorChange={(color) =>
-            setBrushProperties((prev) => ({ ...prev, strokeColor: color }))
+          onOpacityChange={opacity =>
+            setBrushProperties(prev => ({ ...prev, opacity }))
           }
-          onStrokeWidthChange={(width) =>
-            setBrushProperties((prev) => ({ ...prev, strokeWidth: width }))
+          onStrokeColorChange={color =>
+            setBrushProperties(prev => ({ ...prev, strokeColor: color }))
           }
-          onOpacityChange={(opacity) =>
-            setBrushProperties((prev) => ({ ...prev, opacity }))
+          onStrokeWidthChange={width =>
+            setBrushProperties(prev => ({ ...prev, strokeWidth: width }))
           }
           onUpdate={handleUpdateObject}
+          opacity={brushProperties.opacity}
+          selectedObject={
+            objects.find(obj => selectedObjectIds.includes(obj.id)) || null
+          }
+          strokeColor={brushProperties.strokeColor}
+          strokeWidth={brushProperties.strokeWidth}
         />
       )}
-      
+
       {/* Properties panel for selected object */}
-      <CanvasPropertiesPanel 
-        selectedObject={selectedObjectIds.length === 1 ? objects.find(obj => obj.id === selectedObjectIds[0]) || null : null}
+      <CanvasPropertiesPanel
         onUpdate={handleUpdateObject}
+        selectedObject={
+          selectedObjectIds.length === 1
+            ? objects.find(obj => obj.id === selectedObjectIds[0]) || null
+            : null
+        }
       />
 
       {/* YouTube URL dialog */}
       {showYouTubeDialog && (
         <YouTubeUrlDialog
-          onConfirm={handleYouTubeConfirm}
           onCancel={handleYouTubeCancel}
+          onConfirm={handleYouTubeConfirm}
         />
       )}
 
@@ -1124,27 +1259,31 @@ export function InfiniteCanvas({
       {/* Context menu */}
       {contextMenu && (
         <ContextMenu
+          onClose={() => setContextMenu(null)}
+          onDelete={handleDeleteClick}
           x={contextMenu.x}
           y={contextMenu.y}
-          onDelete={handleDeleteClick}
-          onClose={() => setContextMenu(null)}
         />
       )}
 
       {/* Delete confirmation dialog */}
       <ConfirmationDialog
+        cancelText="Cancel"
+        confirmText="Delete"
         isOpen={showDeleteConfirmation}
-        title={objectToDelete === 'multiple' ? 'Delete Multiple Objects' : 'Delete Object'}
         message={
           objectToDelete === 'multiple'
             ? `Are you sure you want to delete ${selectedObjectIds.length} objects? This action cannot be undone.`
             : 'Are you sure you want to delete this object? This action cannot be undone.'
         }
-        confirmText="Delete"
-        cancelText="Cancel"
-        variant="danger"
-        onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title={
+          objectToDelete === 'multiple'
+            ? 'Delete Multiple Objects'
+            : 'Delete Object'
+        }
+        variant="danger"
       />
     </div>
   )

@@ -34,7 +34,7 @@ export interface WhatFileCanvas {
 
 export interface WhatFileObject {
   id: string
-  type: string  // Removed canvas_id since 1 file = 1 canvas
+  type: string // Removed canvas_id since 1 file = 1 canvas
   x: number
   y: number
   width: number

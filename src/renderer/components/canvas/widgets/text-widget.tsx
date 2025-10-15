@@ -15,7 +15,7 @@ interface TextWidgetProps {
 
 /**
  * TextWidget - Editable text box widget
- * 
+ *
  * Features:
  * - Click to edit text
  * - Auto-focus on creation
@@ -35,7 +35,7 @@ export function TextWidget({
   const [isEditing, setIsEditing] = useState(false)
   const [text, setText] = useState(object.object_data.text || '')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  
+
   // Check if auto-resize is enabled (default: true)
   const autoResizeEnabled = object.object_data.autoResize !== false
 
@@ -90,7 +90,8 @@ export function TextWidget({
 
   // Get style properties with defaults
   const fontSize = object.object_data.fontSize || 24
-  const fontFamily = object.object_data.fontFamily || 'Inter, system-ui, sans-serif'
+  const fontFamily =
+    object.object_data.fontFamily || 'Inter, system-ui, sans-serif'
   const fontWeight = object.object_data.fontWeight || 'normal'
   const fontStyle = object.object_data.fontStyle || 'normal'
   const textAlign = object.object_data.textAlign || 'left'
@@ -99,18 +100,21 @@ export function TextWidget({
   const lineHeight = object.object_data.lineHeight || 1.5
 
   // Auto-resize based on text content
-  const handleAutoResize = useCallback((width: number, height: number) => {
-    // Don't auto-resize if user has manually resized (autoResize flag disabled)
-    if (!autoResizeEnabled) return
-    
-    // Only update if dimensions actually changed to avoid infinite loops
-    if (width !== object.width || height !== object.height) {
-      onUpdate(object.id, {
-        width,
-        height,
-      })
-    }
-  }, [autoResizeEnabled, object.id, object.width, object.height, onUpdate])
+  const handleAutoResize = useCallback(
+    (width: number, height: number) => {
+      // Don't auto-resize if user has manually resized (autoResize flag disabled)
+      if (!autoResizeEnabled) return
+
+      // Only update if dimensions actually changed to avoid infinite loops
+      if (width !== object.width || height !== object.height) {
+        onUpdate(object.id, {
+          width,
+          height,
+        })
+      }
+    },
+    [autoResizeEnabled, object.id, object.width, object.height, onUpdate]
+  )
 
   useAutoResize({
     text,
@@ -139,34 +143,33 @@ export function TextWidget({
 
   return (
     <WidgetWrapper
-      object={object}
       isSelected={isSelected}
-      zoom={zoom}
-      onUpdate={onUpdate}
-      onSelect={onSelect}
-      onContextMenu={onContextMenu}
-      onStartDrag={onStartDrag}
-      onManualResize={handleManualResize}
-      minWidth={100}
       minHeight={50}
+      minWidth={100}
+      object={object}
+      onContextMenu={onContextMenu}
+      onManualResize={handleManualResize}
+      onSelect={onSelect}
+      onStartDrag={onStartDrag}
+      onUpdate={onUpdate}
+      zoom={zoom}
     >
       <div
         className="w-full h-full rounded-lg overflow-hidden"
+        onClick={handleClick}
         style={{
           backgroundColor,
           cursor: isEditing ? 'text' : 'pointer',
         }}
-        onClick={handleClick}
       >
         {isEditing ? (
           <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={handleChange}
+            className="w-full h-full p-4 bg-transparent border-none outline-none resize-none"
             onBlur={handleBlur}
+            onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="Type something..."
-            className="w-full h-full p-4 bg-transparent border-none outline-none resize-none"
+            ref={textareaRef}
             style={{
               fontSize: `${fontSize}px`,
               fontFamily,
@@ -176,6 +179,7 @@ export function TextWidget({
               color,
               lineHeight,
             }}
+            value={text}
           />
         ) : (
           <div
@@ -191,9 +195,7 @@ export function TextWidget({
             }}
           >
             {text || (
-              <span className="text-gray-500 italic">
-                Click to edit text
-              </span>
+              <span className="text-gray-500 italic">Click to edit text</span>
             )}
           </div>
         )}

@@ -13,7 +13,7 @@ interface State {
 
 /**
  * ErrorBoundary - Catches React errors and prevents app crashes
- * 
+ *
  * Usage:
  * <ErrorBoundary fallback={(error) => <div>Error: {error.message}</div>}>
  *   <YourComponent />
@@ -30,8 +30,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[ErrorBoundary] Caught error:', error, errorInfo)
-    
+    logger.error('Caught error:', error, errorInfo)
+
     // Call optional error handler
     this.props.onError?.(error, errorInfo)
   }

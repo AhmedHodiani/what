@@ -33,117 +33,120 @@ export function CanvasObject({
   onStartDrag,
 }: CanvasObjectProps) {
   // Asset URL getter for image objects (can be extended for other asset-based types)
-  const getImageUrl = useCallback((_assetId: string) => {
-    // For now, we get the image URL from the _imageUrl field loaded by the hook
-    // In future, we could fetch on-demand based on assetId if needed
-    if (object.type === 'image' && '_imageUrl' in object) {
-      return object._imageUrl || ''
-    }
-    return ''
-  }, [object])
+  const getImageUrl = useCallback(
+    (_assetId: string) => {
+      // For now, we get the image URL from the _imageUrl field loaded by the hook
+      // In future, we could fetch on-demand based on assetId if needed
+      if (object.type === 'image' && '_imageUrl' in object) {
+        return object._imageUrl || ''
+      }
+      return ''
+    },
+    [object]
+  )
 
   // Render the appropriate widget based on object type
   switch (object.type) {
     case 'image':
       return (
         <ImageWidget
-          object={object}
-          isSelected={isSelected}
-          zoom={zoom}
-          onUpdate={onUpdate}
-          onSelect={onSelect}
-          onContextMenu={onContextMenu}
-          onStartDrag={onStartDrag}
           getImageUrl={getImageUrl}
+          isSelected={isSelected}
+          object={object}
+          onContextMenu={onContextMenu}
+          onSelect={onSelect}
+          onStartDrag={onStartDrag}
+          onUpdate={onUpdate}
+          zoom={zoom}
         />
       )
 
     case 'sticky-note':
       return (
         <StickyNoteWidget
-          object={object}
           isSelected={isSelected}
-          zoom={zoom}
-          onUpdate={onUpdate}
-          onSelect={onSelect}
+          object={object}
           onContextMenu={onContextMenu}
+          onSelect={onSelect}
           onStartDrag={onStartDrag}
+          onUpdate={onUpdate}
+          zoom={zoom}
         />
       )
 
     case 'text':
       return (
         <TextWidget
-          object={object}
           isSelected={isSelected}
-          zoom={zoom}
-          onUpdate={onUpdate}
-          onSelect={onSelect}
+          object={object}
           onContextMenu={onContextMenu}
+          onSelect={onSelect}
           onStartDrag={onStartDrag}
+          onUpdate={onUpdate}
+          zoom={zoom}
         />
       )
 
     case 'shape':
       return (
         <ShapeWidget
-          object={object}
           isSelected={isSelected}
-          zoom={zoom}
-          onUpdate={onUpdate}
-          onSelect={onSelect}
+          object={object}
           onContextMenu={onContextMenu}
+          onSelect={onSelect}
           onStartDrag={onStartDrag}
+          onUpdate={onUpdate}
+          zoom={zoom}
         />
       )
 
     case 'freehand':
       return (
         <FreehandWidget
-          object={object}
           isSelected={isSelected}
-          zoom={zoom}
-          onSelect={onSelect}
+          object={object}
           onContextMenu={onContextMenu}
+          onSelect={onSelect}
           onStartDrag={onStartDrag}
+          zoom={zoom}
         />
       )
 
     case 'arrow':
       return (
         <ArrowWidget
-          object={object}
           isSelected={isSelected}
-          zoom={zoom}
-          onSelect={onSelect}
+          object={object}
           onContextMenu={onContextMenu}
+          onSelect={onSelect}
           onStartDrag={onStartDrag}
+          zoom={zoom}
         />
       )
 
     case 'youtube':
       return (
         <YouTubeWidget
-          object={object}
           isSelected={isSelected}
-          zoom={zoom}
-          onUpdate={onUpdate}
-          onSelect={onSelect}
+          object={object}
           onContextMenu={onContextMenu}
+          onSelect={onSelect}
           onStartDrag={onStartDrag}
+          onUpdate={onUpdate}
+          zoom={zoom}
         />
       )
 
     case 'emoji':
       return (
         <EmojiWidget
-          object={object}
           isSelected={isSelected}
-          zoom={zoom}
-          onUpdate={onUpdate}
-          onSelect={onSelect}
+          object={object}
           onContextMenu={onContextMenu}
+          onSelect={onSelect}
           onStartDrag={onStartDrag}
+          onUpdate={onUpdate}
+          zoom={zoom}
         />
       )
 

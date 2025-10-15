@@ -46,41 +46,50 @@ export function BrushPropertiesPanel({
   onUpdate,
 }: BrushPropertiesPanelProps) {
   // Update selected freehand object when properties change
-  const handleColorChange = useCallback((color: string) => {
-    onStrokeColorChange(color)
-    if (selectedObject?.type === 'freehand' && onUpdate) {
-      onUpdate(selectedObject.id, {
-        object_data: {
-          ...selectedObject.object_data,
-          stroke: color,
-        },
-      })
-    }
-  }, [selectedObject, onStrokeColorChange, onUpdate])
+  const handleColorChange = useCallback(
+    (color: string) => {
+      onStrokeColorChange(color)
+      if (selectedObject?.type === 'freehand' && onUpdate) {
+        onUpdate(selectedObject.id, {
+          object_data: {
+            ...selectedObject.object_data,
+            stroke: color,
+          },
+        })
+      }
+    },
+    [selectedObject, onStrokeColorChange, onUpdate]
+  )
 
-  const handleWidthChange = useCallback((width: number) => {
-    onStrokeWidthChange(width)
-    if (selectedObject?.type === 'freehand' && onUpdate) {
-      onUpdate(selectedObject.id, {
-        object_data: {
-          ...selectedObject.object_data,
-          strokeWidth: width,
-        },
-      })
-    }
-  }, [selectedObject, onStrokeWidthChange, onUpdate])
+  const handleWidthChange = useCallback(
+    (width: number) => {
+      onStrokeWidthChange(width)
+      if (selectedObject?.type === 'freehand' && onUpdate) {
+        onUpdate(selectedObject.id, {
+          object_data: {
+            ...selectedObject.object_data,
+            strokeWidth: width,
+          },
+        })
+      }
+    },
+    [selectedObject, onStrokeWidthChange, onUpdate]
+  )
 
-  const handleOpacityChange = useCallback((newOpacity: number) => {
-    onOpacityChange(newOpacity)
-    if (selectedObject?.type === 'freehand' && onUpdate) {
-      onUpdate(selectedObject.id, {
-        object_data: {
-          ...selectedObject.object_data,
-          opacity: newOpacity,
-        },
-      })
-    }
-  }, [selectedObject, onOpacityChange, onUpdate])
+  const handleOpacityChange = useCallback(
+    (newOpacity: number) => {
+      onOpacityChange(newOpacity)
+      if (selectedObject?.type === 'freehand' && onUpdate) {
+        onUpdate(selectedObject.id, {
+          object_data: {
+            ...selectedObject.object_data,
+            opacity: newOpacity,
+          },
+        })
+      }
+    },
+    [selectedObject, onOpacityChange, onUpdate]
+  )
 
   return (
     <div className="absolute top-20 right-3 w-64 bg-black/90 backdrop-blur-sm border border-teal-400/30 rounded-lg shadow-xl overflow-hidden pointer-events-auto">
@@ -98,11 +107,8 @@ export function BrushPropertiesPanel({
             Color
           </label>
           <div className="grid grid-cols-4 gap-2">
-            {PRESET_COLORS.map((color) => (
+            {PRESET_COLORS.map(color => (
               <button
-                key={color}
-                onClick={() => handleColorChange(color)}
-                title={color}
                 className={`
                   w-full aspect-square rounded-md transition-all
                   hover:scale-110 hover:shadow-lg
@@ -112,24 +118,32 @@ export function BrushPropertiesPanel({
                       : 'hover:ring-2 hover:ring-white/30'
                   }
                 `}
+                key={color}
+                onClick={() => handleColorChange(color)}
                 style={{ backgroundColor: color }}
+                title={color}
               />
             ))}
           </div>
 
           {/* Custom color picker */}
           <div className="flex items-center gap-2 pt-1">
-            <label htmlFor="custom-stroke-color" className="text-xs text-gray-400">
+            <label
+              className="text-xs text-gray-400"
+              htmlFor="custom-stroke-color"
+            >
               Custom:
             </label>
             <input
+              className="w-12 h-8 rounded cursor-pointer border border-white/20"
               id="custom-stroke-color"
+              onChange={e => handleColorChange(e.target.value)}
               type="color"
               value={strokeColor}
-              onChange={(e) => handleColorChange(e.target.value)}
-              className="w-12 h-8 rounded cursor-pointer border border-white/20"
             />
-            <span className="text-xs text-gray-500 font-mono">{strokeColor}</span>
+            <span className="text-xs text-gray-500 font-mono">
+              {strokeColor}
+            </span>
           </div>
         </div>
 
@@ -139,14 +153,11 @@ export function BrushPropertiesPanel({
             <label className="text-xs font-medium text-gray-300 uppercase tracking-wide">
               Thickness
             </label>
-            <span className="text-sm font-semibold text-teal-400">{strokeWidth}px</span>
+            <span className="text-sm font-semibold text-teal-400">
+              {strokeWidth}px
+            </span>
           </div>
           <input
-            type="range"
-            min="1"
-            max="50"
-            value={strokeWidth}
-            onChange={(e) => handleWidthChange(Number(e.target.value))}
             className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer
               [&::-webkit-slider-thumb]:appearance-none
               [&::-webkit-slider-thumb]:w-4
@@ -163,6 +174,11 @@ export function BrushPropertiesPanel({
               [&::-moz-range-thumb]:border-0
               [&::-moz-range-thumb]:cursor-pointer
               [&::-moz-range-thumb]:hover:bg-teal-300"
+            max="50"
+            min="1"
+            onChange={e => handleWidthChange(Number(e.target.value))}
+            type="range"
+            value={strokeWidth}
           />
           <div className="flex justify-between text-[10px] text-gray-500">
             <span>1px</span>
@@ -181,12 +197,6 @@ export function BrushPropertiesPanel({
             </span>
           </div>
           <input
-            type="range"
-            min="0.1"
-            max="1"
-            step="0.1"
-            value={opacity}
-            onChange={(e) => handleOpacityChange(Number(e.target.value))}
             className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer
               [&::-webkit-slider-thumb]:appearance-none
               [&::-webkit-slider-thumb]:w-4
@@ -203,6 +213,12 @@ export function BrushPropertiesPanel({
               [&::-moz-range-thumb]:border-0
               [&::-moz-range-thumb]:cursor-pointer
               [&::-moz-range-thumb]:hover:bg-teal-300"
+            max="1"
+            min="0.1"
+            onChange={e => handleOpacityChange(Number(e.target.value))}
+            step="0.1"
+            type="range"
+            value={opacity}
           />
           <div className="flex justify-between text-[10px] text-gray-500">
             <span>10%</span>
@@ -216,16 +232,16 @@ export function BrushPropertiesPanel({
             Preview
           </label>
           <div className="bg-white/5 rounded-lg p-3 h-12 flex items-center">
-            <svg width="100%" height="100%" className="overflow-visible">
+            <svg className="overflow-visible" height="100%" width="100%">
               <line
-                x1="5%"
-                y1="50%"
-                x2="95%"
-                y2="50%"
-                stroke={strokeColor}
-                strokeWidth={strokeWidth}
                 opacity={opacity}
+                stroke={strokeColor}
                 strokeLinecap="round"
+                strokeWidth={strokeWidth}
+                x1="5%"
+                x2="95%"
+                y1="50%"
+                y2="50%"
               />
             </svg>
           </div>

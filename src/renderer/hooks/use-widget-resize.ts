@@ -10,16 +10,20 @@ interface UseWidgetResizeOptions {
   minWidth?: number
   minHeight?: number
   lockAspectRatio?: boolean
-  onUpdate: (id: string, updates: { width: number; height: number }, options?: { skipSave?: boolean }) => void
-  onResizeStart?: () => void  // Callback when resize starts
-  onResizeEnd?: (width: number, height: number) => void  // Callback when resize ends
+  onUpdate: (
+    id: string,
+    updates: { width: number; height: number },
+    options?: { skipSave?: boolean }
+  ) => void
+  onResizeStart?: () => void // Callback when resize starts
+  onResizeEnd?: (width: number, height: number) => void // Callback when resize ends
 }
 
 /**
  * Reusable hook for handling widget resize operations
  * Supports all 8 resize handles (corners + sides)
  * Can lock aspect ratio if needed
- * 
+ *
  * Performance optimized: Only updates database ONCE when resize completes
  */
 export function useWidgetResize({
@@ -36,7 +40,7 @@ export function useWidgetResize({
 }: UseWidgetResizeOptions) {
   const [isResizing, setIsResizing] = useState(false)
   const [resizeHandle, setResizeHandle] = useState<ResizeHandle | null>(null)
-  
+
   // Use ref to track the latest size during resize (avoids stale closure)
   const finalSizeRef = useRef<{ width: number; height: number } | null>(null)
 
@@ -48,7 +52,7 @@ export function useWidgetResize({
       setIsResizing(true)
       setResizeHandle(handle)
       finalSizeRef.current = null
-      
+
       // Notify parent that manual resize started
       onResizeStart?.()
 
@@ -66,10 +70,14 @@ export function useWidgetResize({
         let newHeight = startHeight
 
         // Calculate based on handle position
-        if (handle.includes('e')) newWidth = Math.max(minWidth, startWidth + deltaX)
-        if (handle.includes('w')) newWidth = Math.max(minWidth, startWidth - deltaX)
-        if (handle.includes('s')) newHeight = Math.max(minHeight, startHeight + deltaY)
-        if (handle.includes('n')) newHeight = Math.max(minHeight, startHeight - deltaY)
+        if (handle.includes('e'))
+          newWidth = Math.max(minWidth, startWidth + deltaX)
+        if (handle.includes('w'))
+          newWidth = Math.max(minWidth, startWidth - deltaX)
+        if (handle.includes('s'))
+          newHeight = Math.max(minHeight, startHeight + deltaY)
+        if (handle.includes('n'))
+          newHeight = Math.max(minHeight, startHeight - deltaY)
 
         // Lock aspect ratio if needed (useful for images)
         if (lockAspectRatio) {
@@ -81,7 +89,7 @@ export function useWidgetResize({
         }
 
         const newSize = { width: newWidth, height: newHeight }
-        
+
         // Update object state immediately for LIVE visual feedback
         // Skip database save during drag (only save once at the end)
         onUpdate(objectId, newSize, { skipSave: true })
@@ -91,15 +99,15 @@ export function useWidgetResize({
       const handleResizeEnd = () => {
         setIsResizing(false)
         setResizeHandle(null)
-        
+
         // NOW persist the final size to database
         // The onResizeEnd callback will trigger database save
         if (finalSizeRef.current) {
           onResizeEnd?.(finalSizeRef.current.width, finalSizeRef.current.height)
         }
-        
+
         finalSizeRef.current = null
-        
+
         document.removeEventListener('mousemove', handleResizeMove)
         document.removeEventListener('mouseup', handleResizeEnd)
       }
@@ -107,7 +115,18 @@ export function useWidgetResize({
       document.addEventListener('mousemove', handleResizeMove)
       document.addEventListener('mouseup', handleResizeEnd)
     },
-    [objectId, width, height, zoom, minWidth, minHeight, lockAspectRatio, onUpdate, onResizeStart, onResizeEnd]
+    [
+      objectId,
+      width,
+      height,
+      zoom,
+      minWidth,
+      minHeight,
+      lockAspectRatio,
+      onUpdate,
+      onResizeStart,
+      onResizeEnd,
+    ]
   )
 
   return {

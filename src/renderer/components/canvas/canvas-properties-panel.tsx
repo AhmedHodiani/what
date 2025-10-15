@@ -60,29 +60,20 @@ export function CanvasPropertiesPanel({
     case 'text':
       return (
         <TextPropertiesPanel
-          selectedObject={selectedObject}
           onUpdate={onUpdate}
+          selectedObject={selectedObject}
         />
       )
 
     case 'shape':
       return (
-        <ShapePropertiesPanel
-          object={selectedObject}
-          onUpdate={onUpdate}
-        />
+        <ShapePropertiesPanel object={selectedObject} onUpdate={onUpdate} />
       )
 
     case 'emoji':
       return (
-        <EmojiPropertiesPanel
-          object={selectedObject}
-          onUpdate={onUpdate}
-        />
+        <EmojiPropertiesPanel object={selectedObject} onUpdate={onUpdate} />
       )
-
-    // TODO: Add other object type panels
-    case 'image':
     default:
       return null
   }
@@ -145,11 +136,8 @@ function StickyNotePropertiesPanel({
             Paper Color
           </label>
           <div className="grid grid-cols-4 gap-2">
-            {PAPER_COLORS.map((color) => (
+            {PAPER_COLORS.map(color => (
               <button
-                key={color.value}
-                onClick={() => handlePaperColorChange(color.value)}
-                title={color.name}
                 className={`
                   w-full aspect-square rounded-md transition-all
                   hover:scale-110 hover:shadow-lg
@@ -159,7 +147,10 @@ function StickyNotePropertiesPanel({
                       : 'hover:ring-2 hover:ring-white/30'
                   }
                 `}
+                key={color.value}
+                onClick={() => handlePaperColorChange(color.value)}
                 style={{ backgroundColor: color.value }}
+                title={color.name}
               />
             ))}
           </div>
@@ -167,19 +158,21 @@ function StickyNotePropertiesPanel({
           {/* Custom color picker */}
           <div className="flex items-center gap-2 pt-1">
             <label
-              htmlFor="custom-paper-color"
               className="text-xs text-gray-400"
+              htmlFor="custom-paper-color"
             >
               Custom:
             </label>
             <input
+              className="w-12 h-8 rounded cursor-pointer border border-white/20"
               id="custom-paper-color"
+              onChange={e => handlePaperColorChange(e.target.value)}
               type="color"
               value={paperColor}
-              onChange={(e) => handlePaperColorChange(e.target.value)}
-              className="w-12 h-8 rounded cursor-pointer border border-white/20"
             />
-            <span className="text-xs text-gray-500 font-mono">{paperColor}</span>
+            <span className="text-xs text-gray-500 font-mono">
+              {paperColor}
+            </span>
           </div>
         </div>
 
@@ -189,11 +182,8 @@ function StickyNotePropertiesPanel({
             Font Color
           </label>
           <div className="grid grid-cols-4 gap-2">
-            {FONT_COLORS.map((color) => (
+            {FONT_COLORS.map(color => (
               <button
-                key={color.value}
-                onClick={() => handleFontColorChange(color.value)}
-                title={color.name}
                 className={`
                   w-full aspect-square rounded-md transition-all
                   hover:scale-110 hover:shadow-lg
@@ -204,7 +194,10 @@ function StickyNotePropertiesPanel({
                   }
                   ${color.value === '#ffffff' ? 'border border-gray-600' : ''}
                 `}
+                key={color.value}
+                onClick={() => handleFontColorChange(color.value)}
                 style={{ backgroundColor: color.value }}
+                title={color.name}
               />
             ))}
           </div>
@@ -212,17 +205,17 @@ function StickyNotePropertiesPanel({
           {/* Custom color picker */}
           <div className="flex items-center gap-2 pt-1">
             <label
-              htmlFor="custom-font-color"
               className="text-xs text-gray-400"
+              htmlFor="custom-font-color"
             >
               Custom:
             </label>
             <input
+              className="w-12 h-8 rounded cursor-pointer border border-white/20"
               id="custom-font-color"
+              onChange={e => handleFontColorChange(e.target.value)}
               type="color"
               value={fontColor}
-              onChange={(e) => handleFontColorChange(e.target.value)}
-              className="w-12 h-8 rounded cursor-pointer border border-white/20"
             />
             <span className="text-xs text-gray-500 font-mono">{fontColor}</span>
           </div>
@@ -234,10 +227,8 @@ function StickyNotePropertiesPanel({
             Font Size
           </label>
           <div className="grid grid-cols-4 gap-2">
-            {FONT_SIZES.map((size) => (
+            {FONT_SIZES.map(size => (
               <button
-                key={size}
-                onClick={() => handleFontSizeChange(size)}
                 className={`
                   px-3 py-2 rounded-md text-xs font-medium transition-all
                   ${
@@ -246,6 +237,8 @@ function StickyNotePropertiesPanel({
                       : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'
                   }
                 `}
+                key={size}
+                onClick={() => handleFontSizeChange(size)}
               >
                 {size}px
               </button>
@@ -256,8 +249,8 @@ function StickyNotePropertiesPanel({
           <div className="space-y-2 pt-1">
             <div className="flex items-center justify-between">
               <label
-                htmlFor="custom-font-size"
                 className="text-xs text-gray-400"
+                htmlFor="custom-font-size"
               >
                 Custom:
               </label>
@@ -266,12 +259,6 @@ function StickyNotePropertiesPanel({
               </span>
             </div>
             <input
-              id="custom-font-size"
-              type="range"
-              min="10"
-              max="48"
-              value={fontSize}
-              onChange={(e) => handleFontSizeChange(parseInt(e.target.value))}
               className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer
                 [&::-webkit-slider-thumb]:appearance-none
                 [&::-webkit-slider-thumb]:w-4
@@ -288,6 +275,12 @@ function StickyNotePropertiesPanel({
                 [&::-moz-range-thumb]:border-0
                 [&::-moz-range-thumb]:cursor-pointer
                 [&::-moz-range-thumb]:hover:bg-teal-300"
+              id="custom-font-size"
+              max="48"
+              min="10"
+              onChange={e => handleFontSizeChange(parseInt(e.target.value, 10))}
+              type="range"
+              value={fontSize}
             />
             <div className="flex justify-between text-[10px] text-gray-500">
               <span>10px</span>

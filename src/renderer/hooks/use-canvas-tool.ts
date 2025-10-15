@@ -10,11 +10,11 @@ interface UseCanvasToolOptions {
 
 /**
  * Hook for managing canvas tool selection and keyboard shortcuts.
- * 
+ *
  * @example
  * ```tsx
  * const { currentTool, setTool } = useCanvasTool()
- * 
+ *
  * <CanvasToolbar selectedTool={currentTool} onToolSelect={setTool} />
  * ```
  */
@@ -22,21 +22,27 @@ export function useCanvasTool(options: UseCanvasToolOptions = {}) {
   const { initialTool = 'select', onToolChange } = options
   const [currentTool, setCurrentTool] = useState<CanvasTool>(initialTool)
 
-  const setTool = useCallback((tool: CanvasTool) => {
-    setCurrentTool(tool)
-    onToolChange?.(tool)
-  }, [onToolChange])
+  const setTool = useCallback(
+    (tool: CanvasTool) => {
+      setCurrentTool(tool)
+      onToolChange?.(tool)
+    },
+    [onToolChange]
+  )
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if typing in an input/textarea
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
         return
       }
 
       const key = e.key.toLowerCase()
-      
+
       switch (key) {
         case 'v':
         case 'escape':

@@ -12,12 +12,17 @@ const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 }
  * Hook for managing viewport state with external update handling.
  * Handles internal viewport updates and notifies parent when needed.
  * Avoids stale closures by using refs for callbacks and current values.
- * 
+ *
  * @param options - Configuration for viewport behavior
  * @returns Viewport state and updater function
  */
-export function useViewport({ initialViewport, onViewportChange }: UseViewportOptions = {}) {
-  const [viewport, setViewport] = useState<Viewport>(initialViewport ?? DEFAULT_VIEWPORT)
+export function useViewport({
+  initialViewport,
+  onViewportChange,
+}: UseViewportOptions = {}) {
+  const [viewport, setViewport] = useState<Viewport>(
+    initialViewport ?? DEFAULT_VIEWPORT
+  )
 
   const onViewportChangeRef = useRef(onViewportChange)
   const isExternalUpdateRef = useRef(false)
@@ -71,9 +76,12 @@ export function useViewport({ initialViewport, onViewportChange }: UseViewportOp
   }, [viewport])
 
   // Stable updater function
-  const updateViewport = useCallback((newViewport: Viewport | ((prev: Viewport) => Viewport)) => {
-    setViewport(newViewport)
-  }, [])
+  const updateViewport = useCallback(
+    (newViewport: Viewport | ((prev: Viewport) => Viewport)) => {
+      setViewport(newViewport)
+    },
+    []
+  )
 
   return {
     viewport,

@@ -32,7 +32,7 @@ const TEXT_COLORS = [
 
 /**
  * TextPropertiesPanel - Properties panel for text objects
- * 
+ *
  * Features:
  * - Font family selection
  * - Font size slider (12-72px)
@@ -47,12 +47,14 @@ export function TextPropertiesPanel({
   onUpdate,
 }: TextPropertiesPanelProps) {
   const fontSize = selectedObject.object_data.fontSize || 24
-  const fontFamily = selectedObject.object_data.fontFamily || 'Inter, system-ui, sans-serif'
+  const fontFamily =
+    selectedObject.object_data.fontFamily || 'Inter, system-ui, sans-serif'
   const fontWeight = selectedObject.object_data.fontWeight || 'normal'
   const fontStyle = selectedObject.object_data.fontStyle || 'normal'
   const textAlign = selectedObject.object_data.textAlign || 'left'
   const color = selectedObject.object_data.color || '#FFFFFF'
-  const backgroundColor = selectedObject.object_data.backgroundColor || 'transparent'
+  const backgroundColor =
+    selectedObject.object_data.backgroundColor || 'transparent'
 
   const updateProperty = <K extends keyof TextObject['object_data']>(
     key: K,
@@ -76,13 +78,15 @@ export function TextPropertiesPanel({
       <div className="space-y-4">
         {/* Font Family */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5">Font Family</label>
+          <label className="block text-xs text-gray-400 mb-1.5">
+            Font Family
+          </label>
           <select
-            value={fontFamily}
-            onChange={(e) => updateProperty('fontFamily', e.target.value)}
             className="w-full px-2 py-1.5 bg-gray-900 text-white rounded border border-gray-600 text-sm focus:border-teal-400 focus:outline-none"
+            onChange={e => updateProperty('fontFamily', e.target.value)}
+            value={fontFamily}
           >
-            {FONT_FAMILIES.map((font) => (
+            {FONT_FAMILIES.map(font => (
               <option key={font.value} value={font.value}>
                 {font.label}
               </option>
@@ -96,26 +100,30 @@ export function TextPropertiesPanel({
             Font Size: {fontSize}px
           </label>
           <input
-            type="range"
-            min="12"
-            max="72"
-            value={fontSize}
-            onChange={(e) => updateProperty('fontSize', Number(e.target.value))}
             className="w-full accent-teal-500"
+            max="72"
+            min="12"
+            onChange={e => updateProperty('fontSize', Number(e.target.value))}
+            type="range"
+            value={fontSize}
           />
         </div>
 
         {/* Text Color */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5">Text Color</label>
+          <label className="block text-xs text-gray-400 mb-1.5">
+            Text Color
+          </label>
           <div className="grid grid-cols-6 gap-1.5">
-            {TEXT_COLORS.map((c) => (
+            {TEXT_COLORS.map(c => (
               <button
+                className={`w-8 h-8 rounded border-2 transition-all ${
+                  color === c
+                    ? 'border-teal-400 scale-110'
+                    : 'border-gray-600 hover:border-gray-500'
+                }`}
                 key={c}
                 onClick={() => updateProperty('color', c)}
-                className={`w-8 h-8 rounded border-2 transition-all ${
-                  color === c ? 'border-teal-400 scale-110' : 'border-gray-600 hover:border-gray-500'
-                }`}
                 style={{ backgroundColor: c }}
                 title={c}
               />
@@ -126,22 +134,32 @@ export function TextPropertiesPanel({
         {/* Font Weight & Style */}
         <div className="flex gap-2">
           <button
-            onClick={() => updateProperty('fontWeight', fontWeight === 'bold' ? 'normal' : 'bold')}
             className={`flex-1 px-3 py-2 rounded text-sm font-bold transition-all ${
               fontWeight === 'bold'
                 ? 'bg-teal-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
+            onClick={() =>
+              updateProperty(
+                'fontWeight',
+                fontWeight === 'bold' ? 'normal' : 'bold'
+              )
+            }
           >
             B
           </button>
           <button
-            onClick={() => updateProperty('fontStyle', fontStyle === 'italic' ? 'normal' : 'italic')}
             className={`flex-1 px-3 py-2 rounded text-sm italic transition-all ${
               fontStyle === 'italic'
                 ? 'bg-teal-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`}
+            onClick={() =>
+              updateProperty(
+                'fontStyle',
+                fontStyle === 'italic' ? 'normal' : 'italic'
+              )
+            }
           >
             I
           </button>
@@ -149,17 +167,19 @@ export function TextPropertiesPanel({
 
         {/* Text Alignment */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5">Text Align</label>
+          <label className="block text-xs text-gray-400 mb-1.5">
+            Text Align
+          </label>
           <div className="flex gap-2">
-            {(['left', 'center', 'right'] as const).map((align) => (
+            {(['left', 'center', 'right'] as const).map(align => (
               <button
-                key={align}
-                onClick={() => updateProperty('textAlign', align)}
                 className={`flex-1 px-3 py-2 rounded text-sm transition-all ${
                   textAlign === align
                     ? 'bg-teal-600 text-white'
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
+                key={align}
+                onClick={() => updateProperty('textAlign', align)}
               >
                 {align === 'left' && '⬅'}
                 {align === 'center' && '↔'}
@@ -171,31 +191,34 @@ export function TextPropertiesPanel({
 
         {/* Background Color */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5">Background</label>
+          <label className="block text-xs text-gray-400 mb-1.5">
+            Background
+          </label>
           <div className="grid grid-cols-6 gap-1.5">
             <button
-              onClick={() => updateProperty('backgroundColor', 'transparent')}
               className={`w-8 h-8 rounded border-2 transition-all relative ${
                 backgroundColor === 'transparent'
                   ? 'border-teal-400 scale-110'
                   : 'border-gray-600 hover:border-gray-500'
               }`}
+              onClick={() => updateProperty('backgroundColor', 'transparent')}
               style={{
-                background: 'linear-gradient(45deg, #444 25%, transparent 25%, transparent 75%, #444 75%, #444), linear-gradient(45deg, #444 25%, #666 25%, #666 75%, #444 75%, #444)',
+                background:
+                  'linear-gradient(45deg, #444 25%, transparent 25%, transparent 75%, #444 75%, #444), linear-gradient(45deg, #444 25%, #666 25%, #666 75%, #444 75%, #444)',
                 backgroundSize: '8px 8px',
                 backgroundPosition: '0 0, 4px 4px',
               }}
               title="Transparent"
             />
-            {TEXT_COLORS.map((c) => (
+            {TEXT_COLORS.map(c => (
               <button
-                key={c}
-                onClick={() => updateProperty('backgroundColor', c)}
                 className={`w-8 h-8 rounded border-2 transition-all ${
                   backgroundColor === c
                     ? 'border-teal-400 scale-110'
                     : 'border-gray-600 hover:border-gray-500'
                 }`}
+                key={c}
+                onClick={() => updateProperty('backgroundColor', c)}
                 style={{ backgroundColor: c }}
                 title={c}
               />

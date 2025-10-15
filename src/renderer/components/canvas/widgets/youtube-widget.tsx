@@ -16,9 +16,9 @@ interface YouTubeWidgetProps {
 function extractYouTubeId(url: string): string {
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
   ]
-  
+
   for (const pattern of patterns) {
     const match = url.match(pattern)
     if (match?.[1]) {
@@ -30,7 +30,7 @@ function extractYouTubeId(url: string): string {
 
 /**
  * YouTubeWidget - Embedded YouTube video player
- * 
+ *
  * Features:
  * - Embedded iframe player
  * - Resizable (maintains 16:9 aspect ratio)
@@ -77,8 +77,8 @@ export function YouTubeWidget({
           ...object.object_data,
           videoUrl: editUrl,
           videoId: videoId,
-          title: videoId ? `Video ${videoId}` : 'Invalid URL'
-        }
+          title: videoId ? `Video ${videoId}` : 'Invalid URL',
+        },
       })
     }
   }
@@ -97,18 +97,18 @@ export function YouTubeWidget({
 
   return (
     <WidgetWrapper
-      object={object}
       isSelected={isSelected}
-      zoom={zoom}
-      onUpdate={onUpdate}
-      onSelect={onSelect}
-      onContextMenu={onContextMenu}
-      onStartDrag={onStartDrag}
       lockAspectRatio={true}
-      minWidth={280}
       minHeight={158}
+      minWidth={280}
+      object={object}
+      onContextMenu={onContextMenu}
+      onSelect={onSelect}
+      onStartDrag={onStartDrag}
+      onUpdate={onUpdate}
+      zoom={zoom}
     >
-      <div 
+      <div
         className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden"
         onDoubleClick={handleDoubleClick}
       >
@@ -131,32 +131,34 @@ export function YouTubeWidget({
           {isEditing ? (
             <div className="w-full h-full flex items-center justify-center p-4 bg-gray-800">
               <input
+                className="w-full px-3 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-teal-400 focus:outline-none text-sm"
+                onBlur={handleUrlBlur}
+                onChange={handleUrlChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Paste YouTube URL (e.g., https://youtube.com/watch?v=...)"
                 ref={inputRef}
                 type="text"
                 value={editUrl}
-                onChange={handleUrlChange}
-                onBlur={handleUrlBlur}
-                onKeyDown={handleKeyDown}
-                placeholder="Paste YouTube URL (e.g., https://youtube.com/watch?v=...)"
-                className="w-full px-3 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-teal-400 focus:outline-none text-sm"
               />
             </div>
           ) : videoId ? (
             <iframe
-              width="100%"
-              height="100%"
-              src={`https://www.youtube.com/embed/${videoId}`}
-              title={object.object_data.title || 'YouTube video player'}
-              frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               className="w-full h-full"
+              frameBorder="0"
+              height="100%"
+              src={`https://www.youtube.com/embed/${videoId}`}
+              title={object.object_data.title || 'YouTube video player'}
+              width="100%"
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-800">
               <div className="text-6xl mb-4">📺</div>
               <p className="text-sm mb-1">No video loaded</p>
-              <p className="text-xs text-gray-500">Double-click to add YouTube URL</p>
+              <p className="text-xs text-gray-500">
+                Double-click to add YouTube URL
+              </p>
             </div>
           )}
         </div>

@@ -1,5 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
-import { Minus, Square, X, Copy, Bug, File, FolderOpen, Save, SaveAll, XCircle, LogOut } from 'lucide-react'
+import {
+  Minus,
+  Square,
+  X,
+  Copy,
+  Bug,
+  File,
+  FolderOpen,
+  Save,
+  SaveAll,
+  XCircle,
+  LogOut,
+} from 'lucide-react'
 import { version } from '~/package.json'
 
 interface MenuBarProps {
@@ -9,7 +21,12 @@ interface MenuBarProps {
   hasOpenFile?: boolean
 }
 
-export function MenuBar({ onMenuClick, currentFileName, onDebugClick, hasOpenFile = false }: MenuBarProps) {
+export function MenuBar({
+  onMenuClick,
+  currentFileName,
+  onDebugClick,
+  hasOpenFile = false,
+}: MenuBarProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [isMaximized, setIsMaximized] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -53,7 +70,7 @@ export function MenuBar({ onMenuClick, currentFileName, onDebugClick, hasOpenFil
 
   const handleFileAction = async (action: string) => {
     setActiveMenu(null)
-    
+
     switch (action) {
       case 'new':
         await window.App.file.new()
@@ -89,7 +106,10 @@ export function MenuBar({ onMenuClick, currentFileName, onDebugClick, hasOpenFil
   }
 
   return (
-    <div className="h-8 bg-[#1e1e1e] border-b border-[#2d2d2d] flex items-center select-none" ref={menuRef}>
+    <div
+      className="h-8 bg-[#1e1e1e] border-b border-[#2d2d2d] flex items-center select-none"
+      ref={menuRef}
+    >
       {/* Draggable area for window movement */}
       <div className="flex-1 flex items-center app-drag-region">
         {/* App Title */}
@@ -100,89 +120,91 @@ export function MenuBar({ onMenuClick, currentFileName, onDebugClick, hasOpenFil
         {/* Menu Items */}
         <div className="flex app-no-drag relative">
           {menus.map(menu => (
-            <div key={menu.id} className="relative">
+            <div className="relative" key={menu.id}>
               <button
-                onClick={() => handleMenuClick(menu.id)}
                 className={`
                   px-3 h-8 text-xs text-gray-300 hover:bg-[#2d2d2d] 
                   transition-colors flex items-center
                   ${activeMenu === menu.id ? 'bg-[#2d2d2d]' : ''}
                 `}
+                onClick={() => handleMenuClick(menu.id)}
               >
                 {menu.label}
               </button>
-              
+
               {/* File Menu Dropdown */}
               {menu.id === 'file' && activeMenu === 'file' && (
                 <div className="absolute top-full left-0 mt-0 w-56 bg-[#252526] border border-[#454545] shadow-lg z-50">
                   <div className="py-1">
                     <button
-                      onClick={() => handleFileAction('new')}
                       className="w-full px-4 py-1.5 text-xs text-left text-gray-300 hover:bg-[#2a2d2e] flex items-center gap-3"
+                      onClick={() => handleFileAction('new')}
                     >
                       <File className="size-3.5" />
                       <span>New File</span>
                       <span className="ml-auto text-gray-500">Ctrl+N</span>
                     </button>
                     <button
-                      onClick={() => handleFileAction('open')}
                       className="w-full px-4 py-1.5 text-xs text-left text-gray-300 hover:bg-[#2a2d2e] flex items-center gap-3"
+                      onClick={() => handleFileAction('open')}
                     >
                       <FolderOpen className="size-3.5" />
                       <span>Open File...</span>
                       <span className="ml-auto text-gray-500">Ctrl+O</span>
                     </button>
-                    
+
                     <div className="h-px bg-[#454545] my-1" />
-                    
+
                     <button
-                      onClick={() => handleFileAction('save')}
-                      disabled={!hasOpenFile}
                       className={`w-full px-4 py-1.5 text-xs text-left flex items-center gap-3 ${
-                        hasOpenFile 
-                          ? 'text-gray-300 hover:bg-[#2a2d2e]' 
+                        hasOpenFile
+                          ? 'text-gray-300 hover:bg-[#2a2d2e]'
                           : 'text-gray-600 cursor-not-allowed'
                       }`}
+                      disabled={!hasOpenFile}
+                      onClick={() => handleFileAction('save')}
                     >
                       <Save className="size-3.5" />
                       <span>Save</span>
                       <span className="ml-auto text-gray-500">Ctrl+S</span>
                     </button>
                     <button
-                      onClick={() => handleFileAction('saveAs')}
-                      disabled={!hasOpenFile}
                       className={`w-full px-4 py-1.5 text-xs text-left flex items-center gap-3 ${
-                        hasOpenFile 
-                          ? 'text-gray-300 hover:bg-[#2a2d2e]' 
+                        hasOpenFile
+                          ? 'text-gray-300 hover:bg-[#2a2d2e]'
                           : 'text-gray-600 cursor-not-allowed'
                       }`}
+                      disabled={!hasOpenFile}
+                      onClick={() => handleFileAction('saveAs')}
                     >
                       <SaveAll className="size-3.5" />
                       <span>Save As...</span>
-                      <span className="ml-auto text-gray-500">Ctrl+Shift+S</span>
+                      <span className="ml-auto text-gray-500">
+                        Ctrl+Shift+S
+                      </span>
                     </button>
-                    
+
                     <div className="h-px bg-[#454545] my-1" />
-                    
+
                     <button
-                      onClick={() => handleFileAction('close')}
-                      disabled={!hasOpenFile}
                       className={`w-full px-4 py-1.5 text-xs text-left flex items-center gap-3 ${
-                        hasOpenFile 
-                          ? 'text-gray-300 hover:bg-[#2a2d2e]' 
+                        hasOpenFile
+                          ? 'text-gray-300 hover:bg-[#2a2d2e]'
                           : 'text-gray-600 cursor-not-allowed'
                       }`}
+                      disabled={!hasOpenFile}
+                      onClick={() => handleFileAction('close')}
                     >
                       <XCircle className="size-3.5" />
                       <span>Close File</span>
                       <span className="ml-auto text-gray-500">Ctrl+W</span>
                     </button>
-                    
+
                     <div className="h-px bg-[#454545] my-1" />
-                    
+
                     <button
-                      onClick={() => handleFileAction('exit')}
                       className="w-full px-4 py-1.5 text-xs text-left text-gray-300 hover:bg-[#2a2d2e] flex items-center gap-3"
+                      onClick={() => handleFileAction('exit')}
                     >
                       <LogOut className="size-3.5" />
                       <span>Exit</span>
@@ -198,15 +220,13 @@ export function MenuBar({ onMenuClick, currentFileName, onDebugClick, hasOpenFil
         {/* Current File Name */}
         {currentFileName && (
           <>
-            <div className="ml-4 text-xs text-gray-500">
-              {currentFileName}
-            </div>
-            
+            <div className="ml-4 text-xs text-gray-500">{currentFileName}</div>
+
             {/* Debug Button */}
             <div className="app-no-drag ml-4">
               <button
-                onClick={onDebugClick}
                 className="px-2 h-6 text-xs text-teal-400 bg-teal-900/30 hover:bg-teal-900/50 rounded border border-teal-700/50 transition-colors flex items-center gap-1"
+                onClick={onDebugClick}
                 title="Debug: Print Metadata"
               >
                 <Bug className="size-3" />
@@ -220,15 +240,15 @@ export function MenuBar({ onMenuClick, currentFileName, onDebugClick, hasOpenFil
       {/* Window Controls */}
       <div className="flex h-full app-no-drag">
         <button
-          onClick={handleMinimize}
           className="w-12 h-full flex items-center justify-center text-gray-400 hover:bg-[#2d2d2d] transition-colors"
+          onClick={handleMinimize}
           title="Minimize"
         >
           <Minus className="size-4" />
         </button>
         <button
-          onClick={handleMaximize}
           className="w-12 h-full flex items-center justify-center text-gray-400 hover:bg-[#2d2d2d] transition-colors"
+          onClick={handleMaximize}
           title={isMaximized ? 'Restore' : 'Maximize'}
         >
           {isMaximized ? (
@@ -238,8 +258,8 @@ export function MenuBar({ onMenuClick, currentFileName, onDebugClick, hasOpenFil
           )}
         </button>
         <button
-          onClick={handleClose}
           className="w-12 h-full flex items-center justify-center text-gray-400 hover:bg-red-600 hover:text-white transition-colors"
+          onClick={handleClose}
           title="Close"
         >
           <X className="size-4" />

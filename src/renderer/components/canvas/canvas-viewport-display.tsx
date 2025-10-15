@@ -15,14 +15,18 @@ function formatBytes(bytes: number): string {
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`
+  return `${Math.round((bytes / k ** i) * 100) / 100} ${sizes[i]}`
 }
 
 /**
  * Displays current viewport information (zoom level and position).
  * Useful for debugging and user feedback.
  */
-export function CanvasViewportDisplay({ viewport, objectCount = 0, tabId }: CanvasViewportDisplayProps) {
+export function CanvasViewportDisplay({
+  viewport,
+  objectCount = 0,
+  tabId,
+}: CanvasViewportDisplayProps) {
   const [fileSize, setFileSize] = useState<string | null>(null)
 
   // Get file size from IPC if available
@@ -41,14 +45,14 @@ export function CanvasViewportDisplay({ viewport, objectCount = 0, tabId }: Canv
           setFileSize(null)
         }
       } catch (error) {
-        console.error('Failed to get file size:', error)
+        logger.error('Failed to get file size:', error)
         setFileSize(null)
       }
     }
 
     // Fetch immediately
     fetchFileSize()
-    
+
     // Refresh file size every 500ms for real-time updates
     const interval = setInterval(fetchFileSize, 500)
     return () => clearInterval(interval)
@@ -60,7 +64,7 @@ export function CanvasViewportDisplay({ viewport, objectCount = 0, tabId }: Canv
       <div>
         Position: ({viewport.x.toFixed(0)}, {viewport.y.toFixed(0)})
       </div>
-      
+
       {/* File stats */}
       <div className="mt-2 pt-2 border-t border-white/10 flex flex-col gap-0.5">
         <div className="flex items-center gap-1">
@@ -74,7 +78,7 @@ export function CanvasViewportDisplay({ viewport, objectCount = 0, tabId }: Canv
           </div>
         )}
       </div>
-      
+
       <div className="mt-2 pt-2 border-t border-white/10 flex flex-col gap-0.5 text-[11px] text-gray-500">
         <span>🖱️ Drag to pan</span>
         <span>🖲️ Scroll to zoom</span>

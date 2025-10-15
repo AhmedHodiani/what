@@ -28,7 +28,7 @@ export function useFreehandDrawing({
   const [currentObjectId, setCurrentObjectId] = useState<string | null>(null)
   const [isCtrlPressed, setIsCtrlPressed] = useState(false)
   const [straightLineStart, setStraightLineStart] = useState<Point | null>(null)
-  
+
   const pathRef = useRef<Point[]>([])
 
   // Sync path ref with state
@@ -64,38 +64,44 @@ export function useFreehandDrawing({
     }
   }, [isDrawing, currentPath])
 
-  const handleDrawStart = useCallback((e: React.MouseEvent, containerRef: React.RefObject<HTMLDivElement>) => {
-    if (!isEnabled) return false
+  const handleDrawStart = useCallback(
+    (e: React.MouseEvent, containerRef: React.RefObject<HTMLDivElement>) => {
+      if (!isEnabled) return false
 
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return false
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return false
 
-    const worldPoint = screenToWorld(e.clientX, e.clientY)
-    
-    setIsDrawing(true)
-    setCurrentPath([worldPoint])
-    setCurrentObjectId(generateId())
-    
-    if (isCtrlPressed) {
-      setStraightLineStart(worldPoint)
-    }
+      const worldPoint = screenToWorld(e.clientX, e.clientY)
 
-    return true // Indicates drawing started
-  }, [isEnabled, screenToWorld, isCtrlPressed])
+      setIsDrawing(true)
+      setCurrentPath([worldPoint])
+      setCurrentObjectId(generateId())
 
-  const handleDrawMove = useCallback((e: MouseEvent) => {
-    if (!isDrawing || !isEnabled) return
+      if (isCtrlPressed) {
+        setStraightLineStart(worldPoint)
+      }
 
-    const worldPoint = screenToWorld(e.clientX, e.clientY)
+      return true // Indicates drawing started
+    },
+    [isEnabled, screenToWorld, isCtrlPressed]
+  )
 
-    if (isCtrlPressed && straightLineStart) {
-      // Straight line mode: only keep start and current point
-      setCurrentPath([straightLineStart, worldPoint])
-    } else {
-      // Freehand mode: add points continuously
-      setCurrentPath(prev => [...prev, worldPoint])
-    }
-  }, [isDrawing, isEnabled, screenToWorld, isCtrlPressed, straightLineStart])
+  const handleDrawMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDrawing || !isEnabled) return
+
+      const worldPoint = screenToWorld(e.clientX, e.clientY)
+
+      if (isCtrlPressed && straightLineStart) {
+        // Straight line mode: only keep start and current point
+        setCurrentPath([straightLineStart, worldPoint])
+      } else {
+        // Freehand mode: add points continuously
+        setCurrentPath(prev => [...prev, worldPoint])
+      }
+    },
+    [isDrawing, isEnabled, screenToWorld, isCtrlPressed, straightLineStart]
+  )
 
   const handleDrawEnd = useCallback(async () => {
     if (!isDrawing || currentPath.length === 0) return
@@ -125,7 +131,15 @@ export function useFreehandDrawing({
 
     // Notify parent
     await onComplete(freehandObject)
-  }, [isDrawing, currentPath.length, currentObjectId, strokeColor, strokeWidth, opacity, onComplete])
+  }, [
+    isDrawing,
+    currentPath.length,
+    currentObjectId,
+    strokeColor,
+    strokeWidth,
+    opacity,
+    onComplete,
+  ])
 
   return {
     isDrawing,

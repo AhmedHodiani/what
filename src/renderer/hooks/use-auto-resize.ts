@@ -17,7 +17,7 @@ interface UseAutoResizeOptions {
 
 /**
  * useAutoResize - Auto-resize text elements based on content
- * 
+ *
  * Calculates the natural size of text content and triggers resize callback
  * Uses a hidden canvas element for accurate text measurement
  */
@@ -58,7 +58,7 @@ export function useAutoResize({
 
     // Split text into lines (including empty lines from Enter key)
     const lines = text.split('\n')
-    
+
     // Calculate width based on longest line (or minimum if all lines are empty)
     let maxLineWidth = 0
     for (const line of lines) {
@@ -70,15 +70,18 @@ export function useAutoResize({
 
     // Calculate dimensions with proper line height handling
     const lineHeightPx = fontSize * lineHeight
-    
+
     // Width: use measured width + padding, clamped to min/max
     const contentWidth = Math.ceil(
       Math.max(minWidth, Math.min(maxLineWidth + padding, maxWidth))
     )
-    
+
     // Height: use actual line count (including empty lines) + padding
     const contentHeight = Math.ceil(
-      Math.max(minHeight, Math.min(lines.length * lineHeightPx + padding, maxHeight))
+      Math.max(
+        minHeight,
+        Math.min(lines.length * lineHeightPx + padding, maxHeight)
+      )
     )
 
     // Only trigger resize if dimensions have actually changed

@@ -18,10 +18,10 @@ export interface CanvasSize {
 
 // Drawing Objects - Simple & Clean (no overcomplicated base classes)
 
-export type DrawingObjectType = 
-  | 'freehand' 
-  | 'sticky-note' 
-  | 'image' 
+export type DrawingObjectType =
+  | 'freehand'
+  | 'sticky-note'
+  | 'image'
   | 'text'
   | 'shape'
   | 'arrow'
@@ -36,11 +36,11 @@ export interface FreehandObject {
   y: number
   z_index: number
   object_data: {
-    points: Point[]              // Array of path points
-    stroke?: string              // Stroke color
-    strokeWidth?: number         // Line width
-    opacity?: number             // 0-1 transparency
-    smoothed?: boolean           // If path is smoothed
+    points: Point[] // Array of path points
+    stroke?: string // Stroke color
+    strokeWidth?: number // Line width
+    opacity?: number // 0-1 transparency
+    smoothed?: boolean // If path is smoothed
   }
   created: string
   updated: string
@@ -56,12 +56,12 @@ export interface StickyNoteObject {
   height: number
   z_index: number
   object_data: {
-    text: string                 // Note content
-    paperColor?: string          // Background color
-    fontColor?: string           // Text color
-    fontSize?: number            // Text size
-    fontFamily?: string          // Font family
-    autoResize?: boolean         // Auto-resize to fit content (default: true)
+    text: string // Note content
+    paperColor?: string // Background color
+    fontColor?: string // Text color
+    fontSize?: number // Text size
+    fontFamily?: string // Font family
+    autoResize?: boolean // Auto-resize to fit content (default: true)
   }
   created: string
   updated: string
@@ -77,16 +77,16 @@ export interface ImageObject {
   height: number
   z_index: number
   object_data: {
-    assetId: string              // Links to assets table -> assets/filename
-    originalWidth: number        // Original image dimensions
+    assetId: string // Links to assets table -> assets/filename
+    originalWidth: number // Original image dimensions
     originalHeight: number
-    cropX?: number               // Crop rectangle (optional)
+    cropX?: number // Crop rectangle (optional)
     cropY?: number
     cropWidth?: number
     cropHeight?: number
-    rotation?: number            // Rotation in degrees
-    flipH?: boolean              // Horizontal flip
-    flipV?: boolean              // Vertical flip
+    rotation?: number // Rotation in degrees
+    flipH?: boolean // Horizontal flip
+    flipV?: boolean // Vertical flip
     opacity?: number
   }
   created: string
@@ -103,16 +103,16 @@ export interface TextObject {
   height: number
   z_index: number
   object_data: {
-    text: string                 // Text content
-    fontSize?: number            // Font size
-    fontFamily?: string          // Font family
-    fontWeight?: string          // bold, normal, etc
-    fontStyle?: string           // italic, normal
+    text: string // Text content
+    fontSize?: number // Font size
+    fontFamily?: string // Font family
+    fontWeight?: string // bold, normal, etc
+    fontStyle?: string // italic, normal
     textAlign?: 'left' | 'center' | 'right'
-    color?: string               // Text color
-    backgroundColor?: string     // Background color
-    lineHeight?: number          // Line spacing
-    autoResize?: boolean         // Auto-resize to fit content (default: true)
+    color?: string // Text color
+    backgroundColor?: string // Background color
+    lineHeight?: number // Line spacing
+    autoResize?: boolean // Auto-resize to fit content (default: true)
   }
   created: string
   updated: string
@@ -128,13 +128,19 @@ export interface ShapeObject {
   height: number
   z_index: number
   object_data: {
-    shapeType: 'rectangle' | 'circle' | 'ellipse' | 'triangle' | 'star' | 'polygon'
-    fill?: string                // Fill color
-    stroke?: string              // Border color
-    strokeWidth?: number         // Border width
-    cornerRadius?: number        // For rounded rectangles
-    points?: number              // For stars/polygons
-    rotation?: number            // Rotation in degrees
+    shapeType:
+      | 'rectangle'
+      | 'circle'
+      | 'ellipse'
+      | 'triangle'
+      | 'star'
+      | 'polygon'
+    fill?: string // Fill color
+    stroke?: string // Border color
+    strokeWidth?: number // Border width
+    cornerRadius?: number // For rounded rectangles
+    points?: number // For stars/polygons
+    rotation?: number // Rotation in degrees
     opacity?: number
   }
   created: string
@@ -151,16 +157,16 @@ export interface ArrowObject {
   height: number
   z_index: number
   object_data: {
-    startX: number               // Start point (relative to object x,y)
+    startX: number // Start point (relative to object x,y)
     startY: number
-    endX: number                 // End point
+    endX: number // End point
     endY: number
-    stroke?: string              // Line color
-    strokeWidth?: number         // Line width
-    arrowStart?: boolean         // Arrow head at start
-    arrowEnd?: boolean           // Arrow head at end
+    stroke?: string // Line color
+    strokeWidth?: number // Line width
+    arrowStart?: boolean // Arrow head at start
+    arrowEnd?: boolean // Arrow head at end
     curveType?: 'straight' | 'curved' | 'stepped'
-    controlPoints?: Point[]      // For curved lines
+    controlPoints?: Point[] // For curved lines
     opacity?: number
   }
   created: string
@@ -177,9 +183,9 @@ export interface YouTubeVideoObject {
   height: number
   z_index: number
   object_data: {
-    videoUrl: string             // Full YouTube URL
-    videoId: string              // Extracted video ID
-    title?: string               // Video title
+    videoUrl: string // Full YouTube URL
+    videoId: string // Extracted video ID
+    title?: string // Video title
   }
   created: string
   updated: string
@@ -195,20 +201,19 @@ export interface EmojiObject {
   height: number
   z_index: number
   object_data: {
-    emoji: string                // The emoji character
+    emoji: string // The emoji character
   }
   created: string
   updated: string
 }
 
 // Union type for all drawing objects
-export type DrawingObject = 
-  | FreehandObject 
-  | StickyNoteObject 
-  | ImageObject 
-  | TextObject 
-  | ShapeObject 
+export type DrawingObject =
+  | FreehandObject
+  | StickyNoteObject
+  | ImageObject
+  | TextObject
+  | ShapeObject
   | ArrowObject
   | YouTubeVideoObject
   | EmojiObject
-

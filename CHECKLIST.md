@@ -1,5 +1,54 @@
 # CHECKLIST
 
+## DX Improvements (Ongoing)
+
+### 🎯 High Priority DX Wins
+1. **Widget Registry Pattern** 🔥🔥🔥 (Medium Effort - Week 4)
+   - Problem: Adding widgets requires editing 3-4 files
+   - Solution: Self-registering widget system
+   - Benefits: Add widgets without touching canvas-object.tsx, foundation for plugin system
+   - Status: Planned for Week 4 (Plugin System)
+
+2. **Cleanup Debug Logs** ✅ COMPLETE (Low Effort)
+   - Problem: Production code has emoji-laden debug logs everywhere
+   - Solution: Centralized logger with consola
+   - Benefits: Auto dev/prod mode, consistent formatting, namespaced loggers
+   - Status: ✅ Implemented `src/shared/logger.ts` with tagged loggers
+
+3. **Shared Widget Props Type** 🔥🔥 (Low Effort - Quick Win)
+   - Problem: Every widget repeats the same 7 props
+   - Solution: Shared `BaseWidgetProps` interface
+   - Benefits: DRY principle, easier to add common props
+   - Status: Partially done via `WidgetWrapper`, could formalize further
+
+### 📋 Medium Priority DX Improvements
+4. **Object Factory Pattern** 🔥🔥 (Medium Effort - Week 3)
+   - Problem: Object creation logic scattered across toolbar, shortcuts, paste
+   - Solution: Centralized factory in `lib/factories/drawing-object-factory.ts`
+   - Benefits: Single source of truth, consistent defaults, easier testing
+   - Status: Planned for Week 3 with Command Pattern
+
+5. **Typed Event System** 🔥 (High Effort - Week 3)
+   - Problem: Prop drilling callbacks through 5+ components
+   - Solution: Typed event emitter pattern
+   - Benefits: Eliminates prop drilling, decouples components
+   - Status: Consider if prop drilling becomes painful during Week 3
+
+6. **Type-Safe IPC Calls** 🔥 (Medium Effort - Week 4)
+   - Problem: IPC calls are stringly-typed, easy to make typos
+   - Solution: Typed IPC wrapper with autocomplete
+   - Benefits: Compile-time safety, self-documenting API
+   - Status: Nice-to-have for Week 4
+
+### 🛠️ Nice-to-Have
+7. **Debug Panel Component** 🔥 (Low Effort)
+   - Problem: Debug logs scattered, hard to track state
+   - Solution: Unified debug panel with real-time state
+   - Benefits: Better than console spam, easy toggle
+   - Status: Low priority - logger system covers most needs
+
+---
+
 ## Week 1: Foundation ✅ COMPLETE
 - [x] Fix stale closure bug in `use-canvas-objects.ts` (line 115: use tabId dependency)
 - [x] Add IPC handler cleanup (18 handlers in `main/windows/main.ts`)

@@ -27,7 +27,7 @@ const tools: Tool[] = [
 /**
  * Canvas toolbar for selecting drawing tools.
  * Positioned below the viewport display for easy access.
- * 
+ *
  * @example
  * ```tsx
  * <CanvasToolbar
@@ -36,16 +36,16 @@ const tools: Tool[] = [
  * />
  * ```
  */
-export function CanvasToolbar({ selectedTool, onToolSelect }: CanvasToolbarProps) {
+export function CanvasToolbar({
+  selectedTool,
+  onToolSelect,
+}: CanvasToolbarProps) {
   return (
     <div className="absolute top-3 left-1/2 -translate-x-1/2 pointer-events-auto">
       <div className="bg-black/80 backdrop-blur-sm border border-teal-400/30 rounded-lg shadow-lg">
         <div className="flex items-center gap-1 p-2">
-          {tools.map((tool) => (
+          {tools.map(tool => (
             <button
-              key={tool.type}
-              onClick={() => onToolSelect(tool.type)}
-              title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ''}`}
               className={`
                 group relative flex flex-col items-center justify-center
                 w-14 h-14 rounded-md transition-all
@@ -55,15 +55,18 @@ export function CanvasToolbar({ selectedTool, onToolSelect }: CanvasToolbarProps
                     : 'border-2 border-transparent hover:bg-white/10 hover:border-teal-400/50'
                 }
               `}
+              key={tool.type}
+              onClick={() => onToolSelect(tool.type)}
+              title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ''}`}
             >
               {/* Icon */}
               <span className="text-2xl mb-0.5">{tool.icon}</span>
-              
+
               {/* Label */}
               <span className="text-[9px] text-gray-400 font-medium">
                 {tool.label.split(' ')[0]}
               </span>
-              
+
               {/* Shortcut hint */}
               {tool.shortcut && (
                 <span

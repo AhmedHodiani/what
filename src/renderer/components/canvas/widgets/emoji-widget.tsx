@@ -13,7 +13,7 @@ interface EmojiWidgetProps {
 
 /**
  * EmojiWidget - Display and resize emoji on canvas
- * 
+ *
  * Features:
  * - Emoji scaled to fit widget bounds
  * - Resizable with aspect ratio maintained
@@ -33,17 +33,17 @@ export function EmojiWidget({
 
   return (
     <WidgetWrapper
-      object={object}
-      isSelected={isSelected}
-      zoom={zoom}
-      onUpdate={onUpdate}
-      onSelect={onSelect}
-      onContextMenu={onContextMenu}
-      onStartDrag={onStartDrag}
       isResizable={true}
+      isSelected={isSelected}
       lockAspectRatio={true}
-      minWidth={40}
       minHeight={40}
+      minWidth={40}
+      object={object}
+      onContextMenu={onContextMenu}
+      onSelect={onSelect}
+      onStartDrag={onStartDrag}
+      onUpdate={onUpdate}
+      zoom={zoom}
     >
       <div className="flex items-center justify-center w-full h-full select-none">
         <span

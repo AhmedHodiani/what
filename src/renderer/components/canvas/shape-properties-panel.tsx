@@ -21,7 +21,10 @@ const PRESET_COLORS = [
 /**
  * ShapePropertiesPanel - Controls for customizing shapes
  */
-export function ShapePropertiesPanel({ object, onUpdate }: ShapePropertiesPanelProps) {
+export function ShapePropertiesPanel({
+  object,
+  onUpdate,
+}: ShapePropertiesPanelProps) {
   const {
     shapeType,
     fill = '#3b82f6',
@@ -60,37 +63,41 @@ export function ShapePropertiesPanel({ object, onUpdate }: ShapePropertiesPanelP
 
         {/* Fill Color */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5">Fill Color</label>
+          <label className="block text-xs text-gray-400 mb-1.5">
+            Fill Color
+          </label>
           <div className="flex gap-2 flex-wrap mb-2">
-            {PRESET_COLORS.map((color) => (
+            {PRESET_COLORS.map(color => (
               <button
-                key={color}
-                type="button"
-                onClick={() => updateProperty({ fill: color })}
                 className={`w-8 h-8 rounded border-2 transition-all ${
                   fill === color ? 'border-white scale-110' : 'border-gray-600'
                 }`}
+                key={color}
+                onClick={() => updateProperty({ fill: color })}
                 style={{ backgroundColor: color }}
                 title={color}
+                type="button"
               />
             ))}
           </div>
           <input
+            className="w-full h-8 rounded bg-gray-900 border border-gray-600"
+            onChange={e => updateProperty({ fill: e.target.value })}
             type="color"
             value={fill}
-            onChange={(e) => updateProperty({ fill: e.target.value })}
-            className="w-full h-8 rounded bg-gray-900 border border-gray-600"
           />
         </div>
 
         {/* Stroke Color */}
         <div>
-          <label className="block text-xs text-gray-400 mb-1.5">Stroke Color</label>
+          <label className="block text-xs text-gray-400 mb-1.5">
+            Stroke Color
+          </label>
           <input
+            className="w-full h-8 rounded bg-gray-900 border border-gray-600"
+            onChange={e => updateProperty({ stroke: e.target.value })}
             type="color"
             value={stroke}
-            onChange={(e) => updateProperty({ stroke: e.target.value })}
-            className="w-full h-8 rounded bg-gray-900 border border-gray-600"
           />
         </div>
 
@@ -100,12 +107,14 @@ export function ShapePropertiesPanel({ object, onUpdate }: ShapePropertiesPanelP
             Stroke Width: {strokeWidth}px
           </label>
           <input
-            type="range"
-            min="0"
-            max="20"
-            value={strokeWidth}
-            onChange={(e) => updateProperty({ strokeWidth: Number(e.target.value) })}
             className="w-full accent-teal-400"
+            max="20"
+            min="0"
+            onChange={e =>
+              updateProperty({ strokeWidth: Number(e.target.value) })
+            }
+            type="range"
+            value={strokeWidth}
           />
         </div>
 
@@ -116,12 +125,14 @@ export function ShapePropertiesPanel({ object, onUpdate }: ShapePropertiesPanelP
               Corner Radius: {cornerRadius}px
             </label>
             <input
-              type="range"
-              min="0"
-              max="50"
-              value={cornerRadius}
-              onChange={(e) => updateProperty({ cornerRadius: Number(e.target.value) })}
               className="w-full accent-teal-400"
+              max="50"
+              min="0"
+              onChange={e =>
+                updateProperty({ cornerRadius: Number(e.target.value) })
+              }
+              type="range"
+              value={cornerRadius}
             />
           </div>
         )}
@@ -133,12 +144,12 @@ export function ShapePropertiesPanel({ object, onUpdate }: ShapePropertiesPanelP
               {shapeType === 'star' ? 'Points' : 'Sides'}: {points}
             </label>
             <input
-              type="range"
-              min="3"
-              max="12"
-              value={points}
-              onChange={(e) => updateProperty({ points: Number(e.target.value) })}
               className="w-full accent-teal-400"
+              max="12"
+              min="3"
+              onChange={e => updateProperty({ points: Number(e.target.value) })}
+              type="range"
+              value={points}
             />
           </div>
         )}
@@ -149,12 +160,12 @@ export function ShapePropertiesPanel({ object, onUpdate }: ShapePropertiesPanelP
             Rotation: {rotation}°
           </label>
           <input
-            type="range"
-            min="0"
-            max="360"
-            value={rotation}
-            onChange={(e) => updateProperty({ rotation: Number(e.target.value) })}
             className="w-full accent-teal-400"
+            max="360"
+            min="0"
+            onChange={e => updateProperty({ rotation: Number(e.target.value) })}
+            type="range"
+            value={rotation}
           />
         </div>
 
@@ -164,13 +175,13 @@ export function ShapePropertiesPanel({ object, onUpdate }: ShapePropertiesPanelP
             Opacity: {Math.round(opacity * 100)}%
           </label>
           <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={opacity}
-            onChange={(e) => updateProperty({ opacity: Number(e.target.value) })}
             className="w-full accent-teal-400"
+            max="1"
+            min="0"
+            onChange={e => updateProperty({ opacity: Number(e.target.value) })}
+            step="0.1"
+            type="range"
+            value={opacity}
           />
         </div>
       </div>

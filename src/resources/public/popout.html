@@ -38,11 +38,11 @@
                 window.onload = () => {
                     // Check if we're in Electron
                     if (navigator.userAgent.includes('Electron')) {
-                        console.log('[Popout] Electron detected, frameless mode would be applied by parent');
+                        logger.debug('Electron detected, frameless mode would be applied by parent');
                     }
                 };
             } catch (e) {
-                console.log('[Popout] Could not configure window:', e);
+                logger.debug('Could not configure window:', e);
             }
         }
     </script>

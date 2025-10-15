@@ -15,7 +15,11 @@ let gridIdCounter = 0
  * Renders a subtle grid for visual reference.
  * Each instance gets a unique pattern ID to avoid conflicts when multiple canvases are open.
  */
-export function CanvasGrid({ viewport, dimensions, gridSize = 50 }: CanvasGridProps) {
+export function CanvasGrid({
+  viewport,
+  dimensions,
+  gridSize = 50,
+}: CanvasGridProps) {
   // Generate a unique pattern ID for this canvas instance (only once per mount)
   const patternId = useMemo(() => `grid-${++gridIdCounter}`, [])
 
@@ -23,7 +27,12 @@ export function CanvasGrid({ viewport, dimensions, gridSize = 50 }: CanvasGridPr
     <>
       {/* Grid pattern definition */}
       <defs>
-        <pattern id={patternId} width={gridSize} height={gridSize} patternUnits="userSpaceOnUse">
+        <pattern
+          height={gridSize}
+          id={patternId}
+          patternUnits="userSpaceOnUse"
+          width={gridSize}
+        >
           <path
             d={`M ${gridSize} 0 L 0 0 0 ${gridSize}`}
             fill="none"
@@ -35,11 +44,11 @@ export function CanvasGrid({ viewport, dimensions, gridSize = 50 }: CanvasGridPr
 
       {/* Background grid */}
       <rect
+        fill={`url(#${patternId})`}
+        height={(dimensions.height * 2) / viewport.zoom}
+        width={(dimensions.width * 2) / viewport.zoom}
         x={viewport.x - dimensions.width / viewport.zoom}
         y={viewport.y - dimensions.height / viewport.zoom}
-        width={(dimensions.width * 2) / viewport.zoom}
-        height={(dimensions.height * 2) / viewport.zoom}
-        fill={`url(#${patternId})`}
       />
     </>
   )

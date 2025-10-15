@@ -15,7 +15,7 @@ interface StickyNoteWidgetProps {
 
 /**
  * StickyNoteWidget - Classic sticky note with folded corner
- * 
+ *
  * Features:
  * - Double-click to edit
  * - Handwritten font (Kalam)
@@ -39,7 +39,7 @@ export function StickyNoteWidget({
   const paperColor = object.object_data.paperColor || '#ffd700'
   const fontColor = object.object_data.fontColor || '#333333'
   const fontSize = object.object_data.fontSize || 16
-  
+
   // Check if auto-resize is enabled (default: true)
   const autoResizeEnabled = object.object_data.autoResize !== false
 
@@ -58,20 +58,26 @@ export function StickyNoteWidget({
     }
   }, [isEditing])
 
-  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    setIsEditing(true)
-    setEditText(object.object_data.text)
-  }, [object.object_data.text])
+  const handleDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      setIsEditing(true)
+      setEditText(object.object_data.text)
+    },
+    [object.object_data.text]
+  )
 
-  const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setEditText(e.target.value)
-  }, [])
+  const handleTextChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setEditText(e.target.value)
+    },
+    []
+  )
 
   const saveText = useCallback(() => {
     if (editText !== object.object_data.text) {
       onUpdate(object.id, {
-        object_data: { ...object.object_data, text: editText }
+        object_data: { ...object.object_data, text: editText },
       })
     }
   }, [editText, object.id, object.object_data, onUpdate])
@@ -81,15 +87,18 @@ export function StickyNoteWidget({
     saveText()
   }, [saveText])
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && e.ctrlKey) {
-      setIsEditing(false)
-      saveText()
-    } else if (e.key === 'Escape') {
-      setIsEditing(false)
-      setEditText(object.object_data.text)
-    }
-  }, [object.object_data.text, saveText])
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        setIsEditing(false)
+        saveText()
+      } else if (e.key === 'Escape') {
+        setIsEditing(false)
+        setEditText(object.object_data.text)
+      }
+    },
+    [object.object_data.text, saveText]
+  )
 
   // Use current text (either editing or saved)
   const currentText = isEditing ? editText : object.object_data.text
@@ -103,14 +112,14 @@ export function StickyNoteWidget({
       // Only update if size actually changed (prevent unnecessary saves on mount)
       const currentWidth = 'width' in object ? object.width : 150
       const currentHeight = 'height' in object ? object.height : 150
-      
+
       if (currentWidth === width && currentHeight === height) {
         return // Size hasn't changed, skip update
       }
 
       onUpdate?.(object.id, { width, height })
     },
-    [autoResizeEnabled, object, onUpdate],
+    [autoResizeEnabled, object, onUpdate]
   )
 
   useAutoResize({
@@ -132,7 +141,7 @@ export function StickyNoteWidget({
   const handleManualResize = useCallback(() => {
     // Always use the latest text from object (not editText which might be stale)
     // The useEffect above should have synced editText already
-    
+
     // Disable auto-resize permanently for this object
     onUpdate?.(object.id, {
       object_data: {
@@ -140,7 +149,7 @@ export function StickyNoteWidget({
         autoResize: false,
       },
     })
-    
+
     // If currently editing, exit edit mode
     if (isEditing) {
       setIsEditing(false)
@@ -149,39 +158,41 @@ export function StickyNoteWidget({
 
   return (
     <WidgetWrapper
-      object={object}
-      isSelected={isSelected}
-      zoom={zoom}
-      onUpdate={onUpdate}
-      onSelect={onSelect}
-      onContextMenu={onContextMenu}
-      onStartDrag={onStartDrag}
-      onManualResize={handleManualResize}
       isResizable={true}
-      minWidth={100}
+      isSelected={isSelected}
       minHeight={100}
+      minWidth={100}
+      object={object}
+      onContextMenu={onContextMenu}
+      onManualResize={handleManualResize}
+      onSelect={onSelect}
+      onStartDrag={onStartDrag}
+      onUpdate={onUpdate}
+      zoom={zoom}
     >
       <div
         className="relative w-full h-full overflow-hidden"
         onDoubleClick={handleDoubleClick}
         style={{
           backgroundColor: paperColor,
-          clipPath: 'polygon(0% 0%, calc(100% - 35px) 0%, 100% 35px, 100% 100%, 0% 100%)',
-          boxShadow: isSelected 
-            ? '0 0 10px rgba(0, 122, 204, 0.5)' 
+          clipPath:
+            'polygon(0% 0%, calc(100% - 35px) 0%, 100% 35px, 100% 100%, 0% 100%)',
+          boxShadow: isSelected
+            ? '0 0 10px rgba(0, 122, 204, 0.5)'
             : '2px 2px 8px rgba(0, 0, 0, 0.2)',
         }}
       >
         {/* Paper gradient overlay */}
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+            background:
+              'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
           }}
         />
 
         {/* Folded corner */}
-        <div 
+        <div
           className="absolute top-0 right-0 w-0 h-0 border-solid border-transparent border-r-[#e0e0e0]"
           style={{
             borderWidth: '0 35px 35px 0',
@@ -192,10 +203,11 @@ export function StickyNoteWidget({
         {/* Text content with paper texture */}
         <div className="relative w-full h-full p-4 box-border">
           {/* Paper texture */}
-          <div 
+          <div
             className="absolute inset-0 pointer-events-none opacity-50"
             style={{
-              backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.02) 1px, transparent 0)',
+              backgroundImage:
+                'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.02) 1px, transparent 0)',
               backgroundSize: '20px 20px',
             }}
           />
@@ -203,13 +215,12 @@ export function StickyNoteWidget({
           {/* Editable text */}
           {isEditing ? (
             <textarea
-              ref={textareaRef}
               className="relative w-full h-full bg-transparent border-none outline-none resize-none"
-              value={editText}
-              onChange={handleTextChange}
               onBlur={handleTextBlur}
+              onChange={handleTextChange}
               onKeyDown={handleKeyDown}
               placeholder="Type your note..."
+              ref={textareaRef}
               style={{
                 color: fontColor,
                 fontSize: `${fontSize}px`,
@@ -219,6 +230,7 @@ export function StickyNoteWidget({
                 textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
                 paddingRight: '25px',
               }}
+              value={editText}
             />
           ) : (
             <div
@@ -234,7 +246,9 @@ export function StickyNoteWidget({
               }}
             >
               {object.object_data.text || (
-                <span style={{ color: 'rgba(0, 0, 0, 0.4)', fontStyle: 'italic' }}>
+                <span
+                  style={{ color: 'rgba(0, 0, 0, 0.4)', fontStyle: 'italic' }}
+                >
                   Double-click to edit
                 </span>
               )}

@@ -26,7 +26,7 @@ export default {
     output: `dist/v${version}`,
     buildResources: 'src/resources/build', // Electron-builder will look for icons here
   },
-  
+
   asar: true,
 
   fileAssociations: [

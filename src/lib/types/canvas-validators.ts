@@ -62,11 +62,18 @@ export function isCanvasSize(value: unknown): value is CanvasSize {
 /**
  * Validates and clamps a viewport to ensure all values are valid
  */
-export function sanitizeViewport(viewport: Viewport, minZoom = 0.1, maxZoom = 5): Viewport {
+export function sanitizeViewport(
+  viewport: Viewport,
+  minZoom = 0.1,
+  maxZoom = 5
+): Viewport {
   return {
     x: Number.isFinite(viewport.x) ? viewport.x : 0,
     y: Number.isFinite(viewport.y) ? viewport.y : 0,
-    zoom: Math.max(minZoom, Math.min(maxZoom, Number.isFinite(viewport.zoom) ? viewport.zoom : 1)),
+    zoom: Math.max(
+      minZoom,
+      Math.min(maxZoom, Number.isFinite(viewport.zoom) ? viewport.zoom : 1)
+    ),
   }
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Download, X, RotateCw } from 'lucide-react'
+import { logger } from '../../../shared/logger'
 
 interface UpdateInfo {
   version: string
@@ -28,7 +29,7 @@ export function UpdateNotification() {
   useEffect(() => {
     // Listen for update events
     const unsubscribeAvailable = window.App.updater.onUpdateAvailable(info => {
-      console.log('[UpdateNotification] Update available:', info)
+      logger.debug('Update available:', info)
       setUpdateInfo(info)
       setUpdateAvailable(true)
       setDismissed(false)
@@ -36,28 +37,28 @@ export function UpdateNotification() {
 
     const unsubscribeNotAvailable = window.App.updater.onUpdateNotAvailable(
       info => {
-        console.log('[UpdateNotification] No updates available:', info)
+        logger.debug('No updates available:', info)
         setUpdateAvailable(false)
       }
     )
 
     const unsubscribeProgress = window.App.updater.onDownloadProgress(
       progress => {
-        console.log('[UpdateNotification] Download progress:', progress)
+        logger.debug('Download progress:', progress)
         setDownloadProgress(progress)
       }
     )
 
     const unsubscribeDownloaded = window.App.updater.onUpdateDownloaded(
       info => {
-        console.log('[UpdateNotification] Update downloaded:', info)
+        logger.debug('Update downloaded:', info)
         setDownloading(false)
         setUpdateReady(true)
       }
     )
 
     const unsubscribeError = window.App.updater.onUpdateError(err => {
-      console.error('[UpdateNotification] Update error:', err)
+      logger.error('Update error:', err)
       setError(err.message)
       setDownloading(false)
     })

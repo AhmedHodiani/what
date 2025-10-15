@@ -20,8 +20,8 @@ export function WelcomeScreen({ onNewFile, onOpenFile }: WelcomeScreenProps) {
         {/* Action Buttons */}
         <div className="flex gap-4 w-full">
           <button
-            onClick={onNewFile}
             className="flex-1 flex flex-col items-center gap-3 p-6 bg-[#1e1e1e] hover:bg-[#2d2d2d] border border-[#2d2d2d] hover:border-teal-400/50 rounded-lg transition-all group"
+            onClick={onNewFile}
           >
             <File className="size-12 text-teal-400 group-hover:scale-110 transition-transform" />
             <div className="text-center">
@@ -33,8 +33,8 @@ export function WelcomeScreen({ onNewFile, onOpenFile }: WelcomeScreenProps) {
           </button>
 
           <button
-            onClick={onOpenFile}
             className="flex-1 flex flex-col items-center gap-3 p-6 bg-[#1e1e1e] hover:bg-[#2d2d2d] border border-[#2d2d2d] hover:border-fuchsia-400/50 rounded-lg transition-all group"
+            onClick={onOpenFile}
           >
             <FolderOpen className="size-12 text-fuchsia-400 group-hover:scale-110 transition-transform" />
             <div className="text-center">
@@ -48,9 +48,7 @@ export function WelcomeScreen({ onNewFile, onOpenFile }: WelcomeScreenProps) {
 
         {/* Info */}
         <div className="text-center text-xs text-gray-600 mt-4">
-          <p>
-            Your ideas, notes, and media organized on an infinite canvas
-          </p>
+          <p>Your ideas, notes, and media organized on an infinite canvas</p>
           <p className="mt-1">
             Files are stored in a self-contained .what format
           </p>

@@ -5,11 +5,19 @@ import { createWindow } from 'lib/electron-app/factories/windows/create'
 import { ENVIRONMENT } from 'shared/constants'
 import { displayName } from '~/package.json'
 import { multiFileManager } from '../services/multi-file-manager'
-import { setupAutoUpdater, checkForUpdates, downloadUpdate, installUpdate } from '../services/auto-updater'
+import {
+  setupAutoUpdater,
+  checkForUpdates,
+  downloadUpdate,
+  installUpdate,
+} from '../services/auto-updater'
+import { logger } from 'shared/logger'
 
 export async function MainWindow() {
-  console.log('[Main] 🚀 MainWindow() function called - setting up window and IPC handlers')
-  
+  logger.debug(
+    '🚀 MainWindow() function called - setting up window and IPC handlers'
+  )
+
   const window = createWindow({
     id: 'main',
     title: displayName,
@@ -31,9 +39,9 @@ export async function MainWindow() {
   })
 
   // Configure all new child windows (popouts) to be frameless
-  window.webContents.setWindowOpenHandler((details) => {
-    console.log('[Main] 🪟 New window requested:', details.url)
-    
+  window.webContents.setWindowOpenHandler(details => {
+    logger.debug('🪟 New window requested:', details.url)
+
     // Check if this is a popout window (FlexLayout popouts)
     if (details.url.includes('popout.html')) {
       return {
@@ -50,7 +58,7 @@ export async function MainWindow() {
         },
       }
     }
-    
+
     return { action: 'allow' }
   })
 
@@ -95,7 +103,7 @@ export async function MainWindow() {
       window.webContents.send('file-opened', { file, tabId })
       return { file, tabId }
     } catch (error) {
-      console.error('Failed to create file:', error)
+      logger.error('Failed to create file:', error)
       dialog.showErrorBox(
         'Error',
         `Failed to create file: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -121,7 +129,7 @@ export async function MainWindow() {
       window.webContents.send('file-opened', { file, tabId })
       return { file, tabId }
     } catch (error) {
-      console.error('Failed to open file:', error)
+      logger.error('Failed to open file:', error)
       dialog.showErrorBox(
         'Error',
         `Failed to open file: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -133,10 +141,12 @@ export async function MainWindow() {
   ipcMain.removeHandler('file-save')
   ipcMain.handle('file-save', async (_event, tabId?: string) => {
     try {
-      const file = tabId ? multiFileManager.saveTab(tabId) : multiFileManager.saveActiveFile()
+      const file = tabId
+        ? multiFileManager.saveTab(tabId)
+        : multiFileManager.saveActiveFile()
       return file
     } catch (error) {
-      console.error('Failed to save file:', error)
+      logger.error('Failed to save file:', error)
       dialog.showErrorBox(
         'Error',
         `Failed to save file: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -165,7 +175,7 @@ export async function MainWindow() {
   ipcMain.removeHandler('file-close')
   ipcMain.handle('file-close', async (event, tabId?: string) => {
     let closedTabId: string | null = null
-    
+
     if (tabId) {
       multiFileManager.closeTab(tabId)
       closedTabId = tabId
@@ -176,12 +186,12 @@ export async function MainWindow() {
         closedTabId = activeTabId
       }
     }
-    
+
     // Notify renderer that tab was closed
     if (closedTabId) {
       event.sender.send('file-closed', { tabId: closedTabId })
     }
-    
+
     return true
   })
 
@@ -208,68 +218,87 @@ export async function MainWindow() {
   })
 
   ipcMain.removeHandler('file-get-canvas')
-  ipcMain.handle('file-get-canvas', async (_event, canvasId: string, tabId?: string) => {
-    try {
-      const targetTabId = tabId || multiFileManager.getActiveTabId()
-      if (!targetTabId) return null
-      
-      const viewport = multiFileManager.getViewport(targetTabId)
-      console.log('[Main] Getting viewport:', viewport)
-      // Return in canvas format for backward compatibility
-      return {
-        id: canvasId,
-        title: 'Canvas',
-        viewport_x: viewport.x,
-        viewport_y: viewport.y,
-        viewport_zoom: viewport.zoom,
-        object_count: 0,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      }
-    } catch (error) {
-      console.error('Failed to get viewport:', error)
-      return null
-    }
-  })
+  ipcMain.handle(
+    'file-get-canvas',
+    async (_event, canvasId: string, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) return null
 
-  console.log('[Main] 📝 Registering file-save-viewport IPC handler...')
-  
+        const viewport = multiFileManager.getViewport(targetTabId)
+        logger.debug('Getting viewport:', viewport)
+        // Return in canvas format for backward compatibility
+        return {
+          id: canvasId,
+          title: 'Canvas',
+          viewport_x: viewport.x,
+          viewport_y: viewport.y,
+          viewport_zoom: viewport.zoom,
+          object_count: 0,
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        }
+      } catch (error) {
+        logger.error('Failed to get viewport:', error)
+        return null
+      }
+    }
+  )
+
+  logger.debug('📝 Registering file-save-viewport IPC handler...')
+
   // Remove old handler if it exists (for hot reload)
   ipcMain.removeHandler('file-save-viewport')
-  
-  ipcMain.handle('file-save-viewport', async (_event, canvasId: string, x: number, y: number, zoom: number, tabId?: string) => {
-    console.log('[Main IPC] 🔵 file-save-viewport handler called with:', { canvasId, x, y, zoom, tabId })
-    
-    const targetTabId = tabId || multiFileManager.getActiveTabId()
-    if (!targetTabId) {
-      console.error('[Main IPC] ❌ No tab is currently active!')
-      throw new Error('No tab is currently active')
+
+  ipcMain.handle(
+    'file-save-viewport',
+    async (
+      _event,
+      canvasId: string,
+      x: number,
+      y: number,
+      zoom: number,
+      tabId?: string
+    ) => {
+      logger.debug('🔵 file-save-viewport handler called with:', {
+        canvasId,
+        x,
+        y,
+        zoom,
+        tabId,
+      })
+
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) {
+        logger.error('❌ No tab is currently active!')
+        throw new Error('No tab is currently active')
+      }
+
+      const tab = multiFileManager.getTab(targetTabId)
+      logger.debug('✅ Current tab:', tab?.fileName)
+
+      try {
+        logger.debug('🔵 Calling multiFileManager.saveViewport...')
+        multiFileManager.saveViewport(targetTabId, x, y, zoom)
+        logger.debug('✅ Viewport saved successfully')
+      } catch (error) {
+        logger.error('❌ Failed to save viewport:', error)
+        throw error
+      }
     }
-    
-    const tab = multiFileManager.getTab(targetTabId)
-    console.log('[Main IPC] ✅ Current tab:', tab?.fileName)
-    
-    try {
-      console.log('[Main IPC] 🔵 Calling multiFileManager.saveViewport...')
-      multiFileManager.saveViewport(targetTabId, x, y, zoom)
-      console.log('[Main IPC] ✅ Viewport saved successfully')
-    } catch (error) {
-      console.error('[Main IPC] ❌ Failed to save viewport:', error)
-      throw error
-    }
-  })
+  )
 
   ipcMain.removeHandler('file-get-metadata')
   ipcMain.handle('file-get-metadata', async (_event, tabId?: string) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
       if (!targetTabId) return null
-      
+
       const metadata = multiFileManager.getMetadata(targetTabId)
-      console.log('[Main] Metadata:', metadata)
+      logger.debug('Metadata:', metadata)
       return metadata
     } catch (error) {
-      console.error('Failed to get metadata:', error)
+      logger.error('Failed to get metadata:', error)
       return null
     }
   })
@@ -279,72 +308,95 @@ export async function MainWindow() {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
       if (!targetTabId) return null
-      
+
       const size = multiFileManager.getFileSize(targetTabId)
       return size
     } catch (error) {
-      console.error('Failed to get file size:', error)
+      logger.error('Failed to get file size:', error)
       return null
     }
   })
 
   // Asset handling IPC handlers
   ipcMain.removeHandler('file-save-asset')
-  ipcMain.handle('file-save-asset', async (_event, filename: string, dataBuffer: ArrayBuffer, mimeType: string, tabId?: string) => {
-    try {
-      const targetTabId = tabId || multiFileManager.getActiveTabId()
-      if (!targetTabId) throw new Error('No active tab')
+  ipcMain.handle(
+    'file-save-asset',
+    async (
+      _event,
+      filename: string,
+      dataBuffer: ArrayBuffer,
+      mimeType: string,
+      tabId?: string
+    ) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) throw new Error('No active tab')
 
-      const buffer = Buffer.from(dataBuffer)
-      const assetId = multiFileManager.saveAsset(targetTabId, filename, buffer, mimeType)
-      return assetId
-    } catch (error) {
-      console.error('Failed to save asset:', error)
-      throw error
+        const buffer = Buffer.from(dataBuffer)
+        const assetId = multiFileManager.saveAsset(
+          targetTabId,
+          filename,
+          buffer,
+          mimeType
+        )
+        return assetId
+      } catch (error) {
+        logger.error('Failed to save asset:', error)
+        throw error
+      }
     }
-  })
+  )
 
   ipcMain.removeHandler('file-get-asset-path')
-  ipcMain.handle('file-get-asset-path', async (_event, assetId: string, tabId?: string) => {
-    try {
-      const targetTabId = tabId || multiFileManager.getActiveTabId()
-      if (!targetTabId) return null
+  ipcMain.handle(
+    'file-get-asset-path',
+    async (_event, assetId: string, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) return null
 
-      const assetPath = multiFileManager.getAssetPath(targetTabId, assetId)
-      return assetPath
-    } catch (error) {
-      console.error('Failed to get asset path:', error)
-      return null
+        const assetPath = multiFileManager.getAssetPath(targetTabId, assetId)
+        return assetPath
+      } catch (error) {
+        logger.error('Failed to get asset path:', error)
+        return null
+      }
     }
-  })
+  )
 
   ipcMain.removeHandler('file-get-asset-data-url')
-  ipcMain.handle('file-get-asset-data-url', async (_event, assetId: string, tabId?: string) => {
-    try {
-      const targetTabId = tabId || multiFileManager.getActiveTabId()
-      if (!targetTabId) return null
+  ipcMain.handle(
+    'file-get-asset-data-url',
+    async (_event, assetId: string, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) return null
 
-      const dataUrl = multiFileManager.getAssetDataUrl(targetTabId, assetId)
-      return dataUrl
-    } catch (error) {
-      console.error('Failed to get asset data URL:', error)
-      return null
+        const dataUrl = multiFileManager.getAssetDataUrl(targetTabId, assetId)
+        return dataUrl
+      } catch (error) {
+        logger.error('Failed to get asset data URL:', error)
+        return null
+      }
     }
-  })
+  )
 
   ipcMain.removeHandler('file-delete-asset')
-  ipcMain.handle('file-delete-asset', async (_event, assetId: string, tabId?: string) => {
-    try {
-      const targetTabId = tabId || multiFileManager.getActiveTabId()
-      if (!targetTabId) throw new Error('No active tab')
+  ipcMain.handle(
+    'file-delete-asset',
+    async (_event, assetId: string, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) throw new Error('No active tab')
 
-      multiFileManager.deleteAsset(targetTabId, assetId)
-      return true
-    } catch (error) {
-      console.error('Failed to delete asset:', error)
-      throw error
+        multiFileManager.deleteAsset(targetTabId, assetId)
+        return true
+      } catch (error) {
+        logger.error('Failed to delete asset:', error)
+        throw error
+      }
     }
-  })
+  )
 
   // Object operations
   ipcMain.removeHandler('file-get-objects')
@@ -356,60 +408,66 @@ export async function MainWindow() {
       const objects = multiFileManager.getObjects(targetTabId)
       return objects
     } catch (error) {
-      console.error('Failed to get objects:', error)
+      logger.error('Failed to get objects:', error)
       return []
     }
   })
 
   ipcMain.removeHandler('file-save-object')
-  ipcMain.handle('file-save-object', async (_event, object: any, tabId?: string) => {
-    try {
-      const targetTabId = tabId || multiFileManager.getActiveTabId()
-      if (!targetTabId) {
-        console.warn('[Main] No tab ID for save object, skipping')
+  ipcMain.handle(
+    'file-save-object',
+    async (_event, object: any, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) {
+          logger.warn('No tab ID for save object, skipping')
+          return false
+        }
+
+        // Check if the tab actually exists
+        const tab = multiFileManager.getTab(targetTabId)
+        if (!tab) {
+          logger.warn(`Tab ${targetTabId} not found, skipping save object`)
+          return false
+        }
+
+        multiFileManager.saveObject(targetTabId, object)
+        return true
+      } catch (error) {
+        logger.error('Failed to save object:', error)
+        // Don't throw - just return false to avoid breaking the UI
         return false
       }
-
-      // Check if the tab actually exists
-      const tab = multiFileManager.getTab(targetTabId)
-      if (!tab) {
-        console.warn(`[Main] Tab ${targetTabId} not found, skipping save object`)
-        return false
-      }
-
-      multiFileManager.saveObject(targetTabId, object)
-      return true
-    } catch (error) {
-      console.error('Failed to save object:', error)
-      // Don't throw - just return false to avoid breaking the UI
-      return false
     }
-  })
+  )
 
   ipcMain.removeHandler('file-delete-object')
-  ipcMain.handle('file-delete-object', async (_event, objectId: string, tabId?: string) => {
-    try {
-      const targetTabId = tabId || multiFileManager.getActiveTabId()
-      if (!targetTabId) {
-        console.warn('[Main] No tab ID for delete object, skipping')
+  ipcMain.handle(
+    'file-delete-object',
+    async (_event, objectId: string, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) {
+          logger.warn('No tab ID for delete object, skipping')
+          return false
+        }
+
+        // Check if the tab actually exists
+        const tab = multiFileManager.getTab(targetTabId)
+        if (!tab) {
+          logger.warn(`Tab ${targetTabId} not found, skipping delete object`)
+          return false
+        }
+
+        multiFileManager.deleteObject(targetTabId, objectId)
+        return true
+      } catch (error) {
+        logger.error('Failed to delete object:', error)
+        // Don't throw - just return false to avoid breaking the UI
         return false
       }
-
-      // Check if the tab actually exists
-      const tab = multiFileManager.getTab(targetTabId)
-      if (!tab) {
-        console.warn(`[Main] Tab ${targetTabId} not found, skipping delete object`)
-        return false
-      }
-
-      multiFileManager.deleteObject(targetTabId, objectId)
-      return true
-    } catch (error) {
-      console.error('Failed to delete object:', error)
-      // Don't throw - just return false to avoid breaking the UI
-      return false
     }
-  })
+  )
 
   // Notify renderer when maximize state changes
   window.on('maximize', () => {
@@ -423,34 +481,34 @@ export async function MainWindow() {
   // Register keyboard shortcuts
   window.webContents.on('before-input-event', (event, input) => {
     const { control, shift, alt, key } = input
-    
+
     // Only handle key down events
     if (input.type !== 'keyDown') return
-    
+
     // Ctrl+N - New File
     if (control && !shift && !alt && key.toLowerCase() === 'n') {
       event.preventDefault()
       window.webContents.send('keyboard-shortcut', 'new')
     }
-    
+
     // Ctrl+O - Open File
     if (control && !shift && !alt && key.toLowerCase() === 'o') {
       event.preventDefault()
       window.webContents.send('keyboard-shortcut', 'open')
     }
-    
+
     // Ctrl+S - Save
     if (control && !shift && !alt && key.toLowerCase() === 's') {
       event.preventDefault()
       window.webContents.send('keyboard-shortcut', 'save')
     }
-    
+
     // Ctrl+Shift+S - Save As
     if (control && shift && !alt && key.toLowerCase() === 's') {
       event.preventDefault()
       window.webContents.send('keyboard-shortcut', 'saveAs')
     }
-    
+
     // Ctrl+W - Close File
     if (control && !shift && !alt && key.toLowerCase() === 'w') {
       event.preventDefault()
@@ -486,16 +544,16 @@ export async function MainWindow() {
   })
 
   window.on('close', () => {
-    console.log('[Main] 💾 Window closing, saving all files...')
+    logger.debug('💾 Window closing, saving all files...')
     // Save all files before closing to persist viewport and other changes
     try {
       multiFileManager.saveAll()
-      console.log('[Main] ✅ All files saved successfully')
+      logger.debug('✅ All files saved successfully')
       multiFileManager.closeAll()
     } catch (error) {
-      console.error('[Main] ❌ Failed to save files on close:', error)
+      logger.error('❌ Failed to save files on close:', error)
     }
-    
+
     for (const window of BrowserWindow.getAllWindows()) {
       window.destroy()
     }

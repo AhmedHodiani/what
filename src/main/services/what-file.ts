@@ -1,35 +1,46 @@
 import Database from 'better-sqlite3'
 import AdmZip from 'adm-zip'
 import { basename, join } from 'node:path'
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, readdirSync, statSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  rmSync,
+  readdirSync,
+  statSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import type {
   WhatFile,
   WhatFileMetadata,
   WhatFileObject,
 } from 'shared/types/what-file'
+import { logger } from 'shared/logger'
 
 const WHAT_FILE_VERSION = '1.0.0'
 
 /**
  * Magic number to identify .what files (8 bytes: "WHAT" + version bytes)
- * 
+ *
  * Structure: [0x57, 0x48, 0x41, 0x54, 0x01, 0x00, 0x00, 0x00]
  * - Bytes 0-3: ASCII "WHAT" (0x57 0x48 0x41 0x54)
  * - Bytes 4-7: Format version (0x01 0x00 0x00 0x00 = v1.0.0.0)
- * 
+ *
  * This header prevents the OS from treating .what files as regular ZIP archives
  * and allows the Electron app to verify file integrity before opening.
- * 
+ *
  * File structure:
  * [MAGIC_NUMBER (8 bytes)][ZIP data containing: main.db, meta.json, assets/]
- * 
+ *
  * Database structure (simplified for 1 file = 1 canvas):
  * - metadata table: version, title, viewport settings, etc.
  * - objects table: drawing objects (no canvas_id needed)
  * - assets table: embedded media files
  */
-const WHAT_MAGIC_NUMBER = Buffer.from([0x57, 0x48, 0x41, 0x54, 0x01, 0x00, 0x00, 0x00])
+const WHAT_MAGIC_NUMBER = Buffer.from([
+  0x57, 0x48, 0x41, 0x54, 0x01, 0x00, 0x00, 0x00,
+])
 
 export class WhatFileService {
   private db: Database.Database | null = null
@@ -97,7 +108,7 @@ export class WhatFileService {
       this.currentFile = file
       return file
     } catch (error) {
-      console.error('Failed to create new file:', error)
+      logger.error('Failed to create new file:', error)
       this.cleanup()
       throw new Error(
         `Failed to create file: ${error instanceof Error ? error.message : String(error)}`
@@ -181,7 +192,7 @@ export class WhatFileService {
       this.currentFile = file
       return file
     } catch (error) {
-      console.error('Failed to open file:', error)
+      logger.error('Failed to open file:', error)
       this.cleanup()
       throw new Error(
         `Failed to open file: ${error instanceof Error ? error.message : String(error)}`
@@ -222,7 +233,7 @@ export class WhatFileService {
       this.currentFile.isModified = false
       this.currentFile.lastModified = new Date()
     } catch (error) {
-      console.error('Failed to save file:', error)
+      logger.error('Failed to save file:', error)
       throw new Error(
         `Failed to save file: ${error instanceof Error ? error.message : String(error)}`
       )
@@ -284,7 +295,7 @@ export class WhatFileService {
    */
   closeFile(): void {
     try {
-      if (this.currentFile && this.currentFile.isModified) {
+      if (this.currentFile?.isModified) {
         this.saveFile()
       }
 
@@ -296,7 +307,7 @@ export class WhatFileService {
       this.cleanup()
       this.currentFile = null
     } catch (error) {
-      console.error('Failed to close file:', error)
+      logger.error('Failed to close file:', error)
     }
   }
 
@@ -308,7 +319,7 @@ export class WhatFileService {
       try {
         rmSync(this.workingDir, { recursive: true, force: true })
       } catch (error) {
-        console.error('Failed to cleanup working directory:', error)
+        logger.error('Failed to cleanup working directory:', error)
       }
       this.workingDir = null
     }
@@ -334,7 +345,7 @@ export class WhatFileService {
       // Calculate size of all files in working directory (including database, assets, meta.json)
       return this.calculateDirectorySize(this.workingDir)
     } catch (error) {
-      console.error('[WhatFile] Failed to calculate file size:', error)
+      logger.error('Failed to calculate file size:', error)
       return null
     }
   }
@@ -467,14 +478,14 @@ export class WhatFileService {
       'INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)'
     )
 
-    console.log('[WhatFileService] 🔵 Updating metadata with:', updates)
-    
+    logger.debug('🔵 Updating metadata with:', updates)
+
     for (const [key, value] of Object.entries(updates)) {
-      console.log(`[WhatFileService]   Writing: ${key} = ${JSON.stringify(value)}`)
+      logger.debug(`Writing: ${key} = ${JSON.stringify(value)}`)
       stmt.run(key, JSON.stringify(value))
     }
-    
-    console.log('[WhatFileService] ✅ Metadata update complete')
+
+    logger.debug('✅ Metadata update complete')
 
     if (this.currentFile) {
       this.currentFile.isModified = true
@@ -503,23 +514,23 @@ export class WhatFileService {
    * Get viewport settings from metadata
    */
   getViewport(): { x: number; y: number; zoom: number } {
-    console.log('[WhatFileService] 🔵 getViewport called')
-    
+    logger.debug('🔵 getViewport called')
+
     if (!this.db) {
-      console.error('[WhatFileService] ❌ No database connection!')
+      logger.error('❌ No database connection!')
       throw new Error('No database connection')
     }
 
     const metadata = this.getMetadata()
-    console.log('[WhatFileService] 📖 Raw metadata:', metadata)
-    
+    logger.debug('📖 Raw metadata:', metadata)
+
     const viewport = {
       x: metadata.viewport_x || 0,
       y: metadata.viewport_y || 0,
       zoom: metadata.viewport_zoom || 1,
     }
-    
-    console.log('[WhatFileService] ✅ Returning viewport:', viewport)
+
+    logger.debug('✅ Returning viewport:', viewport)
     return viewport
   }
 
@@ -527,14 +538,14 @@ export class WhatFileService {
    * Save viewport settings to metadata
    */
   saveViewport(x: number, y: number, zoom: number): void {
-    console.log('[WhatFileService] 🔵 saveViewport called with:', { x, y, zoom })
-    
+    logger.debug('🔵 saveViewport called with:', { x, y, zoom })
+
     if (!this.db) {
-      console.error('[WhatFileService] ❌ No database connection!')
+      logger.error('❌ No database connection!')
       throw new Error('No database connection')
     }
 
-    console.log('[WhatFileService] ✅ Database exists, updating metadata...')
+    logger.debug('✅ Database exists, updating metadata...')
 
     this.updateMetadata({
       viewport_x: x,
@@ -544,7 +555,7 @@ export class WhatFileService {
 
     // Verify the update
     const updated = this.getViewport()
-    console.log('[WhatFileService] ✅ Viewport after save:', updated)
+    logger.debug('✅ Viewport after save:', updated)
   }
 
   /**
@@ -573,14 +584,14 @@ export class WhatFileService {
     const now = new Date().toISOString()
     const objectData = JSON.stringify(object.object_data || {})
 
-    console.log('🔍 [DEBUG] saveObject called with:', {
+    logger.debug({
       id: object.id,
       type: object.type,
       x: object.x,
       y: object.y,
       width: object.width,
       height: object.height,
-      object_data_keys: Object.keys(object.object_data || {})
+      object_data_keys: Object.keys(object.object_data || {}),
     })
 
     const existing = this.db
@@ -589,7 +600,7 @@ export class WhatFileService {
 
     if (existing) {
       // Update
-      console.log('🔍 [DEBUG] Updating existing object:', object.id)
+      logger.debug(object.id)
       this.db
         .prepare(
           `
@@ -618,7 +629,7 @@ export class WhatFileService {
         )
     } else {
       // Insert
-      console.log('🔍 [DEBUG] Inserting new object:', object.id)
+      logger.debug(object.id)
       this.db
         .prepare(
           `
@@ -657,29 +668,31 @@ export class WhatFileService {
     if (object) {
       try {
         const objectData = JSON.parse(object.object_data)
-        
+
         // If the object has an assetId (like image objects), delete the asset too
         if (objectData.assetId) {
-          console.log(`[WhatFile] Deleting associated asset ${objectData.assetId} for object ${id}`)
+          logger.debug(
+            `Deleting associated asset ${objectData.assetId} for object ${id}`
+          )
           this.deleteAsset(objectData.assetId)
         }
       } catch (error) {
-        console.error(`[WhatFile] Failed to parse object_data for cleanup:`, error)
+        logger.error('Failed to parse object_data for cleanup:', error)
       }
     }
 
     // Delete the object from database
     this.db.prepare('DELETE FROM objects WHERE id = ?').run(id)
-    
+
     // Run full VACUUM to reclaim all space immediately
     // This completely rebuilds the database file and shrinks it to minimum size
     try {
       this.db.prepare('VACUUM').run()
-      console.log(`[WhatFile] Vacuumed database after deleting object ${id}`)
+      logger.debug(`Vacuumed database after deleting object ${id}`)
     } catch (error) {
-      console.error('[WhatFile] Failed to vacuum after delete:', error)
+      logger.error('Failed to vacuum after delete:', error)
     }
-    
+
     this.markAsModified()
   }
 
@@ -704,7 +717,7 @@ export class WhatFileService {
     // Generate unique ID
     const assetId = `asset_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     const assetsDir = join(this.workingDir, 'assets')
-    
+
     // Ensure assets directory exists
     if (!existsSync(assetsDir)) {
       mkdirSync(assetsDir, { recursive: true })

@@ -1,6 +1,10 @@
 import { useCallback } from 'react'
 import type { DrawingObject } from 'lib/types/canvas'
-import { useWidgetResize, type ResizeHandle } from 'renderer/hooks/use-widget-resize'
+import { logger } from '../../../../shared/logger'
+import {
+  useWidgetResize,
+  type ResizeHandle,
+} from 'renderer/hooks/use-widget-resize'
 
 interface WidgetWrapperProps {
   object: DrawingObject & { _imageUrl?: string }
@@ -14,19 +18,19 @@ interface WidgetWrapperProps {
   onSelect: (id: string, event?: React.MouseEvent) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
   onStartDrag: (e: React.MouseEvent, id: string) => void
-  onManualResize?: () => void  // Callback when user manually resizes
+  onManualResize?: () => void // Callback when user manually resizes
   children: React.ReactNode
 }
 
 /**
  * WidgetWrapper - Reusable wrapper for all canvas objects
- * 
+ *
  * Handles:
  * - Selection state & styling
  * - Drag interaction
  * - Resize handles (if resizable)
  * - Context menu
- * 
+ *
  * This eliminates ~200 lines of duplicated code per widget!
  */
 export function WidgetWrapper({
@@ -51,7 +55,11 @@ export function WidgetWrapper({
   const handleResizeEnd = useCallback(
     (finalWidth: number, finalHeight: number) => {
       // Now do a final save to the database with the final size
-      console.log('✅ Resize complete, saving to database:', finalWidth, finalHeight)
+      logger.success(
+        ' Resize complete, saving to database:',
+        finalWidth,
+        finalHeight
+      )
       onUpdate(object.id, { width: finalWidth, height: finalHeight })
     },
     [object.id, onUpdate]
@@ -91,10 +99,10 @@ export function WidgetWrapper({
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement
       if (target.classList.contains('resize-handle')) return
-      
+
       // Don't change selection on right-click (context menu)
       if (e.button === 2) return
-      
+
       // Select the widget but DON'T stop propagation
       // This allows the canvas to detect if we clicked on a widget or background
       if (!isResizing) {
@@ -122,31 +130,29 @@ export function WidgetWrapper({
         ${isSelected ? 'border-2 border-dashed border-[#007acc]' : 'border-2 border-transparent'}
         ${isResizing ? 'shadow-[0_0_15px_rgba(0,122,204,0.6)]' : ''}
       `}
+      onClick={handleClick}
+      onContextMenu={handleContextMenuClick}
+      onMouseDown={handleMouseDown}
       style={{
         width: `${width}px`,
         height: `${height}px`,
         zIndex: object.z_index,
         cursor: isResizing ? 'grabbing' : 'grab',
       }}
-      onMouseDown={handleMouseDown}
-      onClick={handleClick}
-      onContextMenu={handleContextMenuClick}
     >
       {children}
 
       {/* Resize handles when selected - E (right-side), SE (right-bottom), S (bottom-side) */}
-      {isSelected && isResizable && (
-        <>
-          {(['e', 'se', 's'] as ResizeHandle[]).map((handle) => (
-            <ResizeHandleComponent 
-              key={handle} 
-              handle={handle} 
-              zoom={zoom}
-              onResizeStart={handleResizeStart} 
-            />
-          ))}
-        </>
-      )}
+      {isSelected &&
+        isResizable &&
+        (['e', 'se', 's'] as ResizeHandle[]).map(handle => (
+          <ResizeHandleComponent
+            handle={handle}
+            key={handle}
+            onResizeStart={handleResizeStart}
+            zoom={zoom}
+          />
+        ))}
     </div>
   )
 }
@@ -167,15 +173,35 @@ function ResizeHandleComponent({
   // Base size in pixels (will be scaled inversely with zoom)
   const scaledSize = 20
   const offset = 3 // Center the handle on the edge, max 3px
-  
+
   const positions: Record<ResizeHandle, React.CSSProperties> = {
     se: { bottom: `-${offset}px`, right: `-${offset}px` },
-    s: { bottom: `-${offset}px`, left: '50%', transform: `translateX(-50%) scale(${1/zoom})`, transformOrigin: 'center' },
-    e: { right: `-${offset}px`, top: '50%', transform: `translateY(-50%) scale(${1/zoom})`, transformOrigin: 'center' },
+    s: {
+      bottom: `-${offset}px`,
+      left: '50%',
+      transform: `translateX(-50%) scale(${1 / zoom})`,
+      transformOrigin: 'center',
+    },
+    e: {
+      right: `-${offset}px`,
+      top: '50%',
+      transform: `translateY(-50%) scale(${1 / zoom})`,
+      transformOrigin: 'center',
+    },
     sw: { bottom: `-${offset}px`, left: `-${offset}px` },
-    w: { left: `-${offset}px`, top: '50%', transform: `translateY(-50%) scale(${1/zoom})`, transformOrigin: 'center' },
+    w: {
+      left: `-${offset}px`,
+      top: '50%',
+      transform: `translateY(-50%) scale(${1 / zoom})`,
+      transformOrigin: 'center',
+    },
     nw: { top: `-${offset}px`, left: `-${offset}px` },
-    n: { top: `-${offset}px`, left: '50%', transform: `translateX(-50%) scale(${1/zoom})`, transformOrigin: 'center' },
+    n: {
+      top: `-${offset}px`,
+      left: '50%',
+      transform: `translateX(-50%) scale(${1 / zoom})`,
+      transformOrigin: 'center',
+    },
     ne: { top: `-${offset}px`, right: `-${offset}px` },
   }
 
@@ -194,17 +220,17 @@ function ResizeHandleComponent({
   return (
     <div
       className="resize-handle absolute bg-[#007acc] border-2 border-white rounded-sm shadow-md hover:bg-[#005999] hover:scale-110 z-[1000]"
-      style={{ 
+      onMouseDown={e => onResizeStart(e, handle)}
+      style={{
         width: `${scaledSize}px`,
         height: `${scaledSize}px`,
-        ...positions[handle], 
+        ...positions[handle],
         cursor: cursors[handle],
         pointerEvents: 'all',
         // Maintain visual consistency regardless of zoom
-        transform: positions[handle].transform || `scale(${1/zoom})`,
+        transform: positions[handle].transform || `scale(${1 / zoom})`,
         transformOrigin: positions[handle].transformOrigin || 'center',
       }}
-      onMouseDown={(e) => onResizeStart(e, handle)}
     />
   )
 }

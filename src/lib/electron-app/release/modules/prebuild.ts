@@ -6,8 +6,18 @@ import trustedDependencies from '../../../../../trusted-dependencies-scripts.jso
 import packageJSON from '../../../../../package.json'
 import { getDevFolder } from '../utils/path'
 
+// Use console.log since this runs during build, not runtime
+const logger = { debug: console.log }
+
 async function createPackageJSONDistVersion() {
-  const { main, scripts, resources, devDependencies, build: _build, ...rest } = packageJSON
+  const {
+    main,
+    scripts: _scripts,
+    resources: _resources,
+    devDependencies: _devDependencies,
+    build: _build,
+    ...rest
+  } = packageJSON
 
   const packageJSONDistVersion = {
     main: './main/index.js',
@@ -27,7 +37,7 @@ async function createPackageJSONDistVersion() {
       ),
     ])
   } catch ({ message }: any) {
-    console.log(`
+    logger.debug(`
     🛑 Something went wrong!\n
       🧐 There was a problem creating the package.json dist version...\n
       👀 Error: ${message}

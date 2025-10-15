@@ -7,14 +7,17 @@ interface YouTubeUrlDialogProps {
 
 /**
  * YouTubeUrlDialog - Modal dialog for entering YouTube URLs
- * 
+ *
  * Features:
  * - URL validation with multiple format support
  * - Real-time error feedback
  * - Keyboard shortcuts (Enter/Escape)
  * - Auto-focus input field
  */
-export function YouTubeUrlDialog({ onConfirm, onCancel }: YouTubeUrlDialogProps) {
+export function YouTubeUrlDialog({
+  onConfirm,
+  onCancel,
+}: YouTubeUrlDialogProps) {
   const [url, setUrl] = useState('')
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -27,9 +30,9 @@ export function YouTubeUrlDialog({ onConfirm, onCancel }: YouTubeUrlDialogProps)
   const extractVideoId = (url: string): string => {
     const patterns = [
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
     ]
-    
+
     for (const pattern of patterns) {
       const match = url.match(pattern)
       if (match?.[1]) {
@@ -74,13 +77,15 @@ export function YouTubeUrlDialog({ onConfirm, onCancel }: YouTubeUrlDialogProps)
     >
       <div
         className="bg-black/90 rounded-lg shadow-2xl border border-teal-400/30 p-6 w-[500px] max-w-[90vw]"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <div className="text-3xl">📺</div>
           <div>
-            <h2 className="text-xl font-semibold text-teal-400">Add YouTube Video</h2>
+            <h2 className="text-xl font-semibold text-teal-400">
+              Add YouTube Video
+            </h2>
             <p className="text-sm text-gray-400 mt-0.5">
               Paste any YouTube video URL
             </p>
@@ -90,13 +95,13 @@ export function YouTubeUrlDialog({ onConfirm, onCancel }: YouTubeUrlDialogProps)
         {/* Input */}
         <div className="mb-4">
           <input
-            ref={inputRef}
-            type="text"
-            value={url}
+            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20 transition-all"
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder="https://youtube.com/watch?v=..."
-            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20 transition-all"
+            ref={inputRef}
+            type="text"
+            value={url}
           />
           {error && (
             <p className="text-red-400 text-sm mt-2 flex items-center gap-1.5">
@@ -108,7 +113,9 @@ export function YouTubeUrlDialog({ onConfirm, onCancel }: YouTubeUrlDialogProps)
 
         {/* Supported formats */}
         <div className="mb-6 p-3 bg-black/50 rounded border border-teal-400/20">
-          <p className="text-xs text-teal-400 mb-1.5 font-medium">Supported formats:</p>
+          <p className="text-xs text-teal-400 mb-1.5 font-medium">
+            Supported formats:
+          </p>
           <ul className="text-xs text-gray-400 space-y-0.5">
             <li>• youtube.com/watch?v=VIDEO_ID</li>
             <li>• youtu.be/VIDEO_ID</li>
@@ -119,14 +126,14 @@ export function YouTubeUrlDialog({ onConfirm, onCancel }: YouTubeUrlDialogProps)
         {/* Actions */}
         <div className="flex gap-3 justify-end">
           <button
-            onClick={onCancel}
             className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors border border-gray-600"
+            onClick={onCancel}
           >
             Cancel
           </button>
           <button
-            onClick={handleConfirm}
             className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium transition-colors"
+            onClick={handleConfirm}
           >
             Add Video
           </button>
@@ -135,11 +142,15 @@ export function YouTubeUrlDialog({ onConfirm, onCancel }: YouTubeUrlDialogProps)
         {/* Keyboard hints */}
         <div className="flex gap-4 mt-4 pt-4 border-t border-teal-400/20 text-xs text-gray-400">
           <div className="flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 bg-black/50 border border-teal-400/30 rounded text-teal-400">Enter</kbd>
+            <kbd className="px-1.5 py-0.5 bg-black/50 border border-teal-400/30 rounded text-teal-400">
+              Enter
+            </kbd>
             <span>Confirm</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <kbd className="px-1.5 py-0.5 bg-black/50 border border-teal-400/30 rounded text-teal-400">Esc</kbd>
+            <kbd className="px-1.5 py-0.5 bg-black/50 border border-teal-400/30 rounded text-teal-400">
+              Esc
+            </kbd>
             <span>Cancel</span>
           </div>
         </div>

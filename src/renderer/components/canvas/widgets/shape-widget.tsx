@@ -13,7 +13,7 @@ interface ShapeWidgetProps {
 
 /**
  * ShapeWidget - Renders geometric shapes
- * 
+ *
  * Supported shapes:
  * - Rectangle (with optional rounded corners)
  * - Circle
@@ -44,7 +44,7 @@ export function ShapeWidget({
 
   const width = object.width
   const height = object.height
-  
+
   // Add padding to accommodate rotation and stroke
   const padding = Math.max(strokeWidth * 2, 20)
 
@@ -54,16 +54,16 @@ export function ShapeWidget({
       case 'rectangle':
         return (
           <rect
-            x={0}
-            y={0}
-            width={width}
+            fill={fill}
             height={height}
+            opacity={opacity}
             rx={cornerRadius}
             ry={cornerRadius}
-            fill={fill}
             stroke={stroke}
             strokeWidth={strokeWidth}
-            opacity={opacity}
+            width={width}
+            x={0}
+            y={0}
           />
         )
 
@@ -75,11 +75,11 @@ export function ShapeWidget({
           <circle
             cx={cx}
             cy={cy}
-            r={radius}
             fill={fill}
+            opacity={opacity}
+            r={radius}
             stroke={stroke}
             strokeWidth={strokeWidth}
-            opacity={opacity}
           />
         )
       }
@@ -91,12 +91,12 @@ export function ShapeWidget({
           <ellipse
             cx={width / 2}
             cy={height / 2}
+            fill={fill}
+            opacity={opacity}
             rx={rx}
             ry={ry}
-            fill={fill}
             stroke={stroke}
             strokeWidth={strokeWidth}
-            opacity={opacity}
           />
         )
       }
@@ -107,9 +107,9 @@ export function ShapeWidget({
           <path
             d={path}
             fill={fill}
+            opacity={opacity}
             stroke={stroke}
             strokeWidth={strokeWidth}
-            opacity={opacity}
           />
         )
       }
@@ -121,7 +121,7 @@ export function ShapeWidget({
         const innerRadius = outerRadius * 0.4
         const numPoints = points || 5
 
-        const pathData = Array.from({ length: numPoints * 2 })
+        const pathData = `${Array.from({ length: numPoints * 2 })
           .map((_, i) => {
             const angle = (Math.PI * 2 * i) / (numPoints * 2) - Math.PI / 2
             const radius = i % 2 === 0 ? outerRadius : innerRadius
@@ -129,15 +129,15 @@ export function ShapeWidget({
             const y = centerY + Math.sin(angle) * radius
             return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`
           })
-          .join(' ') + ' Z'
+          .join(' ')} Z`
 
         return (
           <path
             d={pathData}
             fill={fill}
+            opacity={opacity}
             stroke={stroke}
             strokeWidth={strokeWidth}
-            opacity={opacity}
           />
         )
       }
@@ -148,22 +148,22 @@ export function ShapeWidget({
         const radius = Math.min(width, height) / 2
         const numSides = points || 6
 
-        const pathData = Array.from({ length: numSides })
+        const pathData = `${Array.from({ length: numSides })
           .map((_, i) => {
             const angle = (Math.PI * 2 * i) / numSides - Math.PI / 2
             const x = centerX + Math.cos(angle) * radius
             const y = centerY + Math.sin(angle) * radius
             return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`
           })
-          .join(' ') + ' Z'
+          .join(' ')} Z`
 
         return (
           <path
             d={pathData}
             fill={fill}
+            opacity={opacity}
             stroke={stroke}
             strokeWidth={strokeWidth}
-            opacity={opacity}
           />
         )
       }
@@ -175,15 +175,15 @@ export function ShapeWidget({
 
   return (
     <WidgetWrapper
-      object={object}
       isSelected={isSelected}
-      zoom={zoom}
-      onUpdate={onUpdate}
-      onSelect={onSelect}
+      object={object}
       onContextMenu={onContextMenu}
+      onSelect={onSelect}
       onStartDrag={onStartDrag}
+      onUpdate={onUpdate}
+      zoom={zoom}
     >
-      <div 
+      <div
         style={{
           width: '100%',
           height: '100%',
@@ -192,19 +192,19 @@ export function ShapeWidget({
         }}
       >
         <svg
-          width={width + padding * 2}
           height={height + padding * 2}
-          viewBox={`0 0 ${width + padding * 2} ${height + padding * 2}`}
           style={{
             position: 'absolute',
             top: -padding,
             left: -padding,
             overflow: 'visible',
           }}
+          viewBox={`0 0 ${width + padding * 2} ${height + padding * 2}`}
+          width={width + padding * 2}
         >
-          <g 
-            transform={`translate(${width / 2 + padding}, ${height / 2 + padding})`}
+          <g
             style={{ transformOrigin: 'center' }}
+            transform={`translate(${width / 2 + padding}, ${height / 2 + padding})`}
           >
             <g transform={`rotate(${rotation})`}>
               <g transform={`translate(${-width / 2}, ${-height / 2})`}>

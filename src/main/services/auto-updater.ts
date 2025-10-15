@@ -1,16 +1,17 @@
 import { autoUpdater } from 'electron-updater'
 import type { BrowserWindow } from 'electron'
 import { ENVIRONMENT } from 'shared/constants'
+import { logger } from 'shared/logger'
 
 let updateCheckInProgress = false
 
 // Configure auto-updater
 export function setupAutoUpdater(mainWindow: BrowserWindow) {
-  console.log('[AutoUpdater] 🔄 Setting up auto-updater')
+  logger.debug('🔄 Setting up auto-updater')
 
   // Don't check for updates in development
   if (ENVIRONMENT.IS_DEV) {
-    console.log('[AutoUpdater] ⚠️ Skipping update check in development mode')
+    logger.debug('⚠️ Skipping update check in development mode')
     return
   }
 
@@ -20,7 +21,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
   // Update available
   autoUpdater.on('update-available', info => {
-    console.log('[AutoUpdater] ✅ Update available:', info.version)
+    logger.debug('✅ Update available:', info.version)
 
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('update-available', {
@@ -34,7 +35,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
   // Update not available
   autoUpdater.on('update-not-available', info => {
-    console.log(
+    logger.debug(
       '[AutoUpdater] ℹ️ No updates available. Current version:',
       info.version
     )
@@ -49,7 +50,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
   // Download progress
   autoUpdater.on('download-progress', progress => {
     const percent = Math.round(progress.percent)
-    console.log(`[AutoUpdater] ⬇️ Downloading: ${percent}%`)
+    logger.debug(`⬇️ Downloading: ${percent}%`)
 
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('update-download-progress', {
@@ -63,7 +64,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
   // Update downloaded
   autoUpdater.on('update-downloaded', info => {
-    console.log('[AutoUpdater] ✅ Update downloaded:', info.version)
+    logger.debug('✅ Update downloaded:', info.version)
 
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('update-downloaded', {
@@ -74,7 +75,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 
   // Error
   autoUpdater.on('error', error => {
-    console.error('[AutoUpdater] ❌ Error:', error.message)
+    logger.error('❌ Error:', error.message)
 
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('update-error', {
@@ -92,21 +93,21 @@ export function setupAutoUpdater(mainWindow: BrowserWindow) {
 // Check for updates
 export async function checkForUpdates() {
   if (ENVIRONMENT.IS_DEV) {
-    console.log('[AutoUpdater] ⚠️ Skipping update check in development mode')
+    logger.debug('⚠️ Skipping update check in development mode')
     return
   }
 
   if (updateCheckInProgress) {
-    console.log('[AutoUpdater] ⚠️ Update check already in progress')
+    logger.debug('⚠️ Update check already in progress')
     return
   }
 
   try {
     updateCheckInProgress = true
-    console.log('[AutoUpdater] 🔍 Checking for updates...')
+    logger.debug('🔍 Checking for updates...')
     await autoUpdater.checkForUpdates()
   } catch (error) {
-    console.error('[AutoUpdater] ❌ Failed to check for updates:', error)
+    logger.error('❌ Failed to check for updates:', error)
   } finally {
     updateCheckInProgress = false
   }
@@ -115,15 +116,15 @@ export async function checkForUpdates() {
 // Download update
 export async function downloadUpdate() {
   if (ENVIRONMENT.IS_DEV) {
-    console.log('[AutoUpdater] ⚠️ Cannot download updates in development mode')
+    logger.debug('⚠️ Cannot download updates in development mode')
     return
   }
 
   try {
-    console.log('[AutoUpdater] ⬇️ Starting update download...')
+    logger.debug('⬇️ Starting update download...')
     await autoUpdater.downloadUpdate()
   } catch (error) {
-    console.error('[AutoUpdater] ❌ Failed to download update:', error)
+    logger.error('❌ Failed to download update:', error)
     throw error
   }
 }
@@ -131,10 +132,10 @@ export async function downloadUpdate() {
 // Install update and restart
 export function installUpdate() {
   if (ENVIRONMENT.IS_DEV) {
-    console.log('[AutoUpdater] ⚠️ Cannot install updates in development mode')
+    logger.debug('⚠️ Cannot install updates in development mode')
     return
   }
 
-  console.log('[AutoUpdater] 🔄 Installing update and restarting...')
+  logger.debug('🔄 Installing update and restarting...')
   autoUpdater.quitAndInstall(false, true)
 }

@@ -11,7 +11,7 @@ interface ConfirmationDialogProps {
 
 /**
  * ConfirmationDialog - Modal dialog for confirming destructive actions
- * 
+ *
  * Features:
  * - Danger variant (red) for destructive actions
  * - Keyboard support (Enter/Escape)
@@ -45,7 +45,7 @@ export function ConfirmationDialog({
     >
       <div
         className="bg-black/90 rounded-lg shadow-2xl border border-teal-400/30 p-6 w-[400px] max-w-[90vw]"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="mb-4">
@@ -66,20 +66,20 @@ export function ConfirmationDialog({
         {/* Actions */}
         <div className="flex gap-3 justify-end">
           <button
-            type="button"
-            onClick={onCancel}
             className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors border border-gray-600"
+            onClick={onCancel}
+            type="button"
           >
             {cancelText}
           </button>
           <button
-            type="button"
-            onClick={onConfirm}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               variant === 'danger'
                 ? 'bg-red-600 hover:bg-red-500 text-white'
                 : 'bg-teal-600 hover:bg-teal-500 text-white'
             }`}
+            onClick={onConfirm}
+            type="button"
           >
             {confirmText}
           </button>

@@ -16,7 +16,8 @@ export interface BaseWidgetProps<T extends DrawingObject> {
 /**
  * Props for resizable widgets (images, sticky notes, text boxes, etc.)
  */
-export interface ResizableWidgetProps<T extends DrawingObject> extends BaseWidgetProps<T> {
+export interface ResizableWidgetProps<T extends DrawingObject>
+  extends BaseWidgetProps<T> {
   minWidth?: number
   minHeight?: number
   lockAspectRatio?: boolean

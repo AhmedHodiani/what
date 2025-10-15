@@ -19,15 +19,36 @@ declare global {
         saveAs: () => Promise<any>
         close: (tabId?: string) => Promise<boolean>
         getCurrentFile: () => Promise<any>
-        onFileOpened: (callback: (data: { file: any; tabId: string }) => void) => () => void
-        onFileClosed: (callback: (data: { tabId: string }) => void) => () => void
+        onFileOpened: (
+          callback: (data: { file: any; tabId: string }) => void
+        ) => () => void
+        onFileClosed: (
+          callback: (data: { tabId: string }) => void
+        ) => () => void
         getCanvas: (canvasId: string, tabId?: string) => Promise<any>
-        saveViewport: (canvasId: string, x: number, y: number, zoom: number, tabId?: string) => Promise<void>
+        saveViewport: (
+          canvasId: string,
+          x: number,
+          y: number,
+          zoom: number,
+          tabId?: string
+        ) => Promise<void>
         getMetadata: (tabId?: string) => Promise<any>
         getFileSize: (tabId?: string) => Promise<number | null>
-        saveAsset: (filename: string, dataBuffer: ArrayBuffer, mimeType: string, tabId?: string) => Promise<string>
-        getAssetPath: (assetId: string, tabId?: string) => Promise<string | null>
-        getAssetDataUrl: (assetId: string, tabId?: string) => Promise<string | null>
+        saveAsset: (
+          filename: string,
+          dataBuffer: ArrayBuffer,
+          mimeType: string,
+          tabId?: string
+        ) => Promise<string>
+        getAssetPath: (
+          assetId: string,
+          tabId?: string
+        ) => Promise<string | null>
+        getAssetDataUrl: (
+          assetId: string,
+          tabId?: string
+        ) => Promise<string | null>
         deleteAsset: (assetId: string, tabId?: string) => Promise<boolean>
         getObjects: (tabId?: string) => Promise<any[]>
         saveObject: (object: any, tabId?: string) => Promise<boolean>
@@ -45,11 +66,31 @@ declare global {
         checkForUpdates: () => Promise<void>
         downloadUpdate: () => Promise<void>
         installUpdate: () => void
-        onUpdateAvailable: (callback: (info: { version: string; releaseDate: string; releaseName?: string; releaseNotes?: string }) => void) => () => void
-        onUpdateNotAvailable: (callback: (info: { version: string }) => void) => () => void
-        onDownloadProgress: (callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void) => () => void
-        onUpdateDownloaded: (callback: (info: { version: string }) => void) => () => void
-        onUpdateError: (callback: (error: { message: string }) => void) => () => void
+        onUpdateAvailable: (
+          callback: (info: {
+            version: string
+            releaseDate: string
+            releaseName?: string
+            releaseNotes?: string
+          }) => void
+        ) => () => void
+        onUpdateNotAvailable: (
+          callback: (info: { version: string }) => void
+        ) => () => void
+        onDownloadProgress: (
+          callback: (progress: {
+            percent: number
+            bytesPerSecond: number
+            transferred: number
+            total: number
+          }) => void
+        ) => () => void
+        onUpdateDownloaded: (
+          callback: (info: { version: string }) => void
+        ) => () => void
+        onUpdateError: (
+          callback: (error: { message: string }) => void
+        ) => () => void
       }
     }
   }

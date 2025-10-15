@@ -16,22 +16,22 @@ interface ImageWidgetProps {
  * ImageWidget - Simplified using WidgetWrapper
  * Now only 20 lines instead of 200! 🎉
  */
-export function ImageWidget({ 
-  object: image, 
-  getImageUrl, 
-  ...wrapperProps 
+export function ImageWidget({
+  object: image,
+  getImageUrl,
+  ...wrapperProps
 }: ImageWidgetProps) {
   const imageUrl = getImageUrl(image.object_data.assetId)
 
   return (
-    <WidgetWrapper 
-      object={image} 
+    <WidgetWrapper
+      object={image}
       {...wrapperProps}
       isResizable={true}
-      minWidth={100}
       minHeight={100}
+      minWidth={100}
     >
-      <div 
+      <div
         className="w-full h-full bg-cover bg-center bg-no-repeat rounded"
         style={{
           backgroundImage: imageUrl ? `url(${imageUrl})` : 'none',

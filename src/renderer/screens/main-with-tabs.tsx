@@ -1,8 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Layout, Model, Actions, TabNode, IJsonModel, DockLocation } from 'flexlayout-react'
+import {
+  Layout,
+  Model,
+  Actions,
+  type TabNode,
+  type IJsonModel,
+  DockLocation,
+} from 'flexlayout-react'
+import { logger } from '../../shared/logger'
 import 'flexlayout-react/style/light.css'
 import '../styles/flexlayout-theme.css'
-import { InfiniteCanvas, CanvasDemoContent, CanvasErrorBoundary } from 'renderer/components/canvas'
+import {
+  InfiniteCanvas,
+  CanvasDemoContent,
+  CanvasErrorBoundary,
+} from 'renderer/components/canvas'
 import { MenuBar } from 'renderer/components/layout/menu-bar'
 import { UpdateNotification } from 'renderer/components/layout/update-notification'
 import { WelcomeScreen } from 'renderer/components/welcome/welcome-screen'
@@ -52,7 +64,7 @@ export function MainScreenWithTabs() {
       try {
         const allTabs = await window.App.tabs.getAll()
         const activeId = await window.App.tabs.getActiveId()
-        
+
         setTabs(allTabs)
         setActiveTabId(activeId)
 
@@ -84,7 +96,10 @@ export function MainScreenWithTabs() {
 
           // Load viewports for all tabs
           for (const tab of allTabs) {
-            const canvas = await window.App.file.getCanvas(DEFAULT_CANVAS_ID, tab.id)
+            const canvas = await window.App.file.getCanvas(
+              DEFAULT_CANVAS_ID,
+              tab.id
+            )
             if (canvas) {
               const viewport = {
                 x: canvas.viewport_x,
@@ -97,7 +112,7 @@ export function MainScreenWithTabs() {
           }
         }
       } catch (error) {
-        console.error('Failed to load tabs:', error)
+        logger.error('Failed to load tabs:', error)
       } finally {
         setIsLoading(false)
         isInitialLoadRef.current = false
@@ -110,16 +125,16 @@ export function MainScreenWithTabs() {
   // Listen for new files being opened
   useEffect(() => {
     const cleanup = window.App.file.onFileOpened(({ file, tabId }) => {
-      console.log('[MainScreen] File opened:', file.name, tabId)
-      
+      logger.debug('File opened:', file.name, tabId)
+
       // Check if tab already exists
-      setTabs((prevTabs) => {
-        if (prevTabs.some((t) => t.id === tabId)) {
-          console.log('[MainScreen] Tab already exists, skipping:', tabId)
+      setTabs(prevTabs => {
+        if (prevTabs.some(t => t.id === tabId)) {
+          logger.debug('Tab already exists, skipping:', tabId)
           return prevTabs
         }
-        
-        console.log('[MainScreen] Adding new tab:', tabId)
+
+        logger.debug('Adding new tab:', tabId)
         const newTab: FileTab = {
           id: tabId,
           filePath: file.path,
@@ -133,8 +148,8 @@ export function MainScreenWithTabs() {
 
       // Only add to FlexLayout if not already loaded (not initial load)
       if (!isInitialLoadRef.current) {
-        console.log('[MainScreen] Adding tab to FlexLayout:', tabId)
-        
+        logger.debug('Adding tab to FlexLayout:', tabId)
+
         // Check if tab already exists in model
         const existingNode = model.getNodeById(tabId)
         if (!existingNode) {
@@ -157,8 +172,8 @@ export function MainScreenWithTabs() {
       }
 
       // Load viewport for the new tab
-      window.App.file.getCanvas(DEFAULT_CANVAS_ID, tabId).then((canvas) => {
-        console.log('[MainScreen] Loaded viewport for tab:', tabId, canvas)
+      window.App.file.getCanvas(DEFAULT_CANVAS_ID, tabId).then(canvas => {
+        logger.debug('Loaded viewport for tab:', tabId, canvas)
         if (canvas) {
           const newViewport = {
             x: canvas.viewport_x,
@@ -167,26 +182,26 @@ export function MainScreenWithTabs() {
           }
           viewportsRef.current.set(tabId, newViewport)
           setViewports(prev => new Map(prev).set(tabId, newViewport))
-          console.log('[MainScreen] Set viewport in cache:', tabId, newViewport)
+          logger.debug('Set viewport in cache:', tabId, newViewport)
         }
       })
 
       setActiveTabId(tabId)
     })
-    
+
     // Listen for files being closed
     const cleanupClosed = window.App.file.onFileClosed(({ tabId }) => {
-      console.log('[MainScreen] File closed via menu:', tabId)
-      
+      logger.debug('File closed via menu:', tabId)
+
       // Remove from tabs state
-      setTabs((prevTabs) => prevTabs.filter((t) => t.id !== tabId))
-      
+      setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
+
       // Remove from FlexLayout
       const existingNode = model.getNodeById(tabId)
       if (existingNode) {
         model.doAction(Actions.deleteTab(tabId))
       }
-      
+
       // Clean up viewport cache and timeout
       viewportsRef.current.delete(tabId)
       setViewports(prev => {
@@ -200,7 +215,7 @@ export function MainScreenWithTabs() {
         saveTimeoutRefs.current.delete(tabId)
       }
     })
-    
+
     return () => {
       cleanup()
       cleanupClosed()
@@ -208,31 +223,40 @@ export function MainScreenWithTabs() {
   }, [model])
 
   // Handle viewport changes for a specific tab
-  const handleViewportChange = useCallback((tabId: string, newViewport: Viewport) => {
-    // Update local viewport cache immediately
-    viewportsRef.current.set(tabId, newViewport)
+  const handleViewportChange = useCallback(
+    (tabId: string, newViewport: Viewport) => {
+      // Update local viewport cache immediately
+      viewportsRef.current.set(tabId, newViewport)
 
-    // Clear previous timeout for this tab
-    const existingTimeout = saveTimeoutRefs.current.get(tabId)
-    if (existingTimeout) {
-      clearTimeout(existingTimeout)
-    }
+      // Clear previous timeout for this tab
+      const existingTimeout = saveTimeoutRefs.current.get(tabId)
+      if (existingTimeout) {
+        clearTimeout(existingTimeout)
+      }
 
-    // Debounce viewport saving to database
-    const timeout = setTimeout(() => {
-      console.log('[MainScreen] 🔵 Saving viewport for tab:', tabId, newViewport)
-      window.App.file
-        .saveViewport(DEFAULT_CANVAS_ID, newViewport.x, newViewport.y, newViewport.zoom, tabId)
-        .then(() => {
-          console.log('[MainScreen] ✅ Viewport save completed for tab:', tabId)
-        })
-        .catch((error) => {
-          console.error('[MainScreen] ❌ Failed to save viewport for tab:', tabId, error)
-        })
-    }, 500)
+      // Debounce viewport saving to database
+      const timeout = setTimeout(() => {
+        logger.debug('🔵 Saving viewport for tab:', tabId, newViewport)
+        window.App.file
+          .saveViewport(
+            DEFAULT_CANVAS_ID,
+            newViewport.x,
+            newViewport.y,
+            newViewport.zoom,
+            tabId
+          )
+          .then(() => {
+            logger.debug('✅ Viewport save completed for tab:', tabId)
+          })
+          .catch(error => {
+            logger.error('❌ Failed to save viewport for tab:', tabId, error)
+          })
+      }, 500)
 
-    saveTimeoutRefs.current.set(tabId, timeout)
-  }, [])
+      saveTimeoutRefs.current.set(tabId, timeout)
+    },
+    []
+  )
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -242,12 +266,12 @@ export function MainScreenWithTabs() {
       }
     }
   }, [])
-  
+
   // Listen for keyboard shortcuts
   useEffect(() => {
-    const cleanup = window.App.shortcuts.onShortcut(async (action) => {
-      console.log('[MainScreen] Keyboard shortcut:', action)
-      
+    const cleanup = window.App.shortcuts.onShortcut(async action => {
+      logger.debug('Keyboard shortcut:', action)
+
       switch (action) {
         case 'new':
           await window.App.file.new()
@@ -270,7 +294,7 @@ export function MainScreenWithTabs() {
           break
       }
     })
-    
+
     return cleanup
   }, [activeTabId])
 
@@ -296,14 +320,14 @@ export function MainScreenWithTabs() {
       }
 
       const metadata = await window.App.file.getMetadata(activeTabId)
-      console.log('=== DEBUG: Metadata Table ===')
+      logger.debug('=== DEBUG: Metadata Table ===')
       console.table(metadata)
-      console.log('=== Raw Metadata ===')
-      console.log(JSON.stringify(metadata, null, 2))
+      logger.debug('=== Raw Metadata ===')
+      logger.debug(JSON.stringify(metadata, null, 2))
 
       alert(`Metadata:\n\n${JSON.stringify(metadata, null, 2)}`)
     } catch (error) {
-      console.error('Failed to get metadata:', error)
+      logger.error('Failed to get metadata:', error)
       alert('Failed to get metadata. Check console.')
     }
   }
@@ -313,34 +337,41 @@ export function MainScreenWithTabs() {
     const config = node.getConfig() as { tabId: string }
     const tabId = config.tabId
     const viewport = viewports.get(tabId) || { x: 0, y: 0, zoom: 1 }
-    
+
     // Check if this tab is actually selected in its tabset
     const parent = node.getParent()
     let isSelected = false
-    
+
     if (parent && parent.getType() === 'tabset') {
       const tabset = parent as any // TabSetNode
       isSelected = tabset.getSelectedNode()?.getId() === node.getId()
     }
-    
-    console.log('[MainScreen Factory] Rendering tab:', tabId, 'isSelected:', isSelected, 'viewport:', viewport)
+
+    logger.debug(
+      'Rendering tab:',
+      tabId,
+      'isSelected:',
+      isSelected,
+      'viewport:',
+      viewport
+    )
 
     // Only render canvas if the tab is selected to avoid event conflicts
     // This prevents multiple canvases from fighting over mouse events
     if (!isSelected) {
-      return (
-        <div className="absolute inset-0 bg-[#0a0a0a]" />
-      )
+      return <div className="absolute inset-0 bg-[#0a0a0a]" />
     }
 
     return (
       <CanvasErrorBoundary>
         <InfiniteCanvas
-          key={`canvas-${tabId}`}
           initialViewport={viewport}
-          onViewportChange={(newViewport) => handleViewportChange(tabId, newViewport)}
-          tabId={tabId}
           isActive={tabId === activeTabId}
+          key={`canvas-${tabId}`}
+          onViewportChange={newViewport =>
+            handleViewportChange(tabId, newViewport)
+          }
+          tabId={tabId}
         >
           <CanvasDemoContent />
         </InfiniteCanvas>
@@ -351,9 +382,11 @@ export function MainScreenWithTabs() {
   // Handle tab selection changes
   const onModelChange = (newModel: Model) => {
     setModel(newModel)
-    
+
     // Get the selected tab
-    const selectedNode = newModel.getActiveTabset()?.getSelectedNode() as TabNode | undefined
+    const selectedNode = newModel.getActiveTabset()?.getSelectedNode() as
+      | TabNode
+      | undefined
     if (selectedNode) {
       const config = selectedNode.getConfig() as { tabId: string }
       const tabId = config.tabId
@@ -368,14 +401,14 @@ export function MainScreenWithTabs() {
   const onAction = (action: any) => {
     if (action.type === 'FlexLayout_DeleteTab') {
       const tabId = action.data.node
-      console.log('[MainScreen] Closing tab:', tabId)
-      
+      logger.debug('Closing tab:', tabId)
+
       // Close the file
       window.App.file.close(tabId)
-      
+
       // Remove from state
-      setTabs((prevTabs) => prevTabs.filter((t) => t.id !== tabId))
-      
+      setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
+
       // Clean up viewport cache and timeout
       viewportsRef.current.delete(tabId)
       const timeout = saveTimeoutRefs.current.get(tabId)
@@ -384,7 +417,7 @@ export function MainScreenWithTabs() {
         saveTimeoutRefs.current.delete(tabId)
       }
     }
-    
+
     return action
   }
 
@@ -396,16 +429,16 @@ export function MainScreenWithTabs() {
     )
   }
 
-  const currentFileName = tabs.find((t) => t.id === activeTabId)?.fileName
+  const currentFileName = tabs.find(t => t.id === activeTabId)?.fileName
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#1e1e1e] overflow-hidden">
       {/* Top Menu Bar */}
       <MenuBar
-        onMenuClick={handleMenuClick}
         currentFileName={currentFileName}
-        onDebugClick={handleDebugClick}
         hasOpenFile={tabs.length > 0}
+        onDebugClick={handleDebugClick}
+        onMenuClick={handleMenuClick}
       />
 
       {/* Main Content Area */}
@@ -413,16 +446,19 @@ export function MainScreenWithTabs() {
         {tabs.length > 0 ? (
           <div className="h-full">
             <Layout
-              ref={layoutRef}
-              model={model}
               factory={factory}
-              onModelChange={onModelChange}
+              model={model}
               onAction={onAction}
+              onModelChange={onModelChange}
               popoutURL="popout.html"
+              ref={layoutRef}
             />
           </div>
         ) : (
-          <WelcomeScreen onNewFile={handleNewFile} onOpenFile={handleOpenFile} />
+          <WelcomeScreen
+            onNewFile={handleNewFile}
+            onOpenFile={handleOpenFile}
+          />
         )}
       </div>
 

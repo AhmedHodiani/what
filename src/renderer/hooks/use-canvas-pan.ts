@@ -5,7 +5,7 @@ import type { Point } from 'lib/types/canvas'
  * Hook for handling canvas panning (drag to move).
  * Returns panning state and event handlers.
  * Manages cursor state and global mouse event listeners automatically.
- * 
+ *
  * @param containerRef - Ref to the container element
  * @param onPan - Callback fired on pan with deltaX and deltaY
  * @returns Object with isPanning state and handleMouseDown handler
@@ -87,7 +87,7 @@ export function useCanvasPan(
       // Get the window object from the container's document (works in popouts!)
       const container = containerRef.current
       if (!container) return
-      
+
       const targetWindow = container.ownerDocument.defaultView
       if (!targetWindow) return
 

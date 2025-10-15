@@ -8,11 +8,13 @@ interface Size {
 /**
  * Hook that observes container size changes using ResizeObserver.
  * Perfect for tracking FlexLayout container resizing.
- * 
+ *
  * @param defaultSize - Fallback size before container is measured
  * @returns Object containing current size and ref to attach to container
  */
-export function useContainerSize(defaultSize: Size = { width: 800, height: 600 }): {
+export function useContainerSize(
+  defaultSize: Size = { width: 800, height: 600 }
+): {
   size: Size
   ref: React.RefObject<HTMLDivElement | null>
 } {

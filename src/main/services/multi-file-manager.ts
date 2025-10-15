@@ -25,7 +25,7 @@ export class MultiFileManager {
   createNewFile(filePath: string): { file: WhatFile; tabId: string } {
     const service = new WhatFileService()
     const file = service.createNewFile(filePath)
-    
+
     const tabId = generateId()
     const tab: FileTab = {
       id: tabId,
@@ -52,7 +52,7 @@ export class MultiFileManager {
   openFile(filePath: string): { file: WhatFile; tabId: string } {
     // Check if file is already open
     const existingTab = Array.from(this.tabs.values()).find(
-      (tab) => tab.filePath === filePath
+      tab => tab.filePath === filePath
     )
     if (existingTab) {
       this.setActiveTab(existingTab.id)
@@ -63,12 +63,12 @@ export class MultiFileManager {
     // Open new file
     const service = new WhatFileService()
     const file = service.openFile(filePath)
-    
+
     const tabId = generateId()
-    
+
     // Get viewport from the file
     const viewport = service.getViewport()
-    
+
     const tab: FileTab = {
       id: tabId,
       filePath: file.path,
@@ -98,7 +98,7 @@ export class MultiFileManager {
       try {
         service.saveFile()
       } catch (error) {
-        console.error(`Failed to save file before closing tab ${tabId}:`, error)
+        logger.error(`Failed to save file before closing tab ${tabId}:`, error)
       }
       service.closeFile()
     }
@@ -132,7 +132,7 @@ export class MultiFileManager {
       tab.isModified = false
       return service.getCurrentFile()
     } catch (error) {
-      console.error('Failed to save active file:', error)
+      logger.error('Failed to save active file:', error)
       throw error
     }
   }
@@ -150,7 +150,7 @@ export class MultiFileManager {
       tab.isModified = false
       return service.getCurrentFile()
     } catch (error) {
-      console.error(`Failed to save tab ${tabId}:`, error)
+      logger.error(`Failed to save tab ${tabId}:`, error)
       throw error
     }
   }
@@ -165,7 +165,7 @@ export class MultiFileManager {
         const tab = this.tabs.get(tabId)!
         tab.isModified = false
       } catch (error) {
-        console.error(`Failed to save tab ${tabId}:`, error)
+        logger.error(`Failed to save tab ${tabId}:`, error)
       }
     }
   }
@@ -242,7 +242,7 @@ export class MultiFileManager {
     }
 
     service.saveViewport(x, y, zoom)
-    
+
     // Update tab viewport cache
     const tab = this.tabs.get(tabId)
     if (tab) {
@@ -299,7 +299,12 @@ export class MultiFileManager {
   /**
    * Save asset to a specific tab's file
    */
-  saveAsset(tabId: string, filename: string, data: Buffer, mimeType: string): string {
+  saveAsset(
+    tabId: string,
+    filename: string,
+    data: Buffer,
+    mimeType: string
+  ): string {
     const service = this.fileServices.get(tabId)
     if (!service) {
       throw new Error(`No file service found for tab ${tabId}`)
