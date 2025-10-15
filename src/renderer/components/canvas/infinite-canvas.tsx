@@ -70,6 +70,13 @@ export function InfiniteCanvas({
 }: InfiniteCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   
+  // Track active drag handlers for cleanup
+  const activeDragHandlersRef = useRef<{
+    handleDragMove?: (e: MouseEvent) => void
+    handleDragEnd?: () => void
+    trackMouseEvent?: (e: MouseEvent) => void
+  }>({})
+  
   // Tool selection
   const { currentTool, setTool } = useCanvasTool()
 
@@ -329,6 +336,10 @@ export function InfiniteCanvas({
     const handleDragEnd = async () => {
       document.removeEventListener('mousemove', handleDragMove)
       document.removeEventListener('mouseup', handleDragEnd)
+      document.removeEventListener('mousemove', trackMouseEvent)
+      
+      // Clear from active handlers
+      activeDragHandlersRef.current = {}
       
       // Save final positions to database for all moved objects
       const currentWorldPos = screenToWorld((window as any).lastMouseEvent?.clientX || e.clientX, (window as any).lastMouseEvent?.clientY || e.clientY)
@@ -350,15 +361,17 @@ export function InfiniteCanvas({
     const trackMouseEvent = (e: MouseEvent) => {
       (window as any).lastMouseEvent = e
     }
-    document.addEventListener('mousemove', trackMouseEvent)
-    const originalDragEnd = handleDragEnd
-    const wrappedDragEnd = async () => {
-      document.removeEventListener('mousemove', trackMouseEvent)
-      await originalDragEnd()
+    
+    // Store handlers for cleanup
+    activeDragHandlersRef.current = {
+      handleDragMove,
+      handleDragEnd,
+      trackMouseEvent
     }
-
+    
+    document.addEventListener('mousemove', trackMouseEvent)
     document.addEventListener('mousemove', handleDragMove)
-    document.addEventListener('mouseup', wrappedDragEnd)
+    document.addEventListener('mouseup', handleDragEnd)
   }, [objects, selectedObjectIds, screenToWorld, moveObject, saveObjectPosition, selectObject])
 
   // Handle canvas click (deselect objects when clicking on background)
@@ -662,6 +675,23 @@ export function InfiniteCanvas({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selectedObjectIds, isActive])
+
+  // Cleanup drag handlers on unmount to prevent stale event listeners
+  useEffect(() => {
+    return () => {
+      const handlers = activeDragHandlersRef.current
+      if (handlers.handleDragMove) {
+        document.removeEventListener('mousemove', handlers.handleDragMove)
+      }
+      if (handlers.handleDragEnd) {
+        document.removeEventListener('mouseup', handlers.handleDragEnd)
+      }
+      if (handlers.trackMouseEvent) {
+        document.removeEventListener('mousemove', handlers.trackMouseEvent)
+      }
+      activeDragHandlersRef.current = {}
+    }
+  }, [])
 
   return (
     <div

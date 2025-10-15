@@ -36,6 +36,7 @@ export function useAutoResize({
   onResize,
 }: UseAutoResizeOptions) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const lastSizeRef = useRef<{ width: number; height: number } | null>(null)
 
   useEffect(() => {
     // Create or get canvas for text measurement
@@ -80,8 +81,16 @@ export function useAutoResize({
       Math.max(minHeight, Math.min(lines.length * lineHeightPx + padding, maxHeight))
     )
 
-    // Trigger resize with calculated dimensions
-    onResize(contentWidth, contentHeight)
+    // Only trigger resize if dimensions have actually changed
+    if (
+      !lastSizeRef.current ||
+      lastSizeRef.current.width !== contentWidth ||
+      lastSizeRef.current.height !== contentHeight
+    ) {
+      lastSizeRef.current = { width: contentWidth, height: contentHeight }
+      // Trigger resize with calculated dimensions
+      onResize(contentWidth, contentHeight)
+    }
   }, [
     text,
     fontSize,

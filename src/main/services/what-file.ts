@@ -573,12 +573,23 @@ export class WhatFileService {
     const now = new Date().toISOString()
     const objectData = JSON.stringify(object.object_data || {})
 
+    console.log('🔍 [DEBUG] saveObject called with:', {
+      id: object.id,
+      type: object.type,
+      x: object.x,
+      y: object.y,
+      width: object.width,
+      height: object.height,
+      object_data_keys: Object.keys(object.object_data || {})
+    })
+
     const existing = this.db
       .prepare('SELECT id FROM objects WHERE id = ?')
       .get(object.id)
 
     if (existing) {
       // Update
+      console.log('🔍 [DEBUG] Updating existing object:', object.id)
       this.db
         .prepare(
           `
@@ -607,6 +618,7 @@ export class WhatFileService {
         )
     } else {
       // Insert
+      console.log('🔍 [DEBUG] Inserting new object:', object.id)
       this.db
         .prepare(
           `

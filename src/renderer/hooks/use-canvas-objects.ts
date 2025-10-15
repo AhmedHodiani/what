@@ -31,6 +31,16 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
       try {
         const loadedObjects = await window.App.file.getObjects(tabId)
         
+        console.log('🔍 [DEBUG] Raw loaded objects from database:', loadedObjects.map((obj: any) => ({
+          id: obj.id,
+          type: obj.type,
+          x: obj.x,
+          y: obj.y,
+          width: obj.width,
+          height: obj.height,
+          object_data: obj.object_data
+        })))
+        
         // Load asset data URLs for image objects (and other asset-based types in future)
         const objectsWithAssets = await Promise.all(
           loadedObjects.map(async (obj: DrawingObject) => {
@@ -58,7 +68,12 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
 
   // Add a new object
   const addObject = useCallback(async (object: DrawingObject & { _imageUrl?: string }) => {
-    setObjects(prev => [...prev, object])
+    setObjects(prev => {
+      const newObjects = [...prev, object]
+      // CRITICAL: Update ref synchronously
+      objectsRef.current = newObjects
+      return newObjects
+    })
     
     // Save to database (exclude temporary fields like _imageUrl)
     const { _imageUrl, ...objectToSave } = object
@@ -80,7 +95,8 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
     const existingObject = currentObjects.find(obj => obj.id === id)
     
     if (!existingObject) {
-      console.error('❌ No object found with id:', id)
+      // Silently return if object doesn't exist yet (happens during initial load)
+      // This is normal when components mount before objects are fully loaded
       return
     }
     
@@ -110,7 +126,12 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
     console.log('✅ Updated object_data:', updated.object_data)
     
     // Update state
-    setObjects(prev => prev.map(obj => obj.id === id ? updated : obj))
+    setObjects(prev => {
+      const newObjects = prev.map(obj => obj.id === id ? updated : obj)
+      // CRITICAL: Update ref synchronously to ensure any subsequent operations get latest data
+      objectsRef.current = newObjects
+      return newObjects
+    })
     
     // Save to database (unless skipSave is true)
     if (!options?.skipSave) {
@@ -128,7 +149,12 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
 
   // Delete an object
   const deleteObject = useCallback(async (id: string) => {
-    setObjects(prev => prev.filter(obj => obj.id !== id))
+    setObjects(prev => {
+      const newObjects = prev.filter(obj => obj.id !== id)
+      // CRITICAL: Update ref synchronously
+      objectsRef.current = newObjects
+      return newObjects
+    })
     
     // Delete from database
     try {
@@ -165,59 +191,66 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
 
   // Move an object (used by drag system)
   const moveObject = useCallback((id: string, x: number, y: number) => {
-    setObjects(prev => prev.map(obj => {
-      if (obj.id !== id) return obj
-      
-      // Calculate the delta from current position
-      const deltaX = x - obj.x
-      const deltaY = y - obj.y
-      
-      // For freehand objects, also move all points
-      if (obj.type === 'freehand') {
-        const freehandObj = obj as FreehandObject
-        return {
-          ...freehandObj,
-          x,
-          y,
-          object_data: {
-            ...freehandObj.object_data,
-            points: freehandObj.object_data.points.map((point: { x: number; y: number }) => ({
-              x: point.x + deltaX,
-              y: point.y + deltaY
-            }))
-          },
-          updated: new Date().toISOString()
-        }
-      }
-      
-      // For arrow objects, also move start and end points
-      if (obj.type === 'arrow') {
-        const arrowObj = obj as ArrowObject
-        return {
-          ...arrowObj,
-          x,
-          y,
-          object_data: {
-            ...arrowObj.object_data,
-            startX: arrowObj.object_data.startX + deltaX,
-            startY: arrowObj.object_data.startY + deltaY,
-            endX: arrowObj.object_data.endX + deltaX,
-            endY: arrowObj.object_data.endY + deltaY,
-            // Also move control points if they exist
-            ...(arrowObj.object_data.controlPoints && {
-              controlPoints: arrowObj.object_data.controlPoints.map((point: { x: number; y: number }) => ({
+    setObjects(prev => {
+      const newObjects = prev.map(obj => {
+        if (obj.id !== id) return obj
+        
+        // Calculate the delta from current position
+        const deltaX = x - obj.x
+        const deltaY = y - obj.y
+        
+        // For freehand objects, also move all points
+        if (obj.type === 'freehand') {
+          const freehandObj = obj as FreehandObject
+          return {
+            ...freehandObj,
+            x,
+            y,
+            object_data: {
+              ...freehandObj.object_data,
+              points: freehandObj.object_data.points.map((point: { x: number; y: number }) => ({
                 x: point.x + deltaX,
                 y: point.y + deltaY
               }))
-            })
-          },
-          updated: new Date().toISOString()
+            },
+            updated: new Date().toISOString()
+          }
         }
-      }
+        
+        // For arrow objects, also move start and end points
+        if (obj.type === 'arrow') {
+          const arrowObj = obj as ArrowObject
+          return {
+            ...arrowObj,
+            x,
+            y,
+            object_data: {
+              ...arrowObj.object_data,
+              startX: arrowObj.object_data.startX + deltaX,
+              startY: arrowObj.object_data.startY + deltaY,
+              endX: arrowObj.object_data.endX + deltaX,
+              endY: arrowObj.object_data.endY + deltaY,
+              // Also move control points if they exist
+              ...(arrowObj.object_data.controlPoints && {
+                controlPoints: arrowObj.object_data.controlPoints.map((point: { x: number; y: number }) => ({
+                  x: point.x + deltaX,
+                  y: point.y + deltaY
+                }))
+              })
+            },
+            updated: new Date().toISOString()
+          }
+        }
+        
+        // For other objects, just update x and y
+        return { ...obj, x, y, updated: new Date().toISOString() }
+      })
       
-      // For other objects, just update x and y
-      return { ...obj, x, y, updated: new Date().toISOString() }
-    }))
+      // CRITICAL: Update ref synchronously to ensure saveObjectPosition gets latest data
+      objectsRef.current = newObjects
+      
+      return newObjects
+    })
   }, [])
 
   // Save object position after drag (persists to database)
@@ -229,6 +262,17 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
     if (!object) return
 
     const { _imageUrl, ...objectToSave } = object
+    
+    console.log('🔍 [DEBUG] Saving object position:', {
+      id,
+      type: object.type,
+      oldX: object.x,
+      oldY: object.y,
+      newX: x,
+      newY: y,
+      object_data: objectToSave.object_data
+    })
+    
     try {
       await window.App.file.saveObject({
         ...objectToSave,
@@ -236,7 +280,7 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
         y,
         updated: new Date().toISOString()
       }, tabId)
-      console.log(`Saved object ${id} position: (${x}, ${y})`)
+      console.log(`✅ Saved object ${id} position: (${x}, ${y})`)
     } catch (error) {
       console.error('Failed to save object position:', error)
     }
