@@ -20,13 +20,24 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
   // Use ref to always have access to current objects without causing re-renders
   const objectsRef = useRef<(DrawingObject & { _imageUrl?: string })[]>([])
   
+  // Track the last loaded tabId to prevent duplicate loads
+  const lastLoadedTabIdRef = useRef<string | undefined>(undefined)
+  
   // Keep ref in sync with state
   useEffect(() => {
     objectsRef.current = objects
   }, [objects])
 
-  // Load objects from database on mount
+  // Load objects from database on mount or when tabId changes
+  // Note: Will only load once per unique tabId
   useEffect(() => {
+    // Skip if we already loaded this tabId
+    if (lastLoadedTabIdRef.current === tabId) {
+      return
+    }
+    
+    lastLoadedTabIdRef.current = tabId
+    
     const loadObjects = async () => {
       try {
         const loadedObjects = await window.App.file.getObjects(tabId)
@@ -53,6 +64,7 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
         )
         
         console.log(`✅ Loaded ${objectsWithAssets.length} objects for tab ${tabId}`)
+        
         setObjects(objectsWithAssets as any)
         onLoad?.(objectsWithAssets)
       } catch (error) {
@@ -64,7 +76,9 @@ export function useCanvasObjects({ tabId, onLoad, onError }: UseCanvasObjectsOpt
     }
 
     loadObjects()
-  }, [tabId, onLoad, onError])
+    // Only re-run if tabId changes (not when callbacks change)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabId])
 
   // Add a new object
   const addObject = useCallback(async (object: DrawingObject & { _imageUrl?: string }) => {

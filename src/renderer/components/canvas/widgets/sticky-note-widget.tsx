@@ -100,9 +100,17 @@ export function StickyNoteWidget({
       // Skip auto-resize if manually resized
       if (!autoResizeEnabled) return
 
+      // Only update if size actually changed (prevent unnecessary saves on mount)
+      const currentWidth = 'width' in object ? object.width : 150
+      const currentHeight = 'height' in object ? object.height : 150
+      
+      if (currentWidth === width && currentHeight === height) {
+        return // Size hasn't changed, skip update
+      }
+
       onUpdate?.(object.id, { width, height })
     },
-    [autoResizeEnabled, object.id, onUpdate],
+    [autoResizeEnabled, object, onUpdate],
   )
 
   useAutoResize({

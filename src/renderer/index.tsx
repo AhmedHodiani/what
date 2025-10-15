@@ -6,7 +6,5 @@ import { AppRoutes } from './routes'
 import './globals.css'
 
 ReactDom.createRoot(document.querySelector('app') as HTMLElement).render(
-  <React.StrictMode>
-    <AppRoutes />
-  </React.StrictMode>
+  <AppRoutes />
 )

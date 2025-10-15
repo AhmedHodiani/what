@@ -40,7 +40,7 @@ export function MainScreenWithTabs() {
   const [tabs, setTabs] = useState<FileTab[]>([])
   const [activeTabId, setActiveTabId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [viewportLoadCount, setViewportLoadCount] = useState(0) // Force re-render when viewports load
+  const [viewports, setViewports] = useState<Map<string, Viewport>>(new Map())
   const layoutRef = useRef<Layout>(null)
   const saveTimeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map())
   const viewportsRef = useRef<Map<string, Viewport>>(new Map())
@@ -86,12 +86,13 @@ export function MainScreenWithTabs() {
           for (const tab of allTabs) {
             const canvas = await window.App.file.getCanvas(DEFAULT_CANVAS_ID, tab.id)
             if (canvas) {
-              viewportsRef.current.set(tab.id, {
+              const viewport = {
                 x: canvas.viewport_x,
                 y: canvas.viewport_y,
                 zoom: canvas.viewport_zoom,
-              })
-              setViewportLoadCount(prev => prev + 1) // Trigger re-render
+              }
+              viewportsRef.current.set(tab.id, viewport)
+              setViewports(prev => new Map(prev).set(tab.id, viewport))
             }
           }
         }
@@ -165,8 +166,8 @@ export function MainScreenWithTabs() {
             zoom: canvas.viewport_zoom,
           }
           viewportsRef.current.set(tabId, newViewport)
+          setViewports(prev => new Map(prev).set(tabId, newViewport))
           console.log('[MainScreen] Set viewport in cache:', tabId, newViewport)
-          setViewportLoadCount(prev => prev + 1) // Trigger re-render
         }
       })
 
@@ -188,6 +189,11 @@ export function MainScreenWithTabs() {
       
       // Clean up viewport cache and timeout
       viewportsRef.current.delete(tabId)
+      setViewports(prev => {
+        const next = new Map(prev)
+        next.delete(tabId)
+        return next
+      })
       const timeout = saveTimeoutRefs.current.get(tabId)
       if (timeout) {
         clearTimeout(timeout)
@@ -306,7 +312,7 @@ export function MainScreenWithTabs() {
   const factory = (node: TabNode) => {
     const config = node.getConfig() as { tabId: string }
     const tabId = config.tabId
-    const viewport = viewportsRef.current.get(tabId) || { x: 0, y: 0, zoom: 1 }
+    const viewport = viewports.get(tabId) || { x: 0, y: 0, zoom: 1 }
     
     // Check if this tab is actually selected in its tabset
     const parent = node.getParent()
@@ -330,7 +336,7 @@ export function MainScreenWithTabs() {
     return (
       <CanvasErrorBoundary>
         <InfiniteCanvas
-          key={`canvas-${tabId}-${viewportLoadCount}`}
+          key={`canvas-${tabId}`}
           initialViewport={viewport}
           onViewportChange={(newViewport) => handleViewportChange(tabId, newViewport)}
           tabId={tabId}
