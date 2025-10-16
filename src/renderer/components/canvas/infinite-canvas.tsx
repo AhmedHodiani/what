@@ -25,7 +25,7 @@ import { CanvasGrid } from './canvas-grid'
 import { CanvasViewportDisplay } from './canvas-viewport-display'
 import { CanvasToolbar } from './canvas-toolbar'
 import { CanvasPropertiesPanel } from './canvas-properties-panel'
-import { BrushPropertiesPanel } from './brush-properties-panel'
+import { BrushPanel } from './properties-panels/brush-panel'
 import { CanvasObject } from './canvas-object'
 import { YouTubeUrlDialog } from './youtube-url-dialog'
 import { ShapePickerDialog } from './shape-picker-dialog'
@@ -1209,21 +1209,17 @@ export function InfiniteCanvas({
 
       {/* Brush properties panel for freehand and arrow tools */}
       {(currentTool === 'freehand' || currentTool === 'arrow') && (
-        <BrushPropertiesPanel
-          onOpacityChange={opacity =>
+        <BrushPanel
+          onOpacityChange={(opacity: number) =>
             setBrushProperties(prev => ({ ...prev, opacity }))
           }
-          onStrokeColorChange={color =>
+          onStrokeColorChange={(color: string) =>
             setBrushProperties(prev => ({ ...prev, strokeColor: color }))
           }
-          onStrokeWidthChange={width =>
+          onStrokeWidthChange={(width: number) =>
             setBrushProperties(prev => ({ ...prev, strokeWidth: width }))
           }
-          onUpdate={handleUpdateObject}
           opacity={brushProperties.opacity}
-          selectedObject={
-            objects.find(obj => selectedObjectIds.includes(obj.id)) || null
-          }
           strokeColor={brushProperties.strokeColor}
           strokeWidth={brushProperties.strokeWidth}
         />

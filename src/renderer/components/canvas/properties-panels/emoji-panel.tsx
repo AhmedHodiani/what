@@ -1,6 +1,6 @@
 import type { DrawingObject, EmojiObject } from 'lib/types/canvas'
 
-interface EmojiPropertiesPanelProps {
+interface EmojiPanelProps {
   object: EmojiObject
   onUpdate: (id: string, updates: Partial<DrawingObject>) => void
 }
@@ -653,10 +653,7 @@ const EMOJI_CATEGORIES = {
  * - Grid layout with selectable emoji
  * - Teal theme colors
  */
-export function EmojiPropertiesPanel({
-  object,
-  onUpdate,
-}: EmojiPropertiesPanelProps) {
+export function EmojiPanel({ object, onUpdate }: EmojiPanelProps) {
   const currentEmoji = object.object_data.emoji
 
   const handleEmojiSelect = (emoji: string) => {
