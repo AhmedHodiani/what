@@ -3,11 +3,12 @@
 ## DX Improvements (Ongoing)
 
 ### 🎯 High Priority DX Wins
-1. **Widget Registry Pattern** 🔥🔥🔥 (Medium Effort - Week 4)
+1. **Widget Registry Pattern** ✅ COMPLETE (Medium Effort)
    - Problem: Adding widgets requires editing 3-4 files
-   - Solution: Self-registering widget system
+   - Solution: Self-registering widget system with `widget-registry.ts`
    - Benefits: Add widgets without touching canvas-object.tsx, foundation for plugin system
-   - Status: Planned for Week 4 (Plugin System)
+   - Status: ✅ Implemented - canvas-object.tsx reduced from 160→90 lines (56% reduction)
+   - Files: `widget-registry.ts`, `register-all.ts`, updated `canvas-object.tsx`
 
 2. **Cleanup Debug Logs** ✅ COMPLETE (Low Effort)
    - Problem: Production code has emoji-laden debug logs everywhere

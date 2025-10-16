@@ -1,13 +1,8 @@
 import { useCallback } from 'react'
 import type { DrawingObject } from 'lib/types/canvas'
-import { ImageWidget } from './image-widget'
-import { StickyNoteWidget } from './widgets/sticky-note-widget'
-import { TextWidget } from './widgets/text-widget'
-import { FreehandWidget } from './widgets/freehand-widget'
-import { ArrowWidget } from './widgets/arrow-widget'
-import { YouTubeWidget } from './widgets/youtube-widget'
-import { ShapeWidget } from './widgets/shape-widget'
-import { EmojiWidget } from './widgets/emoji-widget'
+import { widgetRegistry } from './widgets/widget-registry'
+import './widgets/register-all' // Auto-registers all widgets
+import { ImageWidget } from './image-widget' // Special case: needs getImageUrl
 
 interface CanvasObjectProps {
   object: DrawingObject & { _imageUrl?: string }
@@ -21,7 +16,12 @@ interface CanvasObjectProps {
 
 /**
  * CanvasObject - Generic wrapper that renders any drawing object type
- * Delegates to type-specific widgets based on object.type
+ * Uses the widget registry to dynamically load the correct widget component
+ * 
+ * To add a new widget:
+ * 1. Create your widget component
+ * 2. Register it in widgets/register-all.ts
+ * 3. That's it! No need to edit this file.
  */
 export function CanvasObject({
   object,
@@ -45,116 +45,46 @@ export function CanvasObject({
     [object]
   )
 
-  // Render the appropriate widget based on object type
-  switch (object.type) {
-    case 'image':
-      return (
-        <ImageWidget
-          getImageUrl={getImageUrl}
-          isSelected={isSelected}
-          object={object}
-          onContextMenu={onContextMenu}
-          onSelect={onSelect}
-          onStartDrag={onStartDrag}
-          onUpdate={onUpdate}
-          zoom={zoom}
-        />
-      )
-
-    case 'sticky-note':
-      return (
-        <StickyNoteWidget
-          isSelected={isSelected}
-          object={object}
-          onContextMenu={onContextMenu}
-          onSelect={onSelect}
-          onStartDrag={onStartDrag}
-          onUpdate={onUpdate}
-          zoom={zoom}
-        />
-      )
-
-    case 'text':
-      return (
-        <TextWidget
-          isSelected={isSelected}
-          object={object}
-          onContextMenu={onContextMenu}
-          onSelect={onSelect}
-          onStartDrag={onStartDrag}
-          onUpdate={onUpdate}
-          zoom={zoom}
-        />
-      )
-
-    case 'shape':
-      return (
-        <ShapeWidget
-          isSelected={isSelected}
-          object={object}
-          onContextMenu={onContextMenu}
-          onSelect={onSelect}
-          onStartDrag={onStartDrag}
-          onUpdate={onUpdate}
-          zoom={zoom}
-        />
-      )
-
-    case 'freehand':
-      return (
-        <FreehandWidget
-          isSelected={isSelected}
-          object={object}
-          onContextMenu={onContextMenu}
-          onSelect={onSelect}
-          onStartDrag={onStartDrag}
-          zoom={zoom}
-        />
-      )
-
-    case 'arrow':
-      return (
-        <ArrowWidget
-          isSelected={isSelected}
-          object={object}
-          onContextMenu={onContextMenu}
-          onSelect={onSelect}
-          onStartDrag={onStartDrag}
-          zoom={zoom}
-        />
-      )
-
-    case 'youtube':
-      return (
-        <YouTubeWidget
-          isSelected={isSelected}
-          object={object}
-          onContextMenu={onContextMenu}
-          onSelect={onSelect}
-          onStartDrag={onStartDrag}
-          onUpdate={onUpdate}
-          zoom={zoom}
-        />
-      )
-
-    case 'emoji':
-      return (
-        <EmojiWidget
-          isSelected={isSelected}
-          object={object}
-          onContextMenu={onContextMenu}
-          onSelect={onSelect}
-          onStartDrag={onStartDrag}
-          onUpdate={onUpdate}
-          zoom={zoom}
-        />
-      )
-
-    default:
-      return (
-        <div className="text-red-400">
-          Unknown object type: {(object as any).type}
-        </div>
-      )
+  // Special case: Image widget needs getImageUrl prop
+  if (object.type === 'image') {
+    return (
+      <ImageWidget
+        getImageUrl={getImageUrl}
+        isSelected={isSelected}
+        object={object}
+        onContextMenu={onContextMenu}
+        onSelect={onSelect}
+        onStartDrag={onStartDrag}
+        onUpdate={onUpdate}
+        zoom={zoom}
+      />
+    )
   }
+
+  // Get widget component from registry
+  const WidgetComponent = widgetRegistry.get(object.type)
+
+  if (!WidgetComponent) {
+    return (
+      <div className="text-red-400 p-4 bg-red-900/20 rounded border border-red-600">
+        <p className="font-bold">⚠️ Unknown widget type: {object.type}</p>
+        <p className="text-sm mt-1">
+          This widget is not registered. Check widgets/register-all.ts
+        </p>
+      </div>
+    )
+  }
+
+  // Render the widget component
+  return (
+    <WidgetComponent
+      isSelected={isSelected}
+      object={object}
+      onContextMenu={onContextMenu}
+      onSelect={onSelect}
+      onStartDrag={onStartDrag}
+      onUpdate={onUpdate}
+      zoom={zoom}
+    />
+  )
 }
