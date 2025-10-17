@@ -18,7 +18,7 @@ import { panelRegistry } from './panel-registry'
 import { StickyNotePanel } from './sticky-note-panel'
 import { TextPanel } from './text-panel'
 import { ShapePanel } from './shape-panel'
-import { BrushPanel } from './brush-panel'
+// import { BrushPanel } from './brush-panel' // Not used - drawings not editable
 import { EmojiPanel } from './emoji-panel'
 
 /**
@@ -41,15 +41,15 @@ export function registerAllPanels(): void {
     displayName: 'Shape Properties',
   })
 
-  // Freehand drawing panel
-  panelRegistry.register('freehand', BrushPanel, {
-    displayName: 'Brush Properties',
-  })
+  // Freehand drawing panel - DISABLED (drawings not editable after creation)
+  // panelRegistry.register('freehand', BrushPanel, {
+  //   displayName: 'Brush Properties',
+  // })
 
-  // Arrow drawing panel (uses same BrushPanel)
-  panelRegistry.register('arrow', BrushPanel, {
-    displayName: 'Arrow Properties',
-  })
+  // Arrow drawing panel - DISABLED (drawings not editable after creation)
+  // panelRegistry.register('arrow', BrushPanel, {
+  //   displayName: 'Arrow Properties',
+  // })
 
   // Emoji panel
   panelRegistry.register('emoji', EmojiPanel, {

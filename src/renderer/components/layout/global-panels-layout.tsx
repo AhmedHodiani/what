@@ -62,38 +62,44 @@ export function GlobalPanelsLayout({ children }: GlobalPanelsLayoutProps) {
 
   return (
     <div className="relative w-full h-full">
-      {/* Global Toolbar - Top Center */}
-      <CanvasToolbar />
-
-      {/* Global Viewport Display - Top Left */}
-      <CanvasViewportDisplay />
-
-      {/* Global Brush Panel - Top Left Below Viewport (conditional) */}
-      {(currentTool === 'freehand' || currentTool === 'arrow') && (
-        <div className="absolute top-[250px] left-3 pointer-events-auto">
-          <BrushPanel
-            strokeColor={brushSettings.strokeColor}
-            strokeWidth={brushSettings.strokeWidth}
-            opacity={brushSettings.opacity}
-            onStrokeColorChange={color =>
-              handleBrushChange({ strokeColor: color })
-            }
-            onStrokeWidthChange={width =>
-              handleBrushChange({ strokeWidth: width })
-            }
-            onOpacityChange={opacity => handleBrushChange({ opacity: opacity })}
-          />
-        </div>
-      )}
-
-      {/* Global Properties Panel - Right Side */}
-      <CanvasPropertiesPanel
-        selectedObject={selectedObject}
-        onUpdate={handleUpdateObject}
-      />
-
       {/* Tab Content */}
       {children}
+
+      {/* Global Panels - Rendered on top with z-index */}
+      <div className="absolute inset-0 pointer-events-none mt-8" style={{ zIndex: 1000 }}>
+        {/* Global Toolbar - Top Center */}
+        <CanvasToolbar />
+
+        {/* Global Viewport Display - Top Left */}
+        <CanvasViewportDisplay />
+
+        {/* Global Brush Panel - Below Toolbar (conditional) */}
+        {/* Only show when pen/arrow tool is active (for live drawing only) */}
+        {(currentTool === 'freehand' || currentTool === 'arrow') && (
+          <div className="absolute top-[90px] left-1/2 -translate-x-1/2 pointer-events-auto">
+            <BrushPanel
+                strokeColor={brushSettings.strokeColor}
+                strokeWidth={brushSettings.strokeWidth}
+                opacity={brushSettings.opacity}
+                onStrokeColorChange={color =>
+                  handleBrushChange({ strokeColor: color })
+                }
+                onStrokeWidthChange={width =>
+                  handleBrushChange({ strokeWidth: width })
+                }
+                onOpacityChange={opacity =>
+                  handleBrushChange({ opacity: opacity })
+                }
+              />
+          </div>
+        )}
+
+        {/* Global Properties Panel - Right Side */}
+        <CanvasPropertiesPanel
+          selectedObject={selectedObject}
+          onUpdate={handleUpdateObject}
+        />
+      </div>
     </div>
   )
 }
