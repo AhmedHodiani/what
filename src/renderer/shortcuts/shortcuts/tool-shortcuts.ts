@@ -37,16 +37,6 @@ export function registerToolShortcuts(
 ): string[] {
   const ids: string[] = []
 
-  // Select tool (V or Escape)
-  ids.push(
-    registry.register({
-      key: 'v',
-      context: ShortcutContext.Canvas,
-      action: () => handlers.onToolChange('select'),
-      description: 'Select tool',
-    })
-  )
-
   ids.push(
     registry.register({
       key: 'escape',
@@ -56,81 +46,73 @@ export function registerToolShortcuts(
     })
   )
 
-  // Sticky note tool (S)
   ids.push(
     registry.register({
-      key: 's',
-      context: ShortcutContext.Canvas,
+      key: '1',
+      context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('sticky-note'),
       description: 'Sticky note tool',
     })
   )
 
-  // Text tool (T)
   ids.push(
     registry.register({
-      key: 't',
-      context: ShortcutContext.Canvas,
+      key: '2',
+      context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('text'),
       description: 'Text tool',
     })
   )
 
-  // Shape tool (R for Rectangle)
   ids.push(
     registry.register({
-      key: 'r',
-      context: ShortcutContext.Canvas,
+      key: '3',
+      context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('shape'),
       description: 'Shape tool',
     })
   )
 
-  // Freehand/Pen tool (P)
   ids.push(
     registry.register({
-      key: 'p',
-      context: ShortcutContext.Canvas,
+      key: '4',
+      context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('freehand'),
       description: 'Freehand pen tool',
     })
   )
 
-  // Arrow tool (A)
   ids.push(
     registry.register({
-      key: 'a',
-      context: ShortcutContext.Canvas,
+      key: '5',
+      context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('arrow'),
       description: 'Arrow tool',
     })
   )
 
-  // Image tool (I)
   ids.push(
     registry.register({
-      key: 'i',
-      context: ShortcutContext.Canvas,
+      key: '6',
+      context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('image'),
       description: 'Image tool',
     })
   )
 
-  // YouTube tool (Y)
   ids.push(
     registry.register({
-      key: 'y',
-      context: ShortcutContext.Canvas,
+      key: '7',
+      context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('youtube'),
       description: 'YouTube video tool',
     })
   )
 
-  // Emoji tool (E)
   ids.push(
     registry.register({
-      key: 'e',
-      context: ShortcutContext.Canvas,
+      key: '8',
+      context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('emoji'),
       description: 'Emoji tool',
     })

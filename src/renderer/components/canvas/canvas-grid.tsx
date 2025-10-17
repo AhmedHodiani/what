@@ -18,7 +18,7 @@ let gridIdCounter = 0
 export function CanvasGrid({
   viewport,
   dimensions,
-  gridSize = 50,
+  gridSize = 100,
 }: CanvasGridProps) {
   // Generate a unique pattern ID for this canvas instance (only once per mount)
   const patternId = useMemo(() => `grid-${++gridIdCounter}`, [])

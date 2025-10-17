@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 import type { DrawingObject } from 'lib/types/canvas'
 import { CanvasToolbar } from 'renderer/components/canvas/canvas-toolbar'
@@ -5,6 +6,8 @@ import { CanvasViewportDisplay } from 'renderer/components/canvas/canvas-viewpor
 import { CanvasPropertiesPanel } from 'renderer/components/canvas/canvas-properties-panel'
 import { BrushPanel } from 'renderer/components/canvas/properties-panels/brush-panel'
 import { useGlobalTool, useActiveTab } from 'renderer/contexts'
+import { shortcutsRegistry, registerToolShortcuts } from 'renderer/shortcuts'
+import type { ToolType } from 'renderer/shortcuts/shortcuts/tool-shortcuts'
 
 interface GlobalPanelsLayoutProps {
   children: ReactNode
@@ -34,9 +37,23 @@ interface GlobalPanelsLayoutProps {
  * ```
  */
 export function GlobalPanelsLayout({ children }: GlobalPanelsLayoutProps) {
-  const { currentTool } = useGlobalTool()
+  const { currentTool, setTool } = useGlobalTool()
   const { selectedObjectIds, objects, brushSettings, updateActiveTab } =
     useActiveTab()
+
+  // Register tool shortcuts using the centralized registry
+  useEffect(() => {
+    const shortcutIds = registerToolShortcuts(shortcutsRegistry, {
+      onToolChange: (tool: ToolType) => setTool(tool),
+    })
+
+    // Cleanup: unregister shortcuts when component unmounts
+    return () => {
+      for (const id of shortcutIds) {
+        shortcutsRegistry.unregister(id)
+      }
+    }
+  }, [setTool])
 
   // Get selected object for properties panel
   const selectedObject =
@@ -68,7 +85,7 @@ export function GlobalPanelsLayout({ children }: GlobalPanelsLayoutProps) {
       {/* Global Panels - Rendered on top with z-index */}
       <div
         className="absolute inset-0 pointer-events-none mt-8"
-        style={{ zIndex: 1000 }}
+        style={{ zIndex: 10 }}
       >
         {/* Global Toolbar - Top Center */}
         <CanvasToolbar />
