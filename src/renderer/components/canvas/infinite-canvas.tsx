@@ -1046,9 +1046,9 @@ export function InfiniteCanvas({
             >
               <foreignObject height={height} width={width} x={obj.x} y={obj.y}>
                 <CanvasObject
+                  currentTool={currentTool}
                   isSelected={selectedObjectIds.includes(obj.id)}
                   object={obj}
-                  currentTool={currentTool}
                   onContextMenu={handleContextMenu}
                   onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}
@@ -1145,10 +1145,7 @@ export function InfiniteCanvas({
                 )
 
                 // Better proportions for hand-drawn look
-                const arrowLength = Math.max(
-                  brushSettings.strokeWidth * 3,
-                  15
-                )
+                const arrowLength = Math.max(brushSettings.strokeWidth * 3, 15)
                 const arrowWidth = arrowLength * 0.5
                 const tipX = lastPoint.x
                 const tipY = lastPoint.y

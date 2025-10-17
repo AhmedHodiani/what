@@ -177,9 +177,9 @@ export function ShapeWidget({
 
   return (
     <WidgetWrapper
+      currentTool={currentTool}
       isSelected={isSelected}
       object={object}
-      currentTool={currentTool}
       onContextMenu={onContextMenu}
       onSelect={onSelect}
       onStartDrag={onStartDrag}

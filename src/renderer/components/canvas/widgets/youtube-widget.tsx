@@ -99,12 +99,12 @@ export function YouTubeWidget({
 
   return (
     <WidgetWrapper
+      currentTool={currentTool}
       isSelected={isSelected}
       lockAspectRatio={true}
       minHeight={158}
       minWidth={280}
       object={object}
-      currentTool={currentTool}
       onContextMenu={onContextMenu}
       onSelect={onSelect}
       onStartDrag={onStartDrag}

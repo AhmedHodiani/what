@@ -201,7 +201,7 @@ export function ArrowWidget({
         strokeLinejoin="round"
         strokeWidth={Math.max(strokeWidth + 10, 20)}
         style={{
-          cursor: isDrawingMode ? 'crosshair' : (isSelected ? 'grab' : 'pointer'),
+          cursor: isDrawingMode ? 'crosshair' : isSelected ? 'grab' : 'pointer',
           pointerEvents: isDrawingMode ? 'none' : 'stroke',
         }}
       />

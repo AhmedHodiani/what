@@ -66,7 +66,10 @@ export function GlobalPanelsLayout({ children }: GlobalPanelsLayoutProps) {
       {children}
 
       {/* Global Panels - Rendered on top with z-index */}
-      <div className="absolute inset-0 pointer-events-none mt-8" style={{ zIndex: 1000 }}>
+      <div
+        className="absolute inset-0 pointer-events-none mt-8"
+        style={{ zIndex: 1000 }}
+      >
         {/* Global Toolbar - Top Center */}
         <CanvasToolbar />
 
@@ -78,26 +81,26 @@ export function GlobalPanelsLayout({ children }: GlobalPanelsLayoutProps) {
         {(currentTool === 'freehand' || currentTool === 'arrow') && (
           <div className="absolute top-[90px] left-1/2 -translate-x-1/2 pointer-events-auto">
             <BrushPanel
-                strokeColor={brushSettings.strokeColor}
-                strokeWidth={brushSettings.strokeWidth}
-                opacity={brushSettings.opacity}
-                onStrokeColorChange={color =>
-                  handleBrushChange({ strokeColor: color })
-                }
-                onStrokeWidthChange={width =>
-                  handleBrushChange({ strokeWidth: width })
-                }
-                onOpacityChange={opacity =>
-                  handleBrushChange({ opacity: opacity })
-                }
-              />
+              onOpacityChange={opacity =>
+                handleBrushChange({ opacity: opacity })
+              }
+              onStrokeColorChange={color =>
+                handleBrushChange({ strokeColor: color })
+              }
+              onStrokeWidthChange={width =>
+                handleBrushChange({ strokeWidth: width })
+              }
+              opacity={brushSettings.opacity}
+              strokeColor={brushSettings.strokeColor}
+              strokeWidth={brushSettings.strokeWidth}
+            />
           </div>
         )}
 
         {/* Global Properties Panel - Right Side */}
         <CanvasPropertiesPanel
-          selectedObject={selectedObject}
           onUpdate={handleUpdateObject}
+          selectedObject={selectedObject}
         />
       </div>
     </div>

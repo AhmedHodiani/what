@@ -134,7 +134,7 @@ export function BrushPanel({
   // Dropdown states
   const [colorDropdownOpen, setColorDropdownOpen] = useState(false)
   const [opacityDropdownOpen, setOpacityDropdownOpen] = useState(false)
-  
+
   const colorDropdownRef = useRef<HTMLDivElement>(null)
   const opacityDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -170,9 +170,6 @@ export function BrushPanel({
           <span className="text-xs text-gray-400 mr-1">Size:</span>
           {BRUSH_SIZES.map(size => (
             <button
-              key={size.value}
-              onClick={() => handleWidthChange(size.value)}
-              title={size.label}
               className={`
                 w-9 h-9 rounded-md font-semibold text-sm
                 transition-all duration-150
@@ -182,6 +179,9 @@ export function BrushPanel({
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
                 }
               `}
+              key={size.value}
+              onClick={() => handleWidthChange(size.value)}
+              title={size.label}
             >
               {size.name}
             </button>
@@ -194,8 +194,8 @@ export function BrushPanel({
         {/* Color Dropdown */}
         <div className="relative" ref={colorDropdownRef}>
           <button
-            onClick={() => setColorDropdownOpen(!colorDropdownOpen)}
             className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-md transition-colors"
+            onClick={() => setColorDropdownOpen(!colorDropdownOpen)}
           >
             <span className="text-xs text-gray-400">Color:</span>
             <div
@@ -210,12 +210,6 @@ export function BrushPanel({
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {PRESET_COLORS.map(color => (
                   <button
-                    key={color.value}
-                    onClick={() => {
-                      handleColorChange(color.value)
-                      setColorDropdownOpen(false)
-                    }}
-                    title={color.name}
                     className={`
                       h-10 rounded-md border-2 transition-all
                       ${
@@ -224,20 +218,28 @@ export function BrushPanel({
                           : 'border-white/20 hover:border-white/40'
                       }
                     `}
+                    key={color.value}
+                    onClick={() => {
+                      handleColorChange(color.value)
+                      setColorDropdownOpen(false)
+                    }}
                     style={{ backgroundColor: color.value }}
+                    title={color.name}
                   />
                 ))}
               </div>
-              
+
               {/* Custom color picker */}
               <div className="flex items-center gap-2 pt-2 border-t border-white/10">
                 <input
+                  className="w-10 h-10 rounded cursor-pointer border border-white/20"
+                  onChange={e => handleColorChange(e.target.value)}
                   type="color"
                   value={stroke}
-                  onChange={e => handleColorChange(e.target.value)}
-                  className="w-10 h-10 rounded cursor-pointer border border-white/20"
                 />
-                <span className="text-xs text-gray-400 font-mono">{stroke}</span>
+                <span className="text-xs text-gray-400 font-mono">
+                  {stroke}
+                </span>
               </div>
             </div>
           )}
@@ -249,8 +251,8 @@ export function BrushPanel({
         {/* Opacity Dropdown */}
         <div className="relative" ref={opacityDropdownRef}>
           <button
-            onClick={() => setOpacityDropdownOpen(!opacityDropdownOpen)}
             className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-md transition-colors"
+            onClick={() => setOpacityDropdownOpen(!opacityDropdownOpen)}
           >
             <span className="text-xs text-gray-400">Opacity:</span>
             <span className="text-sm text-white font-semibold min-w-[2.5rem]">
@@ -263,25 +265,20 @@ export function BrushPanel({
             <div className="absolute top-full mt-2 left-0 bg-gray-900 border border-white/20 rounded-lg shadow-2xl p-4 z-50 w-64">
               <div className="flex flex-col gap-3">
                 <input
-                  type="range"
-                  min="0"
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                   max="100"
-                  value={Math.round(opacity * 100)}
+                  min="0"
                   onChange={e =>
                     handleOpacityChange(Number.parseInt(e.target.value) / 100)
                   }
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                  type="range"
+                  value={Math.round(opacity * 100)}
                 />
-                
+
                 {/* Quick presets */}
                 <div className="flex gap-2">
                   {[25, 50, 75, 100].map(preset => (
                     <button
-                      key={preset}
-                      onClick={() => {
-                        handleOpacityChange(preset / 100)
-                        setOpacityDropdownOpen(false)
-                      }}
                       className={`
                         flex-1 py-1.5 text-xs rounded
                         ${
@@ -290,6 +287,11 @@ export function BrushPanel({
                             : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                         }
                       `}
+                      key={preset}
+                      onClick={() => {
+                        handleOpacityChange(preset / 100)
+                        setOpacityDropdownOpen(false)
+                      }}
                     >
                       {preset}%
                     </button>

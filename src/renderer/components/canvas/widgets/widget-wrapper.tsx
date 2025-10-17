@@ -153,7 +153,7 @@ export function WidgetWrapper({
         width: `${width}px`,
         height: `${height}px`,
         zIndex: object.z_index,
-        cursor: isDrawingMode ? 'crosshair' : (isResizing ? 'grabbing' : 'grab'),
+        cursor: isDrawingMode ? 'crosshair' : isResizing ? 'grabbing' : 'grab',
         pointerEvents: isDrawingMode ? 'none' : 'auto',
       }}
     >

@@ -160,12 +160,12 @@ export function StickyNoteWidget({
 
   return (
     <WidgetWrapper
+      currentTool={currentTool}
       isResizable={true}
       isSelected={isSelected}
       minHeight={100}
       minWidth={100}
       object={object}
-      currentTool={currentTool}
       onContextMenu={onContextMenu}
       onManualResize={handleManualResize}
       onSelect={onSelect}

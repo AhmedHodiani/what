@@ -145,11 +145,11 @@ export function TextWidget({
 
   return (
     <WidgetWrapper
+      currentTool={currentTool}
       isSelected={isSelected}
       minHeight={50}
       minWidth={100}
       object={object}
-      currentTool={currentTool}
       onContextMenu={onContextMenu}
       onManualResize={handleManualResize}
       onSelect={onSelect}

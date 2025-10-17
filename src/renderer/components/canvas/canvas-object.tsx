@@ -80,9 +80,9 @@ export function CanvasObject({
   // Render the widget component
   return (
     <WidgetComponent
+      currentTool={currentTool}
       isSelected={isSelected}
       object={object}
-      currentTool={currentTool}
       onContextMenu={onContextMenu}
       onSelect={onSelect}
       onStartDrag={onStartDrag}

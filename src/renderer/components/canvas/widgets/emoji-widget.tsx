@@ -35,13 +35,13 @@ export function EmojiWidget({
 
   return (
     <WidgetWrapper
+      currentTool={currentTool}
       isResizable={true}
       isSelected={isSelected}
       lockAspectRatio={true}
       minHeight={40}
       minWidth={40}
       object={object}
-      currentTool={currentTool}
       onContextMenu={onContextMenu}
       onSelect={onSelect}
       onStartDrag={onStartDrag}
