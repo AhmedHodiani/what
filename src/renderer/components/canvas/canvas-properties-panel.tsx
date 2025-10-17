@@ -10,13 +10,13 @@ interface CanvasPropertiesPanelProps {
 /**
  * CanvasPropertiesPanel - Context-sensitive properties panel
  * Uses the panel registry to dynamically load the correct panel component
- * 
+ *
  * Benefits:
  * - Reduced from 313 lines to 36 lines! (88% reduction)
  * - Add new panels without touching this file
  * - Consistent with widget registry pattern
  * - Clean, maintainable code
- * 
+ *
  * To add a new panel:
  * 1. Create your panel component in properties-panels/
  * 2. Register it in properties-panels/register-all.ts

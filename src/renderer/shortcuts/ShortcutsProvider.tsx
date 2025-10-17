@@ -10,13 +10,13 @@ import { logger } from '../../shared/logger'
 interface ShortcutsContextValue {
   /** Register a new shortcut (returns ID for cleanup) */
   registerShortcut: (config: ShortcutConfig) => string
-  
+
   /** Unregister a shortcut by ID */
   unregisterShortcut: (id: string) => void
-  
+
   /** Current context state (for conditional shortcuts) */
   contextState: ShortcutContextState
-  
+
   /** Update context state */
   updateContextState: (updates: Partial<ShortcutContextState>) => void
 }
@@ -24,37 +24,39 @@ interface ShortcutsContextValue {
 /**
  * Shortcuts Context
  */
-export const ShortcutsContext = createContext<ShortcutsContextValue | null>(null)
+export const ShortcutsContext = createContext<ShortcutsContextValue | null>(
+  null
+)
 
 /**
  * ShortcutsProvider Props
  */
 interface ShortcutsProviderProps {
   children: ReactNode
-  
+
   /** Initial context state (optional) */
   initialContextState?: Partial<ShortcutContextState>
 }
 
 /**
  * ShortcutsProvider - Global keyboard shortcuts manager
- * 
+ *
  * Provides:
  * - Centralized keyboard event handling
  * - Context-aware shortcut execution
  * - Dynamic registration/unregistration
  * - Context state management
- * 
+ *
  * Usage:
  * ```tsx
  * // In app root (index.tsx or App.tsx)
  * <ShortcutsProvider>
  *   <App />
  * </ShortcutsProvider>
- * 
+ *
  * // In any component
  * const { registerShortcut } = useShortcuts()
- * 
+ *
  * useEffect(() => {
  *   const id = registerShortcut({
  *     key: 'ctrl+s',
@@ -62,7 +64,7 @@ interface ShortcutsProviderProps {
  *     action: () => saveFile(),
  *     description: 'Save file',
  *   })
- *   
+ *
  *   return () => unregisterShortcut(id)
  * }, [])
  * ```

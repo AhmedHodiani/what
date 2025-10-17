@@ -30,12 +30,15 @@ export function useFreehandDrawing({
   const [straightLineStart, setStraightLineStart] = useState<Point | null>(null)
 
   // Ctrl key modifier tracking using KRS
-  const isCtrlPressed = useModifier({
-    key: 'control',
-    context: ShortcutContext.Tool,
-    description: 'Draw straight line (freehand)',
-    enabled: () => isDrawing,
-  }, [isDrawing])
+  const isCtrlPressed = useModifier(
+    {
+      key: 'control',
+      context: ShortcutContext.Tool,
+      description: 'Draw straight line (freehand)',
+      enabled: () => isDrawing,
+    },
+    [isDrawing]
+  )
 
   const pathRef = useRef<Point[]>([])
 
@@ -44,7 +47,7 @@ export function useFreehandDrawing({
     pathRef.current = currentPath
   }, [currentPath])
 
-    // Update straight line start when Ctrl is pressed
+  // Update straight line start when Ctrl is pressed
   useEffect(() => {
     if (isCtrlPressed && isDrawing && currentPath.length > 0) {
       setStraightLineStart(currentPath[0])

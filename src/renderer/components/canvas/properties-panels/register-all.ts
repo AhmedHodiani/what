@@ -1,14 +1,14 @@
 /**
  * Panel Registration - Import and register all properties panels
- * 
+ *
  * This file automatically registers all available properties panels with the registry.
  * Import this file once at app startup to ensure all panels are available.
- * 
+ *
  * To add a new panel:
  * 1. Create your panel component (e.g., my-panel.tsx)
  * 2. Import it here
  * 3. Call panelRegistry.register()
- * 
+ *
  * That's it! No need to touch the container anymore.
  */
 

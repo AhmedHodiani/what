@@ -62,11 +62,8 @@ export function ColorGrid({
 }: ColorGridProps) {
   return (
     <div className="grid grid-cols-4 gap-2">
-      {colors.map((color) => (
+      {colors.map(color => (
         <button
-          key={color.value}
-          type="button"
-          onClick={() => onColorChange(color.value)}
           className={`
             w-full h-10 rounded border-2 transition-all
             ${
@@ -75,8 +72,11 @@ export function ColorGrid({
                 : 'border-white/20 hover:border-white/40'
             }
           `}
+          key={color.value}
+          onClick={() => onColorChange(color.value)}
           style={{ backgroundColor: color.value }}
           title={color.name}
+          type="button"
         />
       ))}
     </div>
@@ -92,11 +92,8 @@ interface ButtonGroupProps {
 export function ButtonGroup({ options, selected, onChange }: ButtonGroupProps) {
   return (
     <div className="flex gap-2 flex-wrap">
-      {options.map((option) => (
+      {options.map(option => (
         <button
-          key={String(option.value)}
-          type="button"
-          onClick={() => onChange(option.value)}
           className={`
             px-3 py-1.5 rounded text-sm font-medium transition-all
             ${
@@ -105,6 +102,9 @@ export function ButtonGroup({ options, selected, onChange }: ButtonGroupProps) {
                 : 'bg-white/10 text-gray-300 hover:bg-white/20'
             }
           `}
+          key={String(option.value)}
+          onClick={() => onChange(option.value)}
+          type="button"
         >
           {option.label}
         </button>
@@ -142,13 +142,13 @@ export function Slider({
         </span>
       </div>
       <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer slider-thumb"
+        max={max}
+        min={min}
+        onChange={e => onChange(Number(e.target.value))}
+        step={step}
+        type="range"
+        value={value}
       />
     </div>
   )

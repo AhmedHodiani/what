@@ -1,6 +1,6 @@
 /**
  * Dialog Shortcuts - Modal dialog operations
- * 
+ *
  * Highest priority context - overrides all other shortcuts
  * Active when any modal dialog is open
  */
@@ -14,10 +14,10 @@ import type { ShortcutsRegistry } from '../shortcuts-registry'
 export interface DialogShortcutHandlers {
   /** Close/cancel the dialog */
   onClose?: () => void
-  
+
   /** Confirm/submit the dialog */
   onConfirm?: () => void
-  
+
   /** Check if dialog is open (for conditional enabling) */
   isOpen?: () => boolean
 }

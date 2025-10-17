@@ -18,6 +18,8 @@ import {
 import { MenuBar } from 'renderer/components/layout/menu-bar'
 import { UpdateNotification } from 'renderer/components/layout/update-notification'
 import { WelcomeScreen } from 'renderer/components/welcome/welcome-screen'
+import { GlobalToolProvider, ActiveTabProvider } from 'renderer/contexts'
+import { GlobalPanelsLayout } from 'renderer/components/layout/global-panels-layout'
 import type { Viewport } from 'lib/types/canvas'
 import type { FileTab } from 'shared/types/tabs'
 
@@ -444,16 +446,20 @@ export function MainScreenWithTabs() {
       {/* Main Content Area */}
       <div className="flex-1 relative">
         {tabs.length > 0 ? (
-          <div className="h-full">
-            <Layout
-              factory={factory}
-              model={model}
-              onAction={onAction}
-              onModelChange={onModelChange}
-              popoutURL="popout.html"
-              ref={layoutRef}
-            />
-          </div>
+          <GlobalToolProvider>
+            <ActiveTabProvider>
+              <GlobalPanelsLayout>
+                <Layout
+                  factory={factory}
+                  model={model}
+                  onAction={onAction}
+                  onModelChange={onModelChange}
+                  popoutURL="popout.html"
+                  ref={layoutRef}
+                />
+              </GlobalPanelsLayout>
+            </ActiveTabProvider>
+          </GlobalToolProvider>
         ) : (
           <WelcomeScreen
             onNewFile={handleNewFile}

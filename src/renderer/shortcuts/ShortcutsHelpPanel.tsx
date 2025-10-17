@@ -11,11 +11,14 @@ interface ShortcutsHelpPanelProps {
 
 /**
  * ShortcutsHelpPanel - Displays all available keyboard shortcuts
- * 
+ *
  * Shows shortcuts grouped by context (System, Canvas, Tool, Dialog)
  * with proper display formatting (Ctrl/Cmd based on platform)
  */
-export function ShortcutsHelpPanel({ isOpen, onClose }: ShortcutsHelpPanelProps) {
+export function ShortcutsHelpPanel({
+  isOpen,
+  onClose,
+}: ShortcutsHelpPanelProps) {
   if (!isOpen) return null
 
   const shortcuts = shortcutsRegistry.getAll()
@@ -47,18 +50,20 @@ export function ShortcutsHelpPanel({ isOpen, onClose }: ShortcutsHelpPanelProps)
   }
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <div>
-            <h2 className="text-xl font-semibold text-white">Keyboard Shortcuts</h2>
+            <h2 className="text-xl font-semibold text-white">
+              Keyboard Shortcuts
+            </h2>
             <p className="text-sm text-gray-400 mt-1">
               {isMac ? 'macOS' : 'Windows/Linux'} shortcuts
             </p>
@@ -68,8 +73,18 @@ export function ShortcutsHelpPanel({ isOpen, onClose }: ShortcutsHelpPanelProps)
             onClick={onClose}
             type="button"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M6 18L18 6M6 6l12 12"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+              />
             </svg>
           </button>
         </div>
@@ -83,9 +98,14 @@ export function ShortcutsHelpPanel({ isOpen, onClose }: ShortcutsHelpPanelProps)
                 {contextDisplayNames[ShortcutContext.System]}
               </h3>
               <div className="space-y-2">
-                {byContext[ShortcutContext.System].map((shortcut) => (
-                  <div key={shortcut.id} className="flex items-center justify-between py-2 px-3 rounded hover:bg-white/5">
-                    <span className="text-gray-300">{shortcut.description}</span>
+                {byContext[ShortcutContext.System].map(shortcut => (
+                  <div
+                    className="flex items-center justify-between py-2 px-3 rounded hover:bg-white/5"
+                    key={shortcut.id}
+                  >
+                    <span className="text-gray-300">
+                      {shortcut.description}
+                    </span>
                     <kbd className="px-3 py-1 text-sm font-mono bg-white/10 text-white rounded border border-white/20">
                       {formatKey(shortcut.key)}
                     </kbd>
@@ -102,9 +122,14 @@ export function ShortcutsHelpPanel({ isOpen, onClose }: ShortcutsHelpPanelProps)
                 {contextDisplayNames[ShortcutContext.Tab]}
               </h3>
               <div className="space-y-2">
-                {byContext[ShortcutContext.Tab].map((shortcut) => (
-                  <div key={shortcut.id} className="flex items-center justify-between py-2 px-3 rounded hover:bg-white/5">
-                    <span className="text-gray-300">{shortcut.description}</span>
+                {byContext[ShortcutContext.Tab].map(shortcut => (
+                  <div
+                    className="flex items-center justify-between py-2 px-3 rounded hover:bg-white/5"
+                    key={shortcut.id}
+                  >
+                    <span className="text-gray-300">
+                      {shortcut.description}
+                    </span>
                     <kbd className="px-3 py-1 text-sm font-mono bg-white/10 text-white rounded border border-white/20">
                       {formatKey(shortcut.key)}
                     </kbd>
@@ -121,9 +146,14 @@ export function ShortcutsHelpPanel({ isOpen, onClose }: ShortcutsHelpPanelProps)
                 {contextDisplayNames[ShortcutContext.Canvas]}
               </h3>
               <div className="space-y-2">
-                {byContext[ShortcutContext.Canvas].map((shortcut) => (
-                  <div key={shortcut.id} className="flex items-center justify-between py-2 px-3 rounded hover:bg-white/5">
-                    <span className="text-gray-300">{shortcut.description}</span>
+                {byContext[ShortcutContext.Canvas].map(shortcut => (
+                  <div
+                    className="flex items-center justify-between py-2 px-3 rounded hover:bg-white/5"
+                    key={shortcut.id}
+                  >
+                    <span className="text-gray-300">
+                      {shortcut.description}
+                    </span>
                     <kbd className="px-3 py-1 text-sm font-mono bg-white/10 text-white rounded border border-white/20">
                       {formatKey(shortcut.key)}
                     </kbd>
@@ -140,9 +170,14 @@ export function ShortcutsHelpPanel({ isOpen, onClose }: ShortcutsHelpPanelProps)
                 {contextDisplayNames[ShortcutContext.Tool]}
               </h3>
               <div className="space-y-2">
-                {byContext[ShortcutContext.Tool].map((shortcut) => (
-                  <div key={shortcut.id} className="flex items-center justify-between py-2 px-3 rounded hover:bg-white/5">
-                    <span className="text-gray-300">{shortcut.description}</span>
+                {byContext[ShortcutContext.Tool].map(shortcut => (
+                  <div
+                    className="flex items-center justify-between py-2 px-3 rounded hover:bg-white/5"
+                    key={shortcut.id}
+                  >
+                    <span className="text-gray-300">
+                      {shortcut.description}
+                    </span>
                     <kbd className="px-3 py-1 text-sm font-mono bg-white/10 text-white rounded border border-white/20">
                       {formatKey(shortcut.key)}
                     </kbd>
@@ -159,9 +194,14 @@ export function ShortcutsHelpPanel({ isOpen, onClose }: ShortcutsHelpPanelProps)
                 {contextDisplayNames[ShortcutContext.Dialog]}
               </h3>
               <div className="space-y-2">
-                {byContext[ShortcutContext.Dialog].map((shortcut) => (
-                  <div key={shortcut.id} className="flex items-center justify-between py-2 px-3 rounded hover:bg-white/5">
-                    <span className="text-gray-300">{shortcut.description}</span>
+                {byContext[ShortcutContext.Dialog].map(shortcut => (
+                  <div
+                    className="flex items-center justify-between py-2 px-3 rounded hover:bg-white/5"
+                    key={shortcut.id}
+                  >
+                    <span className="text-gray-300">
+                      {shortcut.description}
+                    </span>
                     <kbd className="px-3 py-1 text-sm font-mono bg-white/10 text-white rounded border border-white/20">
                       {formatKey(shortcut.key)}
                     </kbd>
@@ -174,8 +214,13 @@ export function ShortcutsHelpPanel({ isOpen, onClose }: ShortcutsHelpPanelProps)
           {/* Footer */}
           <div className="mt-8 pt-4 border-t border-white/10">
             <p className="text-xs text-gray-500 text-center">
-              Press <kbd className="px-2 py-0.5 text-xs bg-white/10 rounded">Esc</kbd> or{' '}
-              <kbd className="px-2 py-0.5 text-xs bg-white/10 rounded">{formatKey('mod+/')}</kbd> to close
+              Press{' '}
+              <kbd className="px-2 py-0.5 text-xs bg-white/10 rounded">Esc</kbd>{' '}
+              or{' '}
+              <kbd className="px-2 py-0.5 text-xs bg-white/10 rounded">
+                {formatKey('mod+/')}
+              </kbd>{' '}
+              to close
             </p>
           </div>
         </div>

@@ -6,10 +6,10 @@ import type { ShortcutContext } from './contexts'
 export enum ShortcutEventType {
   /** Fires on key press */
   KeyDown = 'keydown',
-  
+
   /** Fires on key release */
   KeyUp = 'keyup',
-  
+
   /** Fires on both press and release (for modifier tracking) */
   Both = 'both',
 }
@@ -32,7 +32,7 @@ export type ShortcutEnabledFn = () => boolean
 export interface ShortcutConfig {
   /**
    * Key combination (e.g., 'ctrl+s', 'delete', 'escape')
-   * 
+   *
    * Format:
    * - Single keys: 'a', 'delete', 'escape', 'enter'
    * - With modifiers: 'ctrl+s', 'shift+delete', 'ctrl+shift+z'

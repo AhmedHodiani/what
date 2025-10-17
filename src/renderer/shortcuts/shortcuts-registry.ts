@@ -18,7 +18,7 @@ interface ModifierRegistration extends ModifierConfig {
 
 /**
  * ShortcutsRegistry - Central registry for keyboard shortcuts
- * 
+ *
  * Features:
  * - Context-aware priority system
  * - Conflict detection
@@ -26,11 +26,11 @@ interface ModifierRegistration extends ModifierConfig {
  * - Platform-specific key handling
  * - Modifier state tracking (keydown + keyup)
  * - Separate keydown/keyup event handling
- * 
+ *
  * Usage:
  * ```typescript
  * const registry = new ShortcutsRegistry()
- * 
+ *
  * // Regular shortcut
  * const id = registry.register({
  *   key: 'ctrl+s',
@@ -38,7 +38,7 @@ interface ModifierRegistration extends ModifierConfig {
  *   action: () => saveFile(),
  *   description: 'Save file',
  * })
- * 
+ *
  * // Modifier tracking
  * const modId = registry.registerModifier({
  *   key: 'control',
@@ -63,14 +63,14 @@ export class ShortcutsRegistry {
     const registration: ShortcutRegistration = {
       ...config,
       id,
-      eventType: config.eventType ?? 'keydown' as any,
+      eventType: config.eventType ?? ('keydown' as any),
       preventDefault: config.preventDefault ?? true,
       stopPropagation: config.stopPropagation ?? true,
     }
 
     const normalizedKey = this.normalizeKeyString(config.key)
     const existing = this.shortcuts.get(normalizedKey) || []
-    
+
     this.shortcuts.set(normalizedKey, [...existing, registration])
 
     // Log in dev mode
@@ -97,7 +97,7 @@ export class ShortcutsRegistry {
 
     const normalizedKey = config.key.toLowerCase()
     const existing = this.modifiers.get(normalizedKey) || []
-    
+
     this.modifiers.set(normalizedKey, [...existing, registration])
 
     // Log in dev mode
@@ -117,7 +117,7 @@ export class ShortcutsRegistry {
     // Try shortcuts first
     for (const [key, registrations] of this.shortcuts.entries()) {
       const filtered = registrations.filter(r => r.id !== id)
-      
+
       if (filtered.length !== registrations.length) {
         if (filtered.length === 0) {
           this.shortcuts.delete(key)
@@ -131,7 +131,7 @@ export class ShortcutsRegistry {
     // Try modifiers
     for (const [key, registrations] of this.modifiers.entries()) {
       const filtered = registrations.filter(r => r.id !== id)
-      
+
       if (filtered.length !== registrations.length) {
         if (filtered.length === 0) {
           this.modifiers.delete(key)
@@ -164,7 +164,10 @@ export class ShortcutsRegistry {
   /**
    * Internal: Handle keyboard event for both keydown and keyup
    */
-  private handleKeyEvent(event: KeyboardEvent, eventType: 'keydown' | 'keyup'): boolean {
+  private handleKeyEvent(
+    event: KeyboardEvent,
+    eventType: 'keydown' | 'keyup'
+  ): boolean {
     // Block shortcuts when typing in inputs
     if (shouldBlockShortcuts(event.target)) {
       return false
@@ -196,7 +199,9 @@ export class ShortcutsRegistry {
     }
 
     // Sort by context priority (highest first)
-    const sorted = [...matchingRegistrations].sort((a, b) => b.context - a.context)
+    const sorted = [...matchingRegistrations].sort(
+      (a, b) => b.context - a.context
+    )
 
     // Find first enabled shortcut
     for (const registration of sorted) {
@@ -235,7 +240,7 @@ export class ShortcutsRegistry {
     eventType: 'keydown' | 'keyup'
   ): boolean {
     const registrations = this.modifiers.get(modifierKey)
-    
+
     if (!registrations || registrations.length === 0) {
       return false
     }
@@ -308,7 +313,7 @@ export class ShortcutsRegistry {
     for (const [key, registrations] of this.shortcuts.entries()) {
       // Group by context
       const byContext = new Map<ShortcutContext, ShortcutRegistration[]>()
-      
+
       for (const reg of registrations) {
         const existing = byContext.get(reg.context) || []
         byContext.set(reg.context, [...existing, reg])
@@ -367,7 +372,7 @@ export class ShortcutsRegistry {
    */
   private normalizeKeyString(keyString: string): string {
     // Replace 'mod' with platform-specific modifier
-    let normalized = keyString.toLowerCase().replace('mod', modKey)
+    const normalized = keyString.toLowerCase().replace('mod', modKey)
 
     // Split into parts
     const parts = normalized.split('+')

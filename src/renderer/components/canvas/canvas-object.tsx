@@ -17,7 +17,7 @@ interface CanvasObjectProps {
 /**
  * CanvasObject - Generic wrapper that renders any drawing object type
  * Uses the widget registry to dynamically load the correct widget component
- * 
+ *
  * To add a new widget:
  * 1. Create your widget component
  * 2. Register it in widgets/register-all.ts

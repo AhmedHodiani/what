@@ -1,5 +1,9 @@
 import { useCallback } from 'react'
-import type { FreehandObject, ArrowObject, DrawingObject } from 'lib/types/canvas'
+import type {
+  FreehandObject,
+  ArrowObject,
+  DrawingObject,
+} from 'lib/types/canvas'
 import { BasePanel, PanelSection, ColorGrid, Slider } from './base-panel'
 
 const PRESET_COLORS = [
@@ -29,15 +33,15 @@ interface BrushPanelProps {
 
 /**
  * BrushPanel - Unified brush properties panel
- * 
+ *
  * Modes:
  * 1. Selection mode: Shows properties of selected freehand/arrow object
  * 2. Live drawing mode: Shows properties for active drawing tool
- * 
+ *
  * This replaces both:
  * - Old brush-properties-panel.tsx (257 lines)
  * - Old freehand-panel.tsx (90 lines)
- * 
+ *
  * Benefits:
  * - Single source of truth
  * - Zero UI duplication
@@ -57,18 +61,22 @@ export function BrushPanel({
   // Determine mode and get current values
   const isSelectionMode = !!object
   const stroke = isSelectionMode
-    ? (object.object_data.stroke || '#FFFFFF')
-    : (liveStrokeColor || '#FFFFFF')
+    ? object.object_data.stroke || '#FFFFFF'
+    : liveStrokeColor || '#FFFFFF'
   const strokeWidth = isSelectionMode
-    ? (object.object_data.strokeWidth || 2)
-    : (liveStrokeWidth || 2)
+    ? object.object_data.strokeWidth || 2
+    : liveStrokeWidth || 2
   const opacity = isSelectionMode
-    ? (object.object_data.opacity || 1)
-    : (liveOpacity || 1)
+    ? object.object_data.opacity || 1
+    : liveOpacity || 1
 
   // Selection mode: Update object via registry pattern
   const updateProperty = useCallback(
-    (updates: Partial<FreehandObject['object_data'] | ArrowObject['object_data']>) => {
+    (
+      updates: Partial<
+        FreehandObject['object_data'] | ArrowObject['object_data']
+      >
+    ) => {
       if (!isSelectionMode || !object || !onUpdate) return
 
       onUpdate(object.id, {
@@ -116,21 +124,21 @@ export function BrushPanel({
   )
 
   return (
-    <BasePanel 
-      title={isSelectionMode ? 'Brush Properties' : 'Drawing Brush'} 
+    <BasePanel
       icon="✏️"
+      title={isSelectionMode ? 'Brush Properties' : 'Drawing Brush'}
     >
       {/* Stroke Color */}
       <PanelSection label="Stroke Color">
         <ColorGrid
           colors={PRESET_COLORS}
-          selectedColor={stroke}
           onColorChange={handleColorChange}
+          selectedColor={stroke}
         />
         <div className="flex items-center gap-2 pt-1">
           <input
             className="w-12 h-8 rounded cursor-pointer border border-white/20"
-            onChange={(e) => handleColorChange(e.target.value)}
+            onChange={e => handleColorChange(e.target.value)}
             type="color"
             value={stroke}
           />
@@ -142,12 +150,12 @@ export function BrushPanel({
       <PanelSection label="Brush Size">
         <Slider
           label="Width"
-          value={strokeWidth}
-          min={1}
           max={50}
+          min={1}
+          onChange={handleWidthChange}
           step={1}
           unit="px"
-          onChange={handleWidthChange}
+          value={strokeWidth}
         />
       </PanelSection>
 
@@ -155,11 +163,11 @@ export function BrushPanel({
       <PanelSection label="Opacity">
         <Slider
           label="Opacity"
-          value={opacity}
-          min={0}
           max={1}
-          step={0.1}
+          min={0}
           onChange={handleOpacityChange}
+          step={0.1}
+          value={opacity}
         />
       </PanelSection>
     </BasePanel>

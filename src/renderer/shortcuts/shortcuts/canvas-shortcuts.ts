@@ -1,6 +1,6 @@
 /**
  * Canvas Shortcuts - Canvas-specific operations
- * 
+ *
  * These are active when the canvas has focus
  * Includes: Delete, Arrow keys, Copy/Paste, Select all, etc.
  */
@@ -15,28 +15,28 @@ import type { ShortcutsRegistry } from '../shortcuts-registry'
 export interface CanvasShortcutHandlers {
   /** Delete selected objects */
   onDelete?: () => void
-  
+
   /** Select all objects */
   onSelectAll?: () => void
-  
+
   /** Clear selection */
   onClearSelection?: () => void
-  
+
   /** Duplicate selected objects */
   onDuplicate?: () => void
-  
+
   /** Copy selected objects */
   onCopy?: () => void
-  
+
   /** Cut selected objects */
   onCut?: () => void
-  
+
   /** Paste from clipboard */
   onPaste?: () => void
-  
+
   /** Move selected objects */
   onMove?: (direction: 'up' | 'down' | 'left' | 'right') => void
-  
+
   /** Check if there's a selection (for conditional enabling) */
   hasSelection?: () => boolean
 }

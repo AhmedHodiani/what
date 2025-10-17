@@ -1,6 +1,6 @@
 /**
  * System Shortcuts - Global application shortcuts
- * 
+ *
  * These are always active (lowest priority)
  * Can be overridden by higher-priority contexts
  */
@@ -137,4 +137,3 @@ export function registerSystemShortcuts(registry: ShortcutsRegistry): void {
     description: 'Show keyboard shortcuts help',
   })
 }
-

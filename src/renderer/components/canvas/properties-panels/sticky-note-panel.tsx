@@ -78,13 +78,13 @@ export function StickyNotePanel({ object, onUpdate }: StickyNotePanelProps) {
   )
 
   return (
-    <BasePanel title="Sticky Note Properties" icon="📝">
+    <BasePanel icon="📝" title="Sticky Note Properties">
       {/* Paper Color */}
       <PanelSection label="Paper Color">
         <ColorGrid
           colors={PAPER_COLORS}
-          selectedColor={paperColor}
           onColorChange={handlePaperColorChange}
+          selectedColor={paperColor}
         />
         <div className="flex items-center gap-2 pt-1">
           <label className="text-xs text-gray-400" htmlFor="custom-paper-color">
@@ -93,7 +93,7 @@ export function StickyNotePanel({ object, onUpdate }: StickyNotePanelProps) {
           <input
             className="w-12 h-8 rounded cursor-pointer border border-white/20"
             id="custom-paper-color"
-            onChange={(e) => handlePaperColorChange(e.target.value)}
+            onChange={e => handlePaperColorChange(e.target.value)}
             type="color"
             value={paperColor}
           />
@@ -105,8 +105,8 @@ export function StickyNotePanel({ object, onUpdate }: StickyNotePanelProps) {
       <PanelSection label="Font Color">
         <ColorGrid
           colors={FONT_COLORS}
-          selectedColor={fontColor}
           onColorChange={handleFontColorChange}
+          selectedColor={fontColor}
         />
         <div className="flex items-center gap-2 pt-1">
           <label className="text-xs text-gray-400" htmlFor="custom-font-color">
@@ -115,7 +115,7 @@ export function StickyNotePanel({ object, onUpdate }: StickyNotePanelProps) {
           <input
             className="w-12 h-8 rounded cursor-pointer border border-white/20"
             id="custom-font-color"
-            onChange={(e) => handleFontColorChange(e.target.value)}
+            onChange={e => handleFontColorChange(e.target.value)}
             type="color"
             value={fontColor}
           />
@@ -126,9 +126,9 @@ export function StickyNotePanel({ object, onUpdate }: StickyNotePanelProps) {
       {/* Font Size */}
       <PanelSection label="Font Size">
         <ButtonGroup
+          onChange={handleFontSizeChange}
           options={FONT_SIZES}
           selected={fontSize}
-          onChange={handleFontSizeChange}
         />
       </PanelSection>
     </BasePanel>

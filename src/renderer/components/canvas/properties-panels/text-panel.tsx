@@ -1,6 +1,12 @@
 import { useCallback } from 'react'
 import type { TextObject, DrawingObject } from 'lib/types/canvas'
-import { BasePanel, PanelSection, ButtonGroup, Slider, ColorGrid } from './base-panel'
+import {
+  BasePanel,
+  PanelSection,
+  ButtonGroup,
+  Slider,
+  ColorGrid,
+} from './base-panel'
 
 const FONT_FAMILIES = [
   { label: 'Inter', value: 'Inter, system-ui, sans-serif' },
@@ -49,7 +55,8 @@ interface TextPanelProps {
  */
 export function TextPanel({ object, onUpdate }: TextPanelProps) {
   const fontSize = object.object_data.fontSize || 24
-  const fontFamily = object.object_data.fontFamily || 'Inter, system-ui, sans-serif'
+  const fontFamily =
+    object.object_data.fontFamily || 'Inter, system-ui, sans-serif'
   const fontWeight = object.object_data.fontWeight || 'normal'
   const fontStyle = object.object_data.fontStyle || 'normal'
   const textAlign = object.object_data.textAlign || 'left'
@@ -72,15 +79,15 @@ export function TextPanel({ object, onUpdate }: TextPanelProps) {
   )
 
   return (
-    <BasePanel title="Text Properties" icon="📝">
+    <BasePanel icon="📝" title="Text Properties">
       {/* Font Family */}
       <PanelSection label="Font Family">
         <select
           className="w-full px-2 py-1.5 bg-gray-900 text-white rounded border border-gray-600 text-sm focus:border-teal-400 focus:outline-none"
-          onChange={(e) => updateProperty('fontFamily', e.target.value)}
+          onChange={e => updateProperty('fontFamily', e.target.value)}
           value={fontFamily}
         >
-          {FONT_FAMILIES.map((font) => (
+          {FONT_FAMILIES.map(font => (
             <option key={font.value} value={font.value}>
               {font.label}
             </option>
@@ -92,12 +99,12 @@ export function TextPanel({ object, onUpdate }: TextPanelProps) {
       <PanelSection label="Font Size">
         <Slider
           label="Size"
-          value={fontSize}
-          min={12}
           max={72}
+          min={12}
+          onChange={value => updateProperty('fontSize', value)}
           step={1}
           unit="px"
-          onChange={(value) => updateProperty('fontSize', value)}
+          value={fontSize}
         />
       </PanelSection>
 
@@ -105,13 +112,13 @@ export function TextPanel({ object, onUpdate }: TextPanelProps) {
       <PanelSection label="Text Color">
         <ColorGrid
           colors={TEXT_COLORS}
+          onColorChange={c => updateProperty('color', c)}
           selectedColor={color}
-          onColorChange={(c) => updateProperty('color', c)}
         />
         <div className="flex items-center gap-2 pt-1">
           <input
             className="w-12 h-8 rounded cursor-pointer border border-white/20"
-            onChange={(e) => updateProperty('color', e.target.value)}
+            onChange={e => updateProperty('color', e.target.value)}
             type="color"
             value={color}
           />
@@ -122,27 +129,27 @@ export function TextPanel({ object, onUpdate }: TextPanelProps) {
       {/* Font Weight */}
       <PanelSection label="Font Weight">
         <ButtonGroup
+          onChange={value => updateProperty('fontWeight', value)}
           options={FONT_WEIGHTS}
           selected={fontWeight}
-          onChange={(value) => updateProperty('fontWeight', value)}
         />
       </PanelSection>
 
       {/* Font Style */}
       <PanelSection label="Font Style">
         <ButtonGroup
+          onChange={value => updateProperty('fontStyle', value)}
           options={FONT_STYLES}
           selected={fontStyle}
-          onChange={(value) => updateProperty('fontStyle', value)}
         />
       </PanelSection>
 
       {/* Text Alignment */}
       <PanelSection label="Text Alignment">
         <ButtonGroup
+          onChange={value => updateProperty('textAlign', value)}
           options={TEXT_ALIGNMENTS}
           selected={textAlign}
-          onChange={(value) => updateProperty('textAlign', value)}
         />
       </PanelSection>
 
@@ -150,8 +157,6 @@ export function TextPanel({ object, onUpdate }: TextPanelProps) {
       <PanelSection label="Background">
         <div className="flex gap-2">
           <button
-            type="button"
-            onClick={() => updateProperty('backgroundColor', 'transparent')}
             className={`
               px-3 py-2 rounded text-sm
               ${
@@ -160,15 +165,19 @@ export function TextPanel({ object, onUpdate }: TextPanelProps) {
                   : 'bg-white/10 text-gray-300'
               }
             `}
+            onClick={() => updateProperty('backgroundColor', 'transparent')}
+            type="button"
           >
             None
           </button>
           <input
             className="flex-1 h-10 rounded cursor-pointer border border-white/20"
-            onChange={(e) => updateProperty('backgroundColor', e.target.value)}
-            type="color"
-            value={backgroundColor === 'transparent' ? '#000000' : backgroundColor}
             disabled={backgroundColor === 'transparent'}
+            onChange={e => updateProperty('backgroundColor', e.target.value)}
+            type="color"
+            value={
+              backgroundColor === 'transparent' ? '#000000' : backgroundColor
+            }
           />
         </div>
       </PanelSection>

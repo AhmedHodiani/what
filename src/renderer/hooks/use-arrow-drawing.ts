@@ -30,12 +30,15 @@ export function useArrowDrawing({
   const [straightLineStart, setStraightLineStart] = useState<Point | null>(null)
 
   // Ctrl key modifier tracking using KRS
-  const isCtrlPressed = useModifier({
-    key: 'control',
-    context: ShortcutContext.Tool,
-    description: 'Draw straight arrow',
-    enabled: () => isDrawing,
-  }, [isDrawing])
+  const isCtrlPressed = useModifier(
+    {
+      key: 'control',
+      context: ShortcutContext.Tool,
+      description: 'Draw straight arrow',
+      enabled: () => isDrawing,
+    },
+    [isDrawing]
+  )
 
   const pathRef = useRef<Point[]>([])
 

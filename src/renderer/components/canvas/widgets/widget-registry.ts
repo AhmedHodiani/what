@@ -3,18 +3,18 @@ import type { DrawingObjectType } from 'lib/types/canvas'
 
 /**
  * Widget Registry - Central registration system for all canvas widgets
- * 
+ *
  * Benefits:
  * - Add new widgets without touching canvas-object.tsx
  * - Type-safe widget lookup
  * - Foundation for plugin system
  * - Easy to test and maintain
- * 
+ *
  * Usage:
  * ```ts
  * // In your widget file (e.g., image-widget/index.ts)
  * widgetRegistry.register('image', ImageWidget)
- * 
+ *
  * // In canvas-object.tsx
  * const Widget = widgetRegistry.get(object.type)
  * return <Widget {...props} />

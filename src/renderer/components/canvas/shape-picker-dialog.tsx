@@ -35,13 +35,16 @@ export function ShapePickerDialog({
   const [hoveredShape, setHoveredShape] = useState<ShapeType | null>(null)
 
   // Register dialog shortcut
-  useShortcut({
-    key: 'escape',
-    context: ShortcutContext.Dialog,
-    action: onClose,
-    description: 'Close shape picker',
-    enabled: () => isOpen,
-  }, [onClose, isOpen])
+  useShortcut(
+    {
+      key: 'escape',
+      context: ShortcutContext.Dialog,
+      action: onClose,
+      description: 'Close shape picker',
+      enabled: () => isOpen,
+    },
+    [onClose, isOpen]
+  )
 
   if (!isOpen) return null
 

@@ -5,14 +5,14 @@ import { shortcutsRegistry } from './shortcuts-registry'
 
 /**
  * useShortcuts - React hook for keyboard shortcuts
- * 
+ *
  * Provides access to shortcuts registry and context state
- * 
+ *
  * Usage:
  * ```typescript
  * function MyComponent() {
  *   const { registerShortcut, registerModifier, contextState } = useShortcuts()
- *   
+ *
  *   // Register regular shortcut
  *   useEffect(() => {
  *     const id = registerShortcut({
@@ -21,10 +21,10 @@ import { shortcutsRegistry } from './shortcuts-registry'
  *       action: () => duplicate(),
  *       description: 'Duplicate selected',
  *     })
- *     
+ *
  *     return () => unregisterShortcut(id)
  *   }, [])
- *   
+ *
  *   // Register modifier tracker
  *   useEffect(() => {
  *     const id = registerModifier({
@@ -34,10 +34,10 @@ import { shortcutsRegistry } from './shortcuts-registry'
  *       onRelease: () => setCtrlPressed(false),
  *       description: 'Enable straight line mode',
  *     })
- *     
+ *
  *     return () => unregisterShortcut(id)
  *   }, [])
- *   
+ *
  *   return <div>...</div>
  * }
  * ```
@@ -62,14 +62,14 @@ export function useShortcuts() {
 
 /**
  * useShortcut - Convenience hook for registering a single shortcut
- * 
+ *
  * Automatically handles registration/cleanup
- * 
+ *
  * Usage:
  * ```typescript
  * function MyComponent() {
  *   const hasSelection = useSelector(state => state.hasSelection)
- *   
+ *
  *   useShortcut({
  *     key: 'delete',
  *     context: ShortcutContext.Canvas,
@@ -77,7 +77,7 @@ export function useShortcuts() {
  *     description: 'Delete selected objects',
  *     enabled: () => hasSelection,
  *   }, [hasSelection])
- *   
+ *
  *   return <div>...</div>
  * }
  * ```
@@ -96,16 +96,16 @@ export function useShortcut(
 
 /**
  * useContextState - Hook to access and update shortcut context state
- * 
+ *
  * Usage:
  * ```typescript
  * function Canvas() {
  *   const { contextState, updateContextState } = useContextState()
- *   
+ *
  *   const handleFocus = () => {
  *     updateContextState({ isCanvasFocused: true })
  *   }
- *   
+ *
  *   return <div onFocus={handleFocus}>...</div>
  * }
  * ```
@@ -117,9 +117,9 @@ export function useContextState() {
 
 /**
  * useRegisterShortcuts - Bulk register shortcuts
- * 
+ *
  * Convenience hook for registering multiple shortcuts at once
- * 
+ *
  * Usage:
  * ```typescript
  * function Toolbar() {
@@ -154,9 +154,9 @@ export function useRegisterShortcuts(
 
 /**
  * useModifier - Convenience hook for tracking a modifier key
- * 
+ *
  * Returns [isPressed, setIsPressed] like useState
- * 
+ *
  * Usage:
  * ```typescript
  * function DrawingCanvas() {
@@ -166,7 +166,7 @@ export function useRegisterShortcuts(
  *     description: 'Enable straight line mode',
  *     enabled: () => isDrawing,
  *   }, [isDrawing])
- *   
+ *
  *   // Use isCtrlPressed in your drawing logic
  *   if (isCtrlPressed) {
  *     // Draw straight line

@@ -1,14 +1,14 @@
 /**
  * Widget Registration - Import and register all widgets
- * 
+ *
  * This file automatically registers all available widgets with the registry.
  * Import this file once at app startup to ensure all widgets are available.
- * 
+ *
  * To add a new widget:
  * 1. Create your widget component (e.g., my-widget.tsx)
  * 2. Import it here
  * 3. Call widgetRegistry.register()
- * 
+ *
  * That's it! No need to touch canvas-object.tsx anymore.
  */
 

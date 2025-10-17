@@ -3,18 +3,18 @@ import type { DrawingObject, DrawingObjectType } from 'lib/types/canvas'
 
 /**
  * Properties Panel Registry - Central registration system for property panels
- * 
+ *
  * Benefits:
  * - Add new panels without touching the container
  * - Type-safe panel lookup
  * - Consistent with widget registry pattern
  * - Easy to test and maintain
- * 
+ *
  * Usage:
  * ```ts
  * // Register a panel
  * panelRegistry.register('sticky-note', StickyNotePanel)
- * 
+ *
  * // Get a panel component
  * const Panel = panelRegistry.get(object.type)
  * return <Panel object={object} onUpdate={onUpdate} />

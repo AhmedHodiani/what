@@ -1,6 +1,6 @@
 /**
  * Register All Shortcuts - Auto-register built-in shortcuts
- * 
+ *
  * This file registers all system-level shortcuts that are always active.
  * Canvas/dialog/tool-specific shortcuts are registered by components when they mount.
  */

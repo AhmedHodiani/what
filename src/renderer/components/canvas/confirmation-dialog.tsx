@@ -30,21 +30,27 @@ export function ConfirmationDialog({
   variant = 'default',
 }: ConfirmationDialogProps) {
   // Register dialog shortcuts with highest priority
-  useShortcut({
-    key: 'escape',
-    context: ShortcutContext.Dialog,
-    action: onCancel,
-    description: 'Close dialog',
-    enabled: () => isOpen,
-  }, [onCancel, isOpen])
+  useShortcut(
+    {
+      key: 'escape',
+      context: ShortcutContext.Dialog,
+      action: onCancel,
+      description: 'Close dialog',
+      enabled: () => isOpen,
+    },
+    [onCancel, isOpen]
+  )
 
-  useShortcut({
-    key: 'enter',
-    context: ShortcutContext.Dialog,
-    action: onConfirm,
-    description: 'Confirm action',
-    enabled: () => isOpen,
-  }, [onConfirm, isOpen])
+  useShortcut(
+    {
+      key: 'enter',
+      context: ShortcutContext.Dialog,
+      action: onConfirm,
+      description: 'Confirm action',
+      enabled: () => isOpen,
+    },
+    [onConfirm, isOpen]
+  )
 
   if (!isOpen) return null
 

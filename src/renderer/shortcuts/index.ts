@@ -1,23 +1,28 @@
 /**
  * Keyboard Shortcuts System - Public API
- * 
+ *
  * Context-aware, registry-based keyboard shortcuts
  */
 
 // Core
 export { ShortcutsRegistry, shortcutsRegistry } from './shortcuts-registry'
 export { ShortcutsProvider } from './ShortcutsProvider'
-export { 
-  useShortcuts, 
-  useShortcut, 
-  useContextState, 
+export {
+  useShortcuts,
+  useShortcut,
+  useContextState,
   useRegisterShortcuts,
   useModifier,
 } from './use-shortcuts'
 export { ShortcutsHelpPanel, useShortcutsHelp } from './ShortcutsHelpPanel'
 
 // Contexts
-export { ShortcutContext, shouldBlockShortcuts, isMac, modKey } from './contexts'
+export {
+  ShortcutContext,
+  shouldBlockShortcuts,
+  isMac,
+  modKey,
+} from './contexts'
 export type { ShortcutContextState } from './contexts'
 
 // Types

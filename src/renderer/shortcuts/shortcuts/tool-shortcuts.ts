@@ -1,6 +1,6 @@
 /**
  * Tool Shortcuts - Tool selection shortcuts
- * 
+ *
  * Keyboard shortcuts to quickly switch tools
  * Active in Canvas context
  */
@@ -9,7 +9,16 @@ import { ShortcutContext } from '../contexts'
 import type { ShortcutsRegistry } from '../shortcuts-registry'
 
 // Use string literals for tool types (matches CanvasTool from use-canvas-tool.ts)
-export type ToolType = 'select' | 'sticky-note' | 'text' | 'shape' | 'freehand' | 'arrow' | 'image' | 'youtube' | 'emoji'
+export type ToolType =
+  | 'select'
+  | 'sticky-note'
+  | 'text'
+  | 'shape'
+  | 'freehand'
+  | 'arrow'
+  | 'image'
+  | 'youtube'
+  | 'emoji'
 
 /**
  * Tool shortcut handlers interface

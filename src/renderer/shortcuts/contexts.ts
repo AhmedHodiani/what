@@ -1,10 +1,10 @@
 /**
  * Shortcut Contexts - Priority-based execution contexts
- * 
+ *
  * Higher values = Higher priority
  * When multiple shortcuts are registered for the same key,
  * the one with the highest context priority wins.
- * 
+ *
  * Example:
  * - Dialog context (100) overrides Canvas context (60)
  * - So pressing Escape in a dialog closes the dialog,
@@ -96,7 +96,7 @@ export function shouldBlockShortcuts(target: EventTarget | null): boolean {
 /**
  * Platform detection for modifier keys
  */
-export const isMac = 
+export const isMac =
   typeof navigator !== 'undefined' &&
   navigator.platform.toUpperCase().indexOf('MAC') >= 0
 

@@ -58,7 +58,7 @@ export function ShapePanel({ object, onUpdate }: ShapePanelProps) {
   )
 
   return (
-    <BasePanel title="Shape Properties" icon="🔷">
+    <BasePanel icon="🔷" title="Shape Properties">
       {/* Shape Type (Read-only) */}
       <PanelSection label="Type">
         <div className="text-sm text-white capitalize px-3 py-2 bg-gray-900 rounded border border-gray-600">
@@ -70,13 +70,13 @@ export function ShapePanel({ object, onUpdate }: ShapePanelProps) {
       <PanelSection label="Fill Color">
         <ColorGrid
           colors={PRESET_COLORS}
+          onColorChange={color => updateProperty({ fill: color })}
           selectedColor={fill}
-          onColorChange={(color) => updateProperty({ fill: color })}
         />
         <div className="flex items-center gap-2 pt-1">
           <input
             className="w-12 h-8 rounded cursor-pointer border border-white/20"
-            onChange={(e) => updateProperty({ fill: e.target.value })}
+            onChange={e => updateProperty({ fill: e.target.value })}
             type="color"
             value={fill}
           />
@@ -88,13 +88,13 @@ export function ShapePanel({ object, onUpdate }: ShapePanelProps) {
       <PanelSection label="Stroke Color">
         <ColorGrid
           colors={STROKE_COLORS}
+          onColorChange={color => updateProperty({ stroke: color })}
           selectedColor={stroke}
-          onColorChange={(color) => updateProperty({ stroke: color })}
         />
         <div className="flex items-center gap-2 pt-1">
           <input
             className="w-12 h-8 rounded cursor-pointer border border-white/20"
-            onChange={(e) => updateProperty({ stroke: e.target.value })}
+            onChange={e => updateProperty({ stroke: e.target.value })}
             type="color"
             value={stroke}
           />
@@ -106,12 +106,12 @@ export function ShapePanel({ object, onUpdate }: ShapePanelProps) {
       <PanelSection label="Stroke Width">
         <Slider
           label="Width"
-          value={strokeWidth}
-          min={0}
           max={20}
+          min={0}
+          onChange={value => updateProperty({ strokeWidth: value })}
           step={1}
           unit="px"
-          onChange={(value) => updateProperty({ strokeWidth: value })}
+          value={strokeWidth}
         />
       </PanelSection>
 
@@ -120,12 +120,12 @@ export function ShapePanel({ object, onUpdate }: ShapePanelProps) {
         <PanelSection label="Corner Radius">
           <Slider
             label="Radius"
-            value={cornerRadius}
-            min={0}
             max={50}
+            min={0}
+            onChange={value => updateProperty({ cornerRadius: value })}
             step={1}
             unit="px"
-            onChange={(value) => updateProperty({ cornerRadius: value })}
+            value={cornerRadius}
           />
         </PanelSection>
       )}
@@ -135,11 +135,11 @@ export function ShapePanel({ object, onUpdate }: ShapePanelProps) {
         <PanelSection label="Star Points">
           <Slider
             label="Points"
-            value={points}
-            min={3}
             max={12}
+            min={3}
+            onChange={value => updateProperty({ points: value })}
             step={1}
-            onChange={(value) => updateProperty({ points: value })}
+            value={points}
           />
         </PanelSection>
       )}
@@ -148,12 +148,12 @@ export function ShapePanel({ object, onUpdate }: ShapePanelProps) {
       <PanelSection label="Rotation">
         <Slider
           label="Angle"
-          value={rotation}
-          min={0}
           max={360}
+          min={0}
+          onChange={value => updateProperty({ rotation: value })}
           step={1}
           unit="°"
-          onChange={(value) => updateProperty({ rotation: value })}
+          value={rotation}
         />
       </PanelSection>
 
@@ -161,11 +161,11 @@ export function ShapePanel({ object, onUpdate }: ShapePanelProps) {
       <PanelSection label="Opacity">
         <Slider
           label="Opacity"
-          value={opacity}
-          min={0}
           max={1}
+          min={0}
+          onChange={value => updateProperty({ opacity: value })}
           step={0.1}
-          onChange={(value) => updateProperty({ opacity: value })}
+          value={opacity}
         />
       </PanelSection>
     </BasePanel>

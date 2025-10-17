@@ -59,19 +59,25 @@ export function YouTubeUrlDialog({
   }
 
   // Register dialog shortcuts
-  useShortcut({
-    key: 'escape',
-    context: ShortcutContext.Dialog,
-    action: onCancel,
-    description: 'Close YouTube dialog',
-  }, [onCancel])
+  useShortcut(
+    {
+      key: 'escape',
+      context: ShortcutContext.Dialog,
+      action: onCancel,
+      description: 'Close YouTube dialog',
+    },
+    [onCancel]
+  )
 
-  useShortcut({
-    key: 'enter',
-    context: ShortcutContext.Dialog,
-    action: handleConfirm,
-    description: 'Add YouTube video',
-  }, [handleConfirm])
+  useShortcut(
+    {
+      key: 'enter',
+      context: ShortcutContext.Dialog,
+      action: handleConfirm,
+      description: 'Add YouTube video',
+    },
+    [handleConfirm]
+  )
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUrl(e.target.value)
