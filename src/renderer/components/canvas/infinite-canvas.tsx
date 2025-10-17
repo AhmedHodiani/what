@@ -1048,6 +1048,7 @@ export function InfiniteCanvas({
                 <CanvasObject
                   isSelected={selectedObjectIds.includes(obj.id)}
                   object={obj}
+                  currentTool={currentTool}
                   onContextMenu={handleContextMenu}
                   onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}

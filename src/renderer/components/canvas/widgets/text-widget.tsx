@@ -7,6 +7,7 @@ interface TextWidgetProps {
   object: TextObject
   isSelected: boolean
   zoom: number
+  currentTool?: string
   onUpdate: (id: string, updates: Partial<DrawingObject>) => void
   onSelect: (id: string) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
@@ -27,6 +28,7 @@ export function TextWidget({
   object,
   isSelected,
   zoom,
+  currentTool,
   onUpdate,
   onSelect,
   onContextMenu,
@@ -147,6 +149,7 @@ export function TextWidget({
       minHeight={50}
       minWidth={100}
       object={object}
+      currentTool={currentTool}
       onContextMenu={onContextMenu}
       onManualResize={handleManualResize}
       onSelect={onSelect}

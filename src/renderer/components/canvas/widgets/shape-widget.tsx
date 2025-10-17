@@ -5,6 +5,7 @@ interface ShapeWidgetProps {
   object: ShapeObject
   isSelected: boolean
   zoom: number
+  currentTool?: string
   onUpdate: (id: string, updates: Partial<DrawingObject>) => void
   onSelect: (id: string) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
@@ -26,6 +27,7 @@ export function ShapeWidget({
   object,
   isSelected,
   zoom,
+  currentTool,
   onUpdate,
   onSelect,
   onContextMenu,
@@ -177,6 +179,7 @@ export function ShapeWidget({
     <WidgetWrapper
       isSelected={isSelected}
       object={object}
+      currentTool={currentTool}
       onContextMenu={onContextMenu}
       onSelect={onSelect}
       onStartDrag={onStartDrag}
