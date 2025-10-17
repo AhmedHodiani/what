@@ -33,6 +33,7 @@ import type { ShapeType } from './shape-picker-dialog'
 import { ContextMenu } from './context-menu'
 import { ConfirmationDialog } from './confirmation-dialog'
 import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
+import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 
 interface InfiniteCanvasProps {
   initialViewport?: Viewport
@@ -743,35 +744,44 @@ export function InfiniteCanvas({
     setObjectToDelete(null)
   }, [])
 
-  // Keyboard shortcuts (Delete key)
+  // Refs for shortcuts (prevent re-registration)
+  const selectedObjectIdsRef = useRef(selectedObjectIds)
+  const isActiveRef = useRef(isActive)
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Delete selected object(s) with Delete or Backspace key
-      if (
-        (e.key === 'Delete' || e.key === 'Backspace') &&
-        selectedObjectIds.length > 0 &&
-        isActive
-      ) {
-        // Don't delete if user is typing in an input/textarea
-        if (
-          e.target instanceof HTMLInputElement ||
-          e.target instanceof HTMLTextAreaElement
-        ) {
-          return
-        }
-
-        e.preventDefault()
-        // For single selection, use the ID. For multiple, use 'multiple' marker
-        setObjectToDelete(
-          selectedObjectIds.length === 1 ? selectedObjectIds[0] : 'multiple'
-        )
-        setShowDeleteConfirmation(true)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    selectedObjectIdsRef.current = selectedObjectIds
+    isActiveRef.current = isActive
   }, [selectedObjectIds, isActive])
+
+  // Canvas shortcut: Delete selected objects
+  const handleDeleteShortcut = useCallback(() => {
+    const ids = selectedObjectIdsRef.current
+    const active = isActiveRef.current
+    
+    if (ids.length === 0 || !active) return
+    
+    // For single selection, use the ID. For multiple, use 'multiple' marker
+    setObjectToDelete(ids.length === 1 ? ids[0] : 'multiple')
+    setShowDeleteConfirmation(true)
+  }, [])
+
+  // Register Delete key shortcut (only once!)
+  useShortcut({
+    key: 'delete',
+    context: ShortcutContext.Canvas,
+    action: handleDeleteShortcut,
+    description: 'Delete selected objects',
+    enabled: () => selectedObjectIdsRef.current.length > 0 && isActiveRef.current,
+  }, [handleDeleteShortcut])
+
+  // Register Backspace key shortcut (alternative delete)
+  useShortcut({
+    key: 'backspace',
+    context: ShortcutContext.Canvas,
+    action: handleDeleteShortcut,
+    description: 'Delete selected objects',
+    enabled: () => selectedObjectIdsRef.current.length > 0 && isActiveRef.current,
+  }, [handleDeleteShortcut])
 
   // Cleanup drag handlers on unmount to prevent stale event listeners
   useEffect(() => {

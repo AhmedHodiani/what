@@ -1,4 +1,6 @@
 import type { DrawingObjectType } from 'lib/types/canvas'
+import { shortcutsRegistry } from 'renderer/shortcuts'
+import { ShortcutContext } from 'renderer/shortcuts'
 
 interface CanvasToolbarProps {
   selectedTool: DrawingObjectType | 'select'
@@ -13,16 +15,49 @@ interface Tool {
 }
 
 const tools: Tool[] = [
-  { type: 'select', label: 'Select', icon: '↖', shortcut: 'V' },
-  { type: 'sticky-note', label: 'Sticky Note', icon: '📝', shortcut: 'S' },
-  { type: 'text', label: 'Text', icon: '📄', shortcut: 'T' },
-  { type: 'shape', label: 'Shape', icon: '⬜', shortcut: 'R' },
-  { type: 'freehand', label: 'Pen', icon: '✏️', shortcut: 'P' },
-  { type: 'arrow', label: 'Arrow', icon: '→', shortcut: 'A' },
-  { type: 'image', label: 'Image', icon: '🖼️', shortcut: 'I' },
-  { type: 'youtube', label: 'YouTube', icon: '📺', shortcut: 'Y' },
-  { type: 'emoji', label: 'Emoji', icon: '😀', shortcut: 'E' },
+  { type: 'select', label: 'Select', icon: '↖' },
+  { type: 'sticky-note', label: 'Sticky Note', icon: '📝' },
+  { type: 'text', label: 'Text', icon: '📄' },
+  { type: 'shape', label: 'Shape', icon: '⬜' },
+  { type: 'freehand', label: 'Pen', icon: '✏️' },
+  { type: 'arrow', label: 'Arrow', icon: '→' },
+  { type: 'image', label: 'Image', icon: '🖼️' },
+  { type: 'youtube', label: 'YouTube', icon: '📺' },
+  { type: 'emoji', label: 'Emoji', icon: '😀' },
 ]
+
+/**
+ * Get shortcut key for a tool from KRS
+ */
+function getToolShortcut(toolType: DrawingObjectType | 'select'): string | undefined {
+  const allShortcuts = shortcutsRegistry.getAll()
+  
+  // Map tool types to expected description keywords
+  const descriptionMap: Record<string, string[]> = {
+    'select': ['select tool'],
+    'sticky-note': ['sticky note tool'],
+    'text': ['text tool'],
+    'shape': ['shape tool'],
+    'freehand': ['pen', 'freehand'],
+    'arrow': ['arrow tool'],
+    'image': ['image tool'],
+    'youtube': ['youtube tool'],
+    'emoji': ['emoji tool'],
+  }
+  
+  const keywords = descriptionMap[toolType] || []
+  
+  // Find shortcut that matches this tool in Tool context
+  const shortcut = allShortcuts.find(
+    s => s.context === ShortcutContext.Tool && 
+         keywords.some(keyword => s.description.toLowerCase().includes(keyword))
+  )
+  
+  if (!shortcut) return undefined
+  
+  // Format the key for display (uppercase single letter)
+  return shortcut.key.toUpperCase()
+}
 
 /**
  * Canvas toolbar for selecting drawing tools.
@@ -57,7 +92,7 @@ export function CanvasToolbar({
               `}
               key={tool.type}
               onClick={() => onToolSelect(tool.type)}
-              title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ''}`}
+              title={`${tool.label}${getToolShortcut(tool.type) ? ` (${getToolShortcut(tool.type)})` : ''}`}
             >
               {/* Icon */}
               <span className="text-2xl mb-0.5">{tool.icon}</span>
@@ -68,7 +103,7 @@ export function CanvasToolbar({
               </span>
 
               {/* Shortcut hint */}
-              {tool.shortcut && (
+              {getToolShortcut(tool.type) && (
                 <span
                   className={`
                     absolute -top-1 -right-1 text-[8px] font-mono
@@ -80,7 +115,7 @@ export function CanvasToolbar({
                     }
                   `}
                 >
-                  {tool.shortcut}
+                  {getToolShortcut(tool.type)}
                 </span>
               )}
             </button>

@@ -2,6 +2,7 @@ import { createContext, useEffect, useCallback, type ReactNode } from 'react'
 import { shortcutsRegistry } from './shortcuts-registry'
 import type { ShortcutConfig } from './types'
 import type { ShortcutContextState } from './contexts'
+import { logger } from '../../shared/logger'
 
 /**
  * Shortcuts Context Value
@@ -117,9 +118,9 @@ export function ShortcutsProvider({
     if (process.env.NODE_ENV === 'development') {
       const stats = shortcutsRegistry.getStats()
       if (stats.conflicts.length > 0) {
-        console.warn('[Shortcuts] ⚠️ Conflicts detected:', stats.conflicts)
+        logger.warn('[Shortcuts] ⚠️ Conflicts detected:', stats.conflicts)
       }
-      console.log('[Shortcuts] Stats:', stats)
+      logger.info('[Shortcuts] Stats:', stats)
     }
 
     return () => {

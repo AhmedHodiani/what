@@ -7,6 +7,7 @@ import type {
   RegistryStats,
 } from './types'
 import { ShortcutContext, shouldBlockShortcuts, modKey } from './contexts'
+import { logger } from '../../shared/logger'
 
 /**
  * Internal modifier registration
@@ -74,7 +75,7 @@ export class ShortcutsRegistry {
 
     // Log in dev mode
     if (process.env.NODE_ENV === 'development') {
-      console.log(
+      logger.info(
         `[Shortcuts] Registered: ${config.key} (${ShortcutContext[config.context]}) - ${config.description}`
       )
     }
@@ -101,7 +102,7 @@ export class ShortcutsRegistry {
 
     // Log in dev mode
     if (process.env.NODE_ENV === 'development') {
-      console.log(
+      logger.info(
         `[Shortcuts] Registered Modifier: ${config.key} (${ShortcutContext[config.context]}) - ${config.description}`
       )
     }
@@ -214,7 +215,7 @@ export class ShortcutsRegistry {
       registration.action(event)
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(
+        logger.info(
           `[Shortcuts] Triggered: ${registration.key} (${ShortcutContext[registration.context]}) - ${registration.description}`
         )
       }
@@ -256,7 +257,7 @@ export class ShortcutsRegistry {
       }
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(
+        logger.info(
           `[Shortcuts] Modifier ${eventType}: ${registration.key} (${ShortcutContext[registration.context]})`
         )
       }

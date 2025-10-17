@@ -14,6 +14,7 @@ export {
   useRegisterShortcuts,
   useModifier,
 } from './use-shortcuts'
+export { ShortcutsHelpPanel, useShortcutsHelp } from './ShortcutsHelpPanel'
 
 // Contexts
 export { ShortcutContext, shouldBlockShortcuts, isMac, modKey } from './contexts'

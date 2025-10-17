@@ -7,18 +7,23 @@
 
 import { ShortcutContext } from '../contexts'
 import type { ShortcutsRegistry } from '../shortcuts-registry'
+import { logger } from '../../../shared/logger'
 
 /**
  * Register all system-level shortcuts
  */
 export function registerSystemShortcuts(registry: ShortcutsRegistry): void {
-  // Save file (Week 4 feature - placeholder for now)
+  // Save file (Ctrl+S / Cmd+S)
   registry.register({
     key: 'mod+s',
     context: ShortcutContext.System,
     action: async () => {
-      console.log('[System] Save file (Week 4 - not implemented yet)')
-      // Future: window.App.saveCurrentFile()
+      try {
+        await window.App.file.save()
+        logger.info('[System Shortcuts] File saved')
+      } catch (error) {
+        logger.error('[System Shortcuts] Save failed:', error)
+      }
     },
     description: 'Save current file',
   })
@@ -28,86 +33,108 @@ export function registerSystemShortcuts(registry: ShortcutsRegistry): void {
     key: 'mod+z',
     context: ShortcutContext.System,
     action: () => {
-      console.log('[System] Undo (Week 3 - not implemented yet)')
+      logger.info('[System Shortcuts] Undo (Week 3 - not implemented yet)')
       // Future: commandManager.undo()
     },
     description: 'Undo last action',
   })
 
-  // Redo (Week 3 feature - placeholder for now)
+  // Redo (Ctrl+Y / Cmd+Y)
   registry.register({
     key: 'mod+y',
     context: ShortcutContext.System,
     action: () => {
-      console.log('[System] Redo (Week 3 - not implemented yet)')
+      logger.info('[System Shortcuts] Redo (Week 3 - not implemented yet)')
       // Future: commandManager.redo()
     },
     description: 'Redo last action',
   })
 
-  // Redo (alternative)
+  // Redo alternative (Ctrl+Shift+Z / Cmd+Shift+Z)
   registry.register({
     key: 'mod+shift+z',
     context: ShortcutContext.System,
     action: () => {
-      console.log('[System] Redo (Week 3 - not implemented yet)')
+      logger.info('[System Shortcuts] Redo (Week 3 - not implemented yet)')
       // Future: commandManager.redo()
     },
     description: 'Redo last action',
   })
 
-  // New file (future feature)
+  // New file (Ctrl+N / Cmd+N)
   registry.register({
     key: 'mod+n',
     context: ShortcutContext.System,
-    action: () => {
-      console.log('[System] New file (future feature)')
-      // Future: window.App.createNewFile()
+    action: async () => {
+      try {
+        const result = await window.App.file.new()
+        if (result) {
+          logger.info('[System Shortcuts] New file created:', result.tabId)
+        }
+      } catch (error) {
+        logger.error('[System Shortcuts] New file failed:', error)
+      }
     },
     description: 'Create new file',
   })
 
-  // Open file (future feature)
+  // Open file (Ctrl+O / Cmd+O)
   registry.register({
     key: 'mod+o',
     context: ShortcutContext.System,
-    action: () => {
-      console.log('[System] Open file (future feature)')
-      // Future: window.App.openFileDialog()
+    action: async () => {
+      try {
+        const result = await window.App.file.open()
+        if (result) {
+          logger.info('[System Shortcuts] File opened:', result.tabId)
+        }
+      } catch (error) {
+        logger.error('[System Shortcuts] Open file failed:', error)
+      }
     },
     description: 'Open file',
   })
 
-  // Close tab
+  // Close tab (Ctrl+W / Cmd+W)
   registry.register({
     key: 'mod+w',
     context: ShortcutContext.Tab,
-    action: () => {
-      console.log('[System] Close tab (future feature)')
-      // Future: closeCurrentTab()
+    action: async () => {
+      try {
+        const activeTabId = await window.App.tabs.getActiveId()
+        if (activeTabId) {
+          const closed = await window.App.file.close(activeTabId)
+          if (closed) {
+            logger.info('[System Shortcuts] Tab closed:', activeTabId)
+          }
+        }
+      } catch (error) {
+        logger.error('[System Shortcuts] Close tab failed:', error)
+      }
     },
     description: 'Close current tab',
   })
 
-  // Shortcuts help panel
+  // Shortcuts help panel (Ctrl+/ or Cmd+/)
   registry.register({
     key: 'mod+/',
     context: ShortcutContext.System,
     action: () => {
-      console.log('[System] Show shortcuts help (Phase 4)')
-      // Phase 4: showShortcutsHelpPanel()
+      // Dispatch custom event to open help panel
+      window.dispatchEvent(new CustomEvent('shortcuts:toggle-help'))
     },
     description: 'Show keyboard shortcuts help',
   })
 
-  // Alternative help
+  // Alternative help (Shift+?)
   registry.register({
     key: 'shift+/',
     context: ShortcutContext.System,
     action: () => {
-      console.log('[System] Show shortcuts help (Phase 4)')
-      // Phase 4: showShortcutsHelpPanel()
+      // Dispatch custom event to open help panel
+      window.dispatchEvent(new CustomEvent('shortcuts:toggle-help'))
     },
     description: 'Show keyboard shortcuts help',
   })
 }
+

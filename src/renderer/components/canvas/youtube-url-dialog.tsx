@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 
 interface YouTubeUrlDialogProps {
   onConfirm: (url: string, videoId: string) => void
@@ -57,13 +58,20 @@ export function YouTubeUrlDialog({
     onConfirm(url, videoId)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleConfirm()
-    } else if (e.key === 'Escape') {
-      onCancel()
-    }
-  }
+  // Register dialog shortcuts
+  useShortcut({
+    key: 'escape',
+    context: ShortcutContext.Dialog,
+    action: onCancel,
+    description: 'Close YouTube dialog',
+  }, [onCancel])
+
+  useShortcut({
+    key: 'enter',
+    context: ShortcutContext.Dialog,
+    action: handleConfirm,
+    description: 'Add YouTube video',
+  }, [handleConfirm])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUrl(e.target.value)
@@ -97,7 +105,6 @@ export function YouTubeUrlDialog({
           <input
             className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20 transition-all"
             onChange={handleChange}
-            onKeyDown={handleKeyDown}
             placeholder="https://youtube.com/watch?v=..."
             ref={inputRef}
             type="text"

@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import type { DrawingObjectType } from 'lib/types/canvas'
+import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 
 export type CanvasTool = DrawingObjectType | 'select'
 
@@ -30,50 +31,75 @@ export function useCanvasTool(options: UseCanvasToolOptions = {}) {
     [onToolChange]
   )
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if typing in an input/textarea
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return
-      }
+  // Tool shortcuts - migrated to KRS
+  useShortcut({
+    key: 'v',
+    context: ShortcutContext.Tool,
+    action: () => setTool('select'),
+    description: 'Select tool',
+  }, [setTool])
 
-      const key = e.key.toLowerCase()
+  useShortcut({
+    key: 'escape',
+    context: ShortcutContext.Tool,
+    action: () => setTool('select'),
+    description: 'Select tool (cancel)',
+  }, [setTool])
 
-      switch (key) {
-        case 'v':
-        case 'escape':
-          setTool('select')
-          break
-        case 's':
-          setTool('sticky-note')
-          break
-        case 't':
-          setTool('text')
-          break
-        case 'r':
-          setTool('shape')
-          break
-        case 'p':
-          setTool('freehand')
-          break
-        case 'a':
-          setTool('arrow')
-          break
-        case 'i':
-          setTool('image')
-          break
-        case 'y':
-          setTool('youtube')
-          break
-      }
-    }
+  useShortcut({
+    key: 's',
+    context: ShortcutContext.Tool,
+    action: () => setTool('sticky-note'),
+    description: 'Sticky note tool',
+  }, [setTool])
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+  useShortcut({
+    key: 't',
+    context: ShortcutContext.Tool,
+    action: () => setTool('text'),
+    description: 'Text tool',
+  }, [setTool])
+
+  useShortcut({
+    key: 'r',
+    context: ShortcutContext.Tool,
+    action: () => setTool('shape'),
+    description: 'Shape tool',
+  }, [setTool])
+
+  useShortcut({
+    key: 'p',
+    context: ShortcutContext.Tool,
+    action: () => setTool('freehand'),
+    description: 'Pen/Freehand tool',
+  }, [setTool])
+
+  useShortcut({
+    key: 'a',
+    context: ShortcutContext.Tool,
+    action: () => setTool('arrow'),
+    description: 'Arrow tool',
+  }, [setTool])
+
+  useShortcut({
+    key: 'i',
+    context: ShortcutContext.Tool,
+    action: () => setTool('image'),
+    description: 'Image tool',
+  }, [setTool])
+
+  useShortcut({
+    key: 'y',
+    context: ShortcutContext.Tool,
+    action: () => setTool('youtube'),
+    description: 'YouTube tool',
+  }, [setTool])
+
+  useShortcut({
+    key: 'e',
+    context: ShortcutContext.Tool,
+    action: () => setTool('emoji'),
+    description: 'Emoji tool',
   }, [setTool])
 
   return {

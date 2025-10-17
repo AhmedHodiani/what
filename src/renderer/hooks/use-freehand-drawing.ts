@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { Point, FreehandObject } from 'lib/types/canvas'
 import { generateId } from 'lib/utils/id-generator'
+import { useModifier, ShortcutContext } from 'renderer/shortcuts'
 
 interface UseFreehandDrawingOptions {
   isEnabled: boolean
@@ -26,8 +27,15 @@ export function useFreehandDrawing({
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentPath, setCurrentPath] = useState<Point[]>([])
   const [currentObjectId, setCurrentObjectId] = useState<string | null>(null)
-  const [isCtrlPressed, setIsCtrlPressed] = useState(false)
   const [straightLineStart, setStraightLineStart] = useState<Point | null>(null)
+
+  // Ctrl key modifier tracking using KRS
+  const isCtrlPressed = useModifier({
+    key: 'control',
+    context: ShortcutContext.Tool,
+    description: 'Draw straight line (freehand)',
+    enabled: () => isDrawing,
+  }, [isDrawing])
 
   const pathRef = useRef<Point[]>([])
 
@@ -36,33 +44,14 @@ export function useFreehandDrawing({
     pathRef.current = currentPath
   }, [currentPath])
 
-  // Listen for Ctrl key for straight line mode
+    // Update straight line start when Ctrl is pressed
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Control' || e.ctrlKey) {
-        setIsCtrlPressed(true)
-        // If currently drawing, remember the start point
-        if (isDrawing && currentPath.length > 0) {
-          setStraightLineStart(currentPath[0])
-        }
-      }
+    if (isCtrlPressed && isDrawing && currentPath.length > 0) {
+      setStraightLineStart(currentPath[0])
+    } else if (!isCtrlPressed) {
+      setStraightLineStart(null)
     }
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'Control' || !e.ctrlKey) {
-        setIsCtrlPressed(false)
-        setStraightLineStart(null)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('keyup', handleKeyUp)
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('keyup', handleKeyUp)
-    }
-  }, [isDrawing, currentPath])
+  }, [isCtrlPressed, isDrawing, currentPath])
 
   const handleDrawStart = useCallback(
     (e: React.MouseEvent, containerRef: React.RefObject<HTMLDivElement>) => {
