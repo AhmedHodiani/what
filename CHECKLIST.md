@@ -3,45 +3,53 @@
 ## DX Improvements (Ongoing)
 
 ### 🎯 High Priority DX Wins
-1. **Widget Registry Pattern** 🔥🔥🔥 (Medium Effort - Week 4)
+1. **Widget Registry Pattern** ✅ COMPLETE (Medium Effort)
    - Problem: Adding widgets requires editing 3-4 files
-   - Solution: Self-registering widget system
+   - Solution: Self-registering widget system with `widget-registry.ts`
    - Benefits: Add widgets without touching canvas-object.tsx, foundation for plugin system
-   - Status: Planned for Week 4 (Plugin System)
+   - Status: ✅ Implemented - canvas-object.tsx reduced from 160→90 lines (56% reduction)
+   - Files: `widget-registry.ts`, `register-all.ts`, updated `canvas-object.tsx`
 
-2. **Cleanup Debug Logs** ✅ COMPLETE (Low Effort)
+2. **Properties Panel Registry** ✅ COMPLETE (Medium Effort) 
+   - Problem: Properties panels scattered across 5 files, mixed inline/separate, inconsistent patterns
+   - Solution: Panel registry system with shared UI components
+   - Benefits: 88% code reduction, consistent patterns, easy to add new panels
+   - Status: ✅ Implemented - canvas-properties-panel.tsx reduced from 313→36 lines!
+   - Files: `panel-registry.ts`, `base-panel.tsx`, 5 extracted panels, `register-all.ts`
+
+3. **Cleanup Debug Logs** ✅ COMPLETE (Low Effort)
    - Problem: Production code has emoji-laden debug logs everywhere
    - Solution: Centralized logger with consola
    - Benefits: Auto dev/prod mode, consistent formatting, namespaced loggers
    - Status: ✅ Implemented `src/shared/logger.ts` with tagged loggers
 
-3. **Shared Widget Props Type** 🔥🔥 (Low Effort - Quick Win)
+4. **Shared Widget Props Type** 🔥🔥 (Low Effort - Quick Win)
    - Problem: Every widget repeats the same 7 props
    - Solution: Shared `BaseWidgetProps` interface
    - Benefits: DRY principle, easier to add common props
    - Status: Partially done via `WidgetWrapper`, could formalize further
 
 ### 📋 Medium Priority DX Improvements
-4. **Object Factory Pattern** 🔥🔥 (Medium Effort - Week 3)
+5. **Object Factory Pattern** 🔥🔥 (Medium Effort - Week 3)
    - Problem: Object creation logic scattered across toolbar, shortcuts, paste
    - Solution: Centralized factory in `lib/factories/drawing-object-factory.ts`
    - Benefits: Single source of truth, consistent defaults, easier testing
    - Status: Planned for Week 3 with Command Pattern
 
-5. **Typed Event System** 🔥 (High Effort - Week 3)
+6. **Typed Event System** 🔥 (High Effort - Week 3)
    - Problem: Prop drilling callbacks through 5+ components
    - Solution: Typed event emitter pattern
    - Benefits: Eliminates prop drilling, decouples components
    - Status: Consider if prop drilling becomes painful during Week 3
 
-6. **Type-Safe IPC Calls** 🔥 (Medium Effort - Week 4)
+7. **Type-Safe IPC Calls** 🔥 (Medium Effort - Week 4)
    - Problem: IPC calls are stringly-typed, easy to make typos
    - Solution: Typed IPC wrapper with autocomplete
    - Benefits: Compile-time safety, self-documenting API
    - Status: Nice-to-have for Week 4
 
 ### 🛠️ Nice-to-Have
-7. **Debug Panel Component** 🔥 (Low Effort)
+8. **Debug Panel Component** 🔥 (Low Effort)
    - Problem: Debug logs scattered, hard to track state
    - Solution: Unified debug panel with real-time state
    - Benefits: Better than console spam, easy toggle

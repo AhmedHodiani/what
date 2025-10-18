@@ -1,15 +1,16 @@
-import { useState, useCallback, useEffect } from 'react'
-import type { DrawingObjectType } from 'lib/types/canvas'
-
-export type CanvasTool = DrawingObjectType | 'select'
+import { useCallback } from 'react'
+import { useGlobalTool, type CanvasTool } from 'renderer/contexts'
 
 interface UseCanvasToolOptions {
-  initialTool?: CanvasTool
   onToolChange?: (tool: CanvasTool) => void
 }
 
 /**
- * Hook for managing canvas tool selection and keyboard shortcuts.
+ * Hook for managing canvas tool selection.
+ * Now uses global tool context - tool selection persists across tabs!
+ *
+ * NOTE: Tool shortcuts are registered centrally in tool-shortcuts.ts
+ * and activated in GlobalPanelsLayout. Do NOT register shortcuts here.
  *
  * @example
  * ```tsx
@@ -19,66 +20,23 @@ interface UseCanvasToolOptions {
  * ```
  */
 export function useCanvasTool(options: UseCanvasToolOptions = {}) {
-  const { initialTool = 'select', onToolChange } = options
-  const [currentTool, setCurrentTool] = useState<CanvasTool>(initialTool)
+  const { onToolChange } = options
+  const { currentTool, setTool: setGlobalTool, isSelectMode } = useGlobalTool()
 
   const setTool = useCallback(
     (tool: CanvasTool) => {
-      setCurrentTool(tool)
+      setGlobalTool(tool)
       onToolChange?.(tool)
     },
-    [onToolChange]
+    [setGlobalTool, onToolChange]
   )
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if typing in an input/textarea
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return
-      }
-
-      const key = e.key.toLowerCase()
-
-      switch (key) {
-        case 'v':
-        case 'escape':
-          setTool('select')
-          break
-        case 's':
-          setTool('sticky-note')
-          break
-        case 't':
-          setTool('text')
-          break
-        case 'r':
-          setTool('shape')
-          break
-        case 'p':
-          setTool('freehand')
-          break
-        case 'a':
-          setTool('arrow')
-          break
-        case 'i':
-          setTool('image')
-          break
-        case 'y':
-          setTool('youtube')
-          break
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setTool])
 
   return {
     currentTool,
     setTool,
-    isSelectMode: currentTool === 'select',
+    isSelectMode,
   }
 }
+
+// Re-export CanvasTool type for convenience
+export type { CanvasTool }

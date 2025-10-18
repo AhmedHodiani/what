@@ -10,6 +10,7 @@ interface WidgetWrapperProps {
   object: DrawingObject & { _imageUrl?: string }
   isSelected: boolean
   zoom: number
+  currentTool?: string // Current active tool (freehand/arrow disables interactions)
   isResizable?: boolean
   lockAspectRatio?: boolean
   minWidth?: number
@@ -37,6 +38,7 @@ export function WidgetWrapper({
   object,
   isSelected,
   zoom,
+  currentTool,
   isResizable = true,
   lockAspectRatio = false,
   minWidth = 50,
@@ -80,6 +82,12 @@ export function WidgetWrapper({
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      // When drawing tools are active, don't intercept - let canvas handle it
+      if (currentTool === 'freehand' || currentTool === 'arrow') {
+        // Don't stop propagation - let the event reach the canvas for drawing
+        return
+      }
+
       const target = e.target as HTMLElement
       if (target.classList.contains('resize-handle')) return
 
@@ -92,11 +100,17 @@ export function WidgetWrapper({
         onStartDrag(e, object.id)
       }
     },
-    [isResizing, onSelect, onStartDrag, object.id]
+    [currentTool, isResizing, onSelect, onStartDrag, object.id]
   )
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
+      // When drawing tools are active, don't intercept - let canvas handle it
+      if (currentTool === 'freehand' || currentTool === 'arrow') {
+        // Don't stop propagation - let the event reach the canvas for drawing
+        return
+      }
+
       const target = e.target as HTMLElement
       if (target.classList.contains('resize-handle')) return
 
@@ -111,7 +125,7 @@ export function WidgetWrapper({
         ;(e as any)._clickedWidget = true
       }
     },
-    [isResizing, onSelect, object.id]
+    [currentTool, isResizing, onSelect, object.id]
   )
 
   const handleContextMenuClick = useCallback(
@@ -123,11 +137,13 @@ export function WidgetWrapper({
     [onContextMenu, object.id]
   )
 
+  const isDrawingMode = currentTool === 'freehand' || currentTool === 'arrow'
+
   return (
     <div
       className={`
         relative select-none rounded overflow-visible
-        ${isSelected ? 'border-2 border-dashed border-[#007acc]' : 'border-2 border-transparent'}
+        ${!isDrawingMode && isSelected ? 'border-2 border-dashed border-[#007acc]' : 'border-2 border-transparent'}
         ${isResizing ? 'shadow-[0_0_15px_rgba(0,122,204,0.6)]' : ''}
       `}
       onClick={handleClick}
@@ -137,13 +153,15 @@ export function WidgetWrapper({
         width: `${width}px`,
         height: `${height}px`,
         zIndex: object.z_index,
-        cursor: isResizing ? 'grabbing' : 'grab',
+        cursor: isDrawingMode ? 'crosshair' : isResizing ? 'grabbing' : 'grab',
+        pointerEvents: isDrawingMode ? 'none' : 'auto',
       }}
     >
       {children}
 
       {/* Resize handles when selected - E (right-side), SE (right-bottom), S (bottom-side) */}
-      {isSelected &&
+      {!isDrawingMode &&
+        isSelected &&
         isResizable &&
         (['e', 'se', 's'] as ResizeHandle[]).map(handle => (
           <ResizeHandleComponent

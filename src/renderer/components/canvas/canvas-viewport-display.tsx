@@ -1,11 +1,9 @@
-import type { Viewport } from 'lib/types/canvas'
 import { useState, useEffect } from 'react'
+import { useActiveTab } from 'renderer/contexts'
+import { logger } from 'shared/logger'
 
-interface CanvasViewportDisplayProps {
-  viewport: Viewport
-  objectCount?: number
-  tabId?: string | null
-}
+// No props needed - uses active tab context now!
+interface CanvasViewportDisplayProps {}
 
 /**
  * Format bytes to human-readable string
@@ -20,13 +18,12 @@ function formatBytes(bytes: number): string {
 
 /**
  * Displays current viewport information (zoom level and position).
+ * Now GLOBAL - reads from ActiveTabContext, shows active tab's data!
  * Useful for debugging and user feedback.
  */
-export function CanvasViewportDisplay({
-  viewport,
-  objectCount = 0,
-  tabId,
-}: CanvasViewportDisplayProps) {
+export function CanvasViewportDisplay(_props: CanvasViewportDisplayProps) {
+  const { viewport, objects, tabId } = useActiveTab()
+  const objectCount = objects.length
   const [fileSize, setFileSize] = useState<string | null>(null)
 
   // Get file size from IPC if available
@@ -57,6 +54,15 @@ export function CanvasViewportDisplay({
     const interval = setInterval(fetchFileSize, 500)
     return () => clearInterval(interval)
   }, [tabId, objectCount]) // Re-fetch when objectCount changes
+
+  // Show placeholder if no active tab
+  if (!viewport || !tabId) {
+    return (
+      <div className="absolute top-3 left-3 bg-black/80 text-gray-500 px-3 py-2 rounded-md text-xs font-mono pointer-events-none flex flex-col gap-1 border border-gray-600/30">
+        <div>No active canvas</div>
+      </div>
+    )
+  }
 
   return (
     <div className="absolute top-3 left-3 bg-black/80 text-teal-400 px-3 py-2 rounded-md text-xs font-mono pointer-events-none flex flex-col gap-1 border border-teal-400/30">

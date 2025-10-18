@@ -7,6 +7,7 @@ interface StickyNoteWidgetProps {
   object: StickyNoteObject
   isSelected: boolean
   zoom: number
+  currentTool?: string
   onUpdate: (id: string, updates: Partial<DrawingObject>) => void
   onSelect: (id: string) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
@@ -27,6 +28,7 @@ export function StickyNoteWidget({
   object,
   isSelected,
   zoom,
+  currentTool,
   onUpdate,
   onSelect,
   onContextMenu,
@@ -158,6 +160,7 @@ export function StickyNoteWidget({
 
   return (
     <WidgetWrapper
+      currentTool={currentTool}
       isResizable={true}
       isSelected={isSelected}
       minHeight={100}

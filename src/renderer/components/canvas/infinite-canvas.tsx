@@ -22,10 +22,6 @@ import { useFreehandDrawing } from 'renderer/hooks/use-freehand-drawing'
 import { useArrowDrawing } from 'renderer/hooks/use-arrow-drawing'
 import { ErrorBoundary } from '../error-boundary'
 import { CanvasGrid } from './canvas-grid'
-import { CanvasViewportDisplay } from './canvas-viewport-display'
-import { CanvasToolbar } from './canvas-toolbar'
-import { CanvasPropertiesPanel } from './canvas-properties-panel'
-import { BrushPropertiesPanel } from './brush-properties-panel'
 import { CanvasObject } from './canvas-object'
 import { YouTubeUrlDialog } from './youtube-url-dialog'
 import { ShapePickerDialog } from './shape-picker-dialog'
@@ -33,15 +29,15 @@ import type { ShapeType } from './shape-picker-dialog'
 import { ContextMenu } from './context-menu'
 import { ConfirmationDialog } from './confirmation-dialog'
 import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
+import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
+import { useActiveTab } from 'renderer/contexts'
 
 interface InfiniteCanvasProps {
   initialViewport?: Viewport
   minZoom?: number
   maxZoom?: number
   onViewportChange?: (viewport: Viewport) => void
-  showViewportInfo?: boolean
   showGrid?: boolean
-  showToolbar?: boolean
   tabId?: string | null
   isActive?: boolean // Whether this canvas is the active tab
   children?: React.ReactNode
@@ -71,9 +67,7 @@ export function InfiniteCanvas({
   minZoom = 0.1,
   maxZoom = 5,
   onViewportChange,
-  showViewportInfo = true,
   showGrid = true,
-  showToolbar = true,
   tabId,
   isActive = true, // Default to true for backwards compatibility
   children,
@@ -90,12 +84,8 @@ export function InfiniteCanvas({
   // Tool selection
   const { currentTool, setTool } = useCanvasTool()
 
-  // Brush properties for freehand drawing
-  const [brushProperties, setBrushProperties] = useState({
-    strokeColor: '#FFFFFF',
-    strokeWidth: 15,
-    opacity: 1,
-  })
+  // Active tab context for syncing state
+  const { brushSettings, updateActiveTab } = useActiveTab()
 
   // YouTube dialog state
   const [showYouTubeDialog, setShowYouTubeDialog] = useState(false)
@@ -162,6 +152,18 @@ export function InfiniteCanvas({
     onViewportChange,
   })
 
+  // Sync with ActiveTabContext when this canvas is active
+  useEffect(() => {
+    if (isActive && tabId) {
+      updateActiveTab({
+        tabId,
+        viewport,
+        selectedObjectIds,
+        objects,
+      })
+    }
+  }, [isActive, tabId, viewport, selectedObjectIds, objects, updateActiveTab])
+
   // Convert screen coordinates to world coordinates
   const screenToWorld = useCallback(
     (screenX: number, screenY: number) => {
@@ -192,9 +194,9 @@ export function InfiniteCanvas({
   } = useFreehandDrawing({
     isEnabled: currentTool === 'freehand',
     screenToWorld,
-    strokeColor: brushProperties.strokeColor,
-    strokeWidth: brushProperties.strokeWidth,
-    opacity: brushProperties.opacity,
+    strokeColor: brushSettings.strokeColor,
+    strokeWidth: brushSettings.strokeWidth,
+    opacity: brushSettings.opacity,
     onComplete: useCallback(
       async (freehandObject: FreehandObject) => {
         await addObject(freehandObject)
@@ -214,9 +216,9 @@ export function InfiniteCanvas({
   } = useArrowDrawing({
     isEnabled: currentTool === 'arrow',
     screenToWorld,
-    strokeColor: brushProperties.strokeColor,
-    strokeWidth: brushProperties.strokeWidth,
-    opacity: brushProperties.opacity,
+    strokeColor: brushSettings.strokeColor,
+    strokeWidth: brushSettings.strokeWidth,
+    opacity: brushSettings.opacity,
     onComplete: useCallback(
       async (arrowObject: ArrowObject) => {
         await addObject(arrowObject)
@@ -743,35 +745,52 @@ export function InfiniteCanvas({
     setObjectToDelete(null)
   }, [])
 
-  // Keyboard shortcuts (Delete key)
+  // Refs for shortcuts (prevent re-registration)
+  const selectedObjectIdsRef = useRef(selectedObjectIds)
+  const isActiveRef = useRef(isActive)
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Delete selected object(s) with Delete or Backspace key
-      if (
-        (e.key === 'Delete' || e.key === 'Backspace') &&
-        selectedObjectIds.length > 0 &&
-        isActive
-      ) {
-        // Don't delete if user is typing in an input/textarea
-        if (
-          e.target instanceof HTMLInputElement ||
-          e.target instanceof HTMLTextAreaElement
-        ) {
-          return
-        }
-
-        e.preventDefault()
-        // For single selection, use the ID. For multiple, use 'multiple' marker
-        setObjectToDelete(
-          selectedObjectIds.length === 1 ? selectedObjectIds[0] : 'multiple'
-        )
-        setShowDeleteConfirmation(true)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    selectedObjectIdsRef.current = selectedObjectIds
+    isActiveRef.current = isActive
   }, [selectedObjectIds, isActive])
+
+  // Canvas shortcut: Delete selected objects
+  const handleDeleteShortcut = useCallback(() => {
+    const ids = selectedObjectIdsRef.current
+    const active = isActiveRef.current
+
+    if (ids.length === 0 || !active) return
+
+    // For single selection, use the ID. For multiple, use 'multiple' marker
+    setObjectToDelete(ids.length === 1 ? ids[0] : 'multiple')
+    setShowDeleteConfirmation(true)
+  }, [])
+
+  // Register Delete key shortcut (only once!)
+  useShortcut(
+    {
+      key: 'delete',
+      context: ShortcutContext.Canvas,
+      action: handleDeleteShortcut,
+      description: 'Delete selected objects',
+      enabled: () =>
+        selectedObjectIdsRef.current.length > 0 && isActiveRef.current,
+    },
+    [handleDeleteShortcut]
+  )
+
+  // Register Backspace key shortcut (alternative delete)
+  useShortcut(
+    {
+      key: 'backspace',
+      context: ShortcutContext.Canvas,
+      action: handleDeleteShortcut,
+      description: 'Delete selected objects',
+      enabled: () =>
+        selectedObjectIdsRef.current.length > 0 && isActiveRef.current,
+    },
+    [handleDeleteShortcut]
+  )
 
   // Cleanup drag handlers on unmount to prevent stale event listeners
   useEffect(() => {
@@ -1027,6 +1046,7 @@ export function InfiniteCanvas({
             >
               <foreignObject height={height} width={width} x={obj.x} y={obj.y}>
                 <CanvasObject
+                  currentTool={currentTool}
                   isSelected={selectedObjectIds.includes(obj.id)}
                   object={obj}
                   onContextMenu={handleContextMenu}
@@ -1062,11 +1082,11 @@ export function InfiniteCanvas({
                       .join(' ')}`
             }
             fill="none"
-            stroke={brushProperties.strokeColor}
+            stroke={brushSettings.strokeColor}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeOpacity={brushProperties.opacity}
-            strokeWidth={brushProperties.strokeWidth}
+            strokeOpacity={brushSettings.opacity}
+            strokeWidth={brushSettings.strokeWidth}
           />
         )}
 
@@ -1093,11 +1113,11 @@ export function InfiniteCanvas({
                         .join(' ')}`
               }
               fill="none"
-              stroke={brushProperties.strokeColor}
+              stroke={brushSettings.strokeColor}
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeOpacity={brushProperties.opacity}
-              strokeWidth={brushProperties.strokeWidth}
+              strokeOpacity={brushSettings.opacity}
+              strokeWidth={brushSettings.strokeWidth}
             />
             {/* Preview arrowhead */}
             {arrowPath.length >= 2 &&
@@ -1125,10 +1145,7 @@ export function InfiniteCanvas({
                 )
 
                 // Better proportions for hand-drawn look
-                const arrowLength = Math.max(
-                  brushProperties.strokeWidth * 3,
-                  15
-                )
+                const arrowLength = Math.max(brushSettings.strokeWidth * 3, 15)
                 const arrowWidth = arrowLength * 0.5
                 const tipX = lastPoint.x
                 const tipY = lastPoint.y
@@ -1165,12 +1182,12 @@ export function InfiniteCanvas({
                       L ${rightX} ${rightY}
                       Q ${rightCtrlX} ${rightCtrlY}, ${tipX} ${tipY}
                       Z`}
-                    fill={brushProperties.strokeColor}
-                    opacity={brushProperties.opacity}
-                    stroke={brushProperties.strokeColor}
+                    fill={brushSettings.strokeColor}
+                    opacity={brushSettings.opacity}
+                    stroke={brushSettings.strokeColor}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={brushProperties.strokeWidth * 0.5}
+                    strokeWidth={brushSettings.strokeWidth * 0.5}
                   />
                 )
               })()}
@@ -1193,52 +1210,7 @@ export function InfiniteCanvas({
         )}
       </svg>
 
-      {/* Viewport info overlay */}
-      {showViewportInfo && (
-        <CanvasViewportDisplay
-          objectCount={objects.length}
-          tabId={tabId}
-          viewport={viewport}
-        />
-      )}
-
-      {/* Canvas toolbar */}
-      {showToolbar && (
-        <CanvasToolbar onToolSelect={setTool} selectedTool={currentTool} />
-      )}
-
-      {/* Brush properties panel for freehand and arrow tools */}
-      {(currentTool === 'freehand' || currentTool === 'arrow') && (
-        <BrushPropertiesPanel
-          onOpacityChange={opacity =>
-            setBrushProperties(prev => ({ ...prev, opacity }))
-          }
-          onStrokeColorChange={color =>
-            setBrushProperties(prev => ({ ...prev, strokeColor: color }))
-          }
-          onStrokeWidthChange={width =>
-            setBrushProperties(prev => ({ ...prev, strokeWidth: width }))
-          }
-          onUpdate={handleUpdateObject}
-          opacity={brushProperties.opacity}
-          selectedObject={
-            objects.find(obj => selectedObjectIds.includes(obj.id)) || null
-          }
-          strokeColor={brushProperties.strokeColor}
-          strokeWidth={brushProperties.strokeWidth}
-        />
-      )}
-
-      {/* Properties panel for selected object */}
-      <CanvasPropertiesPanel
-        onUpdate={handleUpdateObject}
-        selectedObject={
-          selectedObjectIds.length === 1
-            ? objects.find(obj => obj.id === selectedObjectIds[0]) || null
-            : null
-        }
-      />
-
+      {/* Dialogs - Still rendered here (not global) */}
       {/* YouTube URL dialog */}
       {showYouTubeDialog && (
         <YouTubeUrlDialog

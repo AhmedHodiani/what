@@ -5,6 +5,7 @@ interface ArrowWidgetProps {
   object: ArrowObject
   isSelected: boolean
   zoom: number
+  currentTool?: string
   onSelect: (id: string, event?: React.MouseEvent) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
   onStartDrag: (e: React.MouseEvent, id: string) => void
@@ -24,6 +25,7 @@ export function ArrowWidget({
   object,
   isSelected,
   zoom,
+  currentTool,
   onSelect,
   onContextMenu,
   onStartDrag,
@@ -182,6 +184,9 @@ export function ArrowWidget({
   // Add padding for hit area
   const hitPadding = Math.max(strokeWidth / 2 + 5, 10)
 
+  // Check if we're in drawing mode
+  const isDrawingMode = currentTool === 'freehand' || currentTool === 'arrow'
+
   return (
     <g>
       {/* Invisible hit area for easier selection */}
@@ -196,8 +201,8 @@ export function ArrowWidget({
         strokeLinejoin="round"
         strokeWidth={Math.max(strokeWidth + 10, 20)}
         style={{
-          cursor: isSelected ? 'grab' : 'pointer',
-          pointerEvents: 'stroke',
+          cursor: isDrawingMode ? 'crosshair' : isSelected ? 'grab' : 'pointer',
+          pointerEvents: isDrawingMode ? 'none' : 'stroke',
         }}
       />
 

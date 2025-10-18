@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 
 export type ShapeType =
   | 'rectangle'
@@ -33,6 +34,18 @@ export function ShapePickerDialog({
 }: ShapePickerDialogProps) {
   const [hoveredShape, setHoveredShape] = useState<ShapeType | null>(null)
 
+  // Register dialog shortcut
+  useShortcut(
+    {
+      key: 'escape',
+      context: ShortcutContext.Dialog,
+      action: onClose,
+      description: 'Close shape picker',
+      enabled: () => isOpen,
+    },
+    [onClose, isOpen]
+  )
+
   if (!isOpen) return null
 
   const handleSelectShape = (shapeType: ShapeType) => {
@@ -40,17 +53,10 @@ export function ShapePickerDialog({
     onClose()
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose()
-    }
-  }
-
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50"
       onClick={onClose}
-      onKeyDown={handleKeyDown}
     >
       <div
         className="bg-black/90 rounded-lg shadow-xl border border-teal-400/30 p-6 min-w-[400px]"

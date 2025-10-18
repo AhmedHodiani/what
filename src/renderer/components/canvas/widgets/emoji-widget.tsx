@@ -5,6 +5,7 @@ interface EmojiWidgetProps {
   object: EmojiObject
   isSelected: boolean
   zoom: number
+  currentTool?: string
   onUpdate: (id: string, updates: Partial<DrawingObject>) => void
   onSelect: (id: string, event?: React.MouseEvent) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
@@ -23,6 +24,7 @@ export function EmojiWidget({
   object,
   isSelected,
   zoom,
+  currentTool,
   onUpdate,
   onSelect,
   onContextMenu,
@@ -33,6 +35,7 @@ export function EmojiWidget({
 
   return (
     <WidgetWrapper
+      currentTool={currentTool}
       isResizable={true}
       isSelected={isSelected}
       lockAspectRatio={true}

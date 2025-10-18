@@ -18,6 +18,13 @@ import {
 import { MenuBar } from 'renderer/components/layout/menu-bar'
 import { UpdateNotification } from 'renderer/components/layout/update-notification'
 import { WelcomeScreen } from 'renderer/components/welcome/welcome-screen'
+import {
+  GlobalToolProvider,
+  ActiveTabProvider,
+  useActiveTab,
+} from 'renderer/contexts'
+import { GlobalPanelsLayout } from 'renderer/components/layout/global-panels-layout'
+import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 import type { Viewport } from 'lib/types/canvas'
 import type { FileTab } from 'shared/types/tabs'
 
@@ -45,6 +52,45 @@ const initialLayoutConfig: IJsonModel = {
     weight: 100,
     children: [],
   },
+}
+
+/**
+ * Inner component that has access to ActiveTabContext
+ * This allows us to update the context when tabs switch
+ */
+function TabSwitchHandler({
+  activeTabId,
+  viewports,
+}: {
+  activeTabId: string | null
+  viewports: Map<string, Viewport>
+}) {
+  const { updateActiveTab } = useActiveTab()
+
+  // Update ActiveTabContext whenever activeTabId changes
+  useEffect(() => {
+    if (!activeTabId) return
+
+    const loadTabData = async () => {
+      const viewport = viewports.get(activeTabId)
+      if (!viewport) return
+
+      // Load objects from database for this tab
+      const objects = await window.App.file.getObjects(activeTabId)
+
+      // Immediately update the context with the new tab's data
+      updateActiveTab({
+        tabId: activeTabId,
+        viewport,
+        objects: objects || [],
+        selectedObjectIds: [], // Clear selection when switching tabs
+      })
+    }
+
+    loadTabData()
+  }, [activeTabId, viewports, updateActiveTab])
+
+  return null // This is just a handler, no UI
 }
 
 export function MainScreenWithTabs() {
@@ -267,6 +313,78 @@ export function MainScreenWithTabs() {
     }
   }, [])
 
+  // Switch to next tab (Ctrl+Tab)
+  const handleSwitchToNextTab = useCallback(() => {
+    if (tabs.length <= 1) return // No switching if only 0 or 1 tab
+
+    const currentIndex = tabs.findIndex(t => t.id === activeTabId)
+    if (currentIndex === -1) return
+
+    // Cycle to next tab (wrap around to 0 if at end)
+    const nextIndex = (currentIndex + 1) % tabs.length
+    const nextTab = tabs[nextIndex]
+
+    // Use layoutRef to access the Layout component and switch tabs
+    if (layoutRef.current) {
+      const tabNode = model.getNodeById(nextTab.id) as TabNode | undefined
+      if (tabNode) {
+        // Manually update activeTabId and notify IPC
+        setActiveTabId(nextTab.id)
+        window.App.tabs.setActive(nextTab.id)
+        
+        // Then trigger the FlexLayout action
+        model.doAction(Actions.selectTab(nextTab.id))
+      }
+    }
+  }, [tabs, activeTabId, model])
+
+  // Switch to previous tab (Ctrl+Shift+Tab)
+  const handleSwitchToPreviousTab = useCallback(() => {
+    if (tabs.length <= 1) return // No switching if only 0 or 1 tab
+
+    const currentIndex = tabs.findIndex(t => t.id === activeTabId)
+    if (currentIndex === -1) return
+
+    // Cycle to previous tab (wrap around to end if at start)
+    const prevIndex = currentIndex === 0 ? tabs.length - 1 : currentIndex - 1
+    const prevTab = tabs[prevIndex]
+
+    // Use layoutRef to access the Layout component and switch tabs
+    if (layoutRef.current) {
+      const tabNode = model.getNodeById(prevTab.id) as TabNode | undefined
+      if (tabNode) {
+        // Manually update activeTabId and notify IPC
+        setActiveTabId(prevTab.id)
+        window.App.tabs.setActive(prevTab.id)
+        
+        // Then trigger the FlexLayout action
+        model.doAction(Actions.selectTab(prevTab.id))
+      }
+    }
+  }, [tabs, activeTabId, model])
+
+  // Register Ctrl+Tab shortcut (next tab)
+  useShortcut(
+    {
+      key: 'ctrl+tab',
+      context: ShortcutContext.System,
+      action: handleSwitchToNextTab,
+      description: 'Switch to next tab',
+    },
+    [handleSwitchToNextTab]
+  )
+
+  // Register Ctrl+Shift+Tab shortcut (previous tab)
+  useShortcut(
+    {
+      key: 'ctrl+shift+tab',
+      context: ShortcutContext.System,
+      action: handleSwitchToPreviousTab,
+      description: 'Switch to previous tab',
+    },
+    [handleSwitchToPreviousTab]
+  )
+
   // Listen for keyboard shortcuts
   useEffect(() => {
     const cleanup = window.App.shortcuts.onShortcut(async action => {
@@ -444,16 +562,25 @@ export function MainScreenWithTabs() {
       {/* Main Content Area */}
       <div className="flex-1 relative">
         {tabs.length > 0 ? (
-          <div className="h-full">
-            <Layout
-              factory={factory}
-              model={model}
-              onAction={onAction}
-              onModelChange={onModelChange}
-              popoutURL="popout.html"
-              ref={layoutRef}
-            />
-          </div>
+          <GlobalToolProvider>
+            <ActiveTabProvider>
+              {/* Handler to update ActiveTabContext when tabs switch */}
+              <TabSwitchHandler
+                activeTabId={activeTabId}
+                viewports={viewports}
+              />
+              <GlobalPanelsLayout>
+                <Layout
+                  factory={factory}
+                  model={model}
+                  onAction={onAction}
+                  onModelChange={onModelChange}
+                  popoutURL="popout.html"
+                  ref={layoutRef}
+                />
+              </GlobalPanelsLayout>
+            </ActiveTabProvider>
+          </GlobalToolProvider>
         ) : (
           <WelcomeScreen
             onNewFile={handleNewFile}

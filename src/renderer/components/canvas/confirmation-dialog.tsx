@@ -1,3 +1,5 @@
+import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
+
 interface ConfirmationDialogProps {
   isOpen: boolean
   title: string
@@ -27,21 +29,35 @@ export function ConfirmationDialog({
   onCancel,
   variant = 'default',
 }: ConfirmationDialogProps) {
-  if (!isOpen) return null
+  // Register dialog shortcuts with highest priority
+  useShortcut(
+    {
+      key: 'escape',
+      context: ShortcutContext.Dialog,
+      action: onCancel,
+      description: 'Close dialog',
+      enabled: () => isOpen,
+    },
+    [onCancel, isOpen]
+  )
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      onConfirm()
-    } else if (e.key === 'Escape') {
-      onCancel()
-    }
-  }
+  useShortcut(
+    {
+      key: 'enter',
+      context: ShortcutContext.Dialog,
+      action: onConfirm,
+      description: 'Confirm action',
+      enabled: () => isOpen,
+    },
+    [onConfirm, isOpen]
+  )
+
+  if (!isOpen) return null
 
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000]"
       onClick={onCancel}
-      onKeyDown={handleKeyDown}
     >
       <div
         className="bg-black/90 rounded-lg shadow-2xl border border-teal-400/30 p-6 w-[400px] max-w-[90vw]"
