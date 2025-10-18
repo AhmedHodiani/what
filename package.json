@@ -2,7 +2,7 @@
   "displayName": "What",
   "name": "what",
   "description": "A local-first visual thinking app. Draw, map, and organize your ideas on an infinite canvas. Files are stored in a single .what format — fast, self-contained, and portable. Built with Electron, powered by SQLite, made for clarity.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "main": "./node_modules/.dev/main/index.js",
   "resources": "src/resources",
   "author": {
