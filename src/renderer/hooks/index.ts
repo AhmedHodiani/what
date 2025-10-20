@@ -16,4 +16,5 @@ export { useArrowDrawing } from './use-arrow-drawing'
 export { useAutoResize } from './use-auto-resize'
 export { useMarkdown } from './use-markdown'
 export { useCanvasFileOperations } from './use-canvas-file-operations'
+export { useCanvasDialogs } from './use-canvas-dialogs'
 

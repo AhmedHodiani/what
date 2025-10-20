@@ -22,6 +22,7 @@ import { useCanvasObjects } from 'renderer/hooks/use-canvas-objects'
 import { useFreehandDrawing } from 'renderer/hooks/use-freehand-drawing'
 import { useArrowDrawing } from 'renderer/hooks/use-arrow-drawing'
 import { useCanvasFileOperations } from 'renderer/hooks/use-canvas-file-operations'
+import { useCanvasDialogs } from 'renderer/hooks/use-canvas-dialogs'
 import { ErrorBoundary } from '../error-boundary'
 import { CanvasGrid } from './canvas-grid'
 import { CanvasObject } from './canvas-object'
@@ -92,30 +93,6 @@ export function InfiniteCanvas({
 
   // Active tab context for syncing state
   const { brushSettings, updateActiveTab } = useActiveTab()
-
-  // YouTube dialog state
-  const [showYouTubeDialog, setShowYouTubeDialog] = useState(false)
-  const [youtubeDialogPosition, setYoutubeDialogPosition] = useState({
-    x: 0,
-    y: 0,
-  })
-
-  // Shape picker dialog state
-  const [showShapeDialog, setShowShapeDialog] = useState(false)
-  const [shapeDialogPosition, setShapeDialogPosition] = useState({ x: 0, y: 0 })
-
-  // Context menu state
-  const [contextMenu, setContextMenu] = useState<{
-    x: number
-    y: number
-    objectId: string
-  } | null>(null)
-
-  // Confirmation dialog state
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [objectToDelete, setObjectToDelete] = useState<
-    string | 'multiple' | null
-  >(null)
 
   // Rectangle selection state
   const [isRectangleSelecting, setIsRectangleSelecting] = useState(false)
@@ -261,6 +238,37 @@ export function InfiniteCanvas({
     containerRef, // Pass container ref for accurate mouse position tracking
   })
 
+  // Dialog management hook - handles all dialogs (YouTube, Shape, Delete, Context menu)
+  const {
+    showYouTubeDialog,
+    youtubeDialogPosition,
+    openYouTubeDialog,
+    handleYouTubeConfirm,
+    handleYouTubeCancel,
+    showShapeDialog,
+    shapeDialogPosition,
+    openShapeDialog,
+    handleShapeSelect,
+    handleShapeCancel,
+    contextMenu,
+    handleContextMenu,
+    closeContextMenu,
+    showDeleteConfirmation,
+    objectToDelete,
+    handleDeleteClick,
+    handleDeleteConfirm,
+    handleDeleteCancel,
+    triggerDeleteConfirmation,
+  } = useCanvasDialogs({
+    objectsLength: objects.length,
+    selectedObjectIds,
+    addObject,
+    deleteObject,
+    selectObject,
+    clearSelection,
+    setTool,
+  })
+
   // Object management callbacks - now using generic methods
   const handleUpdateObject = useCallback(
     async (
@@ -279,27 +287,6 @@ export function InfiniteCanvas({
       selectObject(id, isCtrlPressed)
     },
     [selectObject]
-  )
-
-  const handleContextMenu = useCallback(
-    (event: React.MouseEvent, id: string) => {
-      event.preventDefault()
-      event.stopPropagation()
-
-      // If the right-clicked object is not in the current selection, select only it
-      // If it's already selected as part of multi-selection, keep the multi-selection
-      if (!selectedObjectIds.includes(id)) {
-        selectObject(id)
-      }
-
-      // Show context menu at mouse position
-      setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        objectId: id,
-      })
-    },
-    [selectedObjectIds, selectObject]
   )
 
   // Handle object dragging - generic for all object types
@@ -522,16 +509,14 @@ export function InfiniteCanvas({
           case 'youtube': {
             const worldPos = screenToWorld(e.clientX, e.clientY)
             // Store position and show dialog
-            setYoutubeDialogPosition({ x: worldPos.x, y: worldPos.y })
-            setShowYouTubeDialog(true)
+            openYouTubeDialog({ x: worldPos.x, y: worldPos.y })
             break
           }
 
           case 'shape': {
             const worldPos = screenToWorld(e.clientX, e.clientY)
             // Store position and show shape picker dialog
-            setShapeDialogPosition({ x: worldPos.x, y: worldPos.y })
-            setShowShapeDialog(true)
+            openShapeDialog({ x: worldPos.x, y: worldPos.y })
             break
           }
 
@@ -606,112 +591,6 @@ export function InfiniteCanvas({
       dimensions.width / viewport.zoom
     } ${dimensions.height / viewport.zoom}`
   }, [viewport, dimensions])
-
-  // YouTube dialog handlers
-  const handleYouTubeConfirm = useCallback(
-    async (url: string, videoId: string) => {
-      const youtubeVideo: YouTubeVideoObject = {
-        id: generateId(),
-        type: 'youtube',
-        x: youtubeDialogPosition.x - 280, // Center the video
-        y: youtubeDialogPosition.y - 158,
-        width: 560,
-        height: 315, // 16:9 aspect ratio
-        z_index: objects.length,
-        object_data: {
-          videoUrl: url,
-          videoId: videoId,
-          title: `Video ${videoId}`,
-        },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      }
-      await addObject(youtubeVideo)
-      selectObject(youtubeVideo.id)
-      setShowYouTubeDialog(false)
-      setTool('select')
-    },
-    [youtubeDialogPosition, objects.length, addObject, selectObject, setTool]
-  )
-
-  const handleYouTubeCancel = useCallback(() => {
-    setShowYouTubeDialog(false)
-    setTool('select')
-  }, [setTool])
-
-  // Shape picker dialog handlers
-  const handleShapeSelect = useCallback(
-    async (shapeType: ShapeType) => {
-      const shape: ShapeObject = {
-        id: generateId(),
-        type: 'shape',
-        x: shapeDialogPosition.x - 100, // Center the shape
-        y: shapeDialogPosition.y - 100,
-        width: 200,
-        height: 200,
-        z_index: objects.length,
-        object_data: {
-          shapeType: shapeType,
-          fill: '#3b82f6',
-          stroke: '#1e40af',
-          strokeWidth: 2,
-          cornerRadius: 0,
-          points: shapeType === 'star' ? 5 : 6,
-          rotation: 0,
-          opacity: 1,
-        },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      }
-      await addObject(shape)
-      selectObject(shape.id)
-      setShowShapeDialog(false)
-      setTool('select')
-    },
-    [shapeDialogPosition, objects.length, addObject, selectObject, setTool]
-  )
-
-  const handleShapeCancel = useCallback(() => {
-    setShowShapeDialog(false)
-    setTool('select')
-  }, [setTool])
-
-  // Delete handlers
-  const handleDeleteClick = useCallback(() => {
-    if (contextMenu) {
-      // If the right-clicked object is part of multi-selection, delete all selected objects
-      if (
-        selectedObjectIds.includes(contextMenu.objectId) &&
-        selectedObjectIds.length > 1
-      ) {
-        setObjectToDelete('multiple')
-      } else {
-        setObjectToDelete(contextMenu.objectId)
-      }
-      setShowDeleteConfirmation(true)
-      setContextMenu(null)
-    }
-  }, [contextMenu, selectedObjectIds])
-
-  const handleDeleteConfirm = useCallback(async () => {
-    if (objectToDelete === 'multiple') {
-      // Delete all selected objects
-      for (const id of selectedObjectIds) {
-        await deleteObject(id)
-      }
-      clearSelection()
-    } else if (objectToDelete) {
-      // Delete single object
-      await deleteObject(objectToDelete)
-    }
-    setShowDeleteConfirmation(false)
-    setObjectToDelete(null)
-  }, [objectToDelete, selectedObjectIds, deleteObject, clearSelection])
-
-  const handleDeleteCancel = useCallback(() => {
-    setShowDeleteConfirmation(false)
-    setObjectToDelete(null)
-  }, [])
 
   // Refs for shortcuts (prevent re-registration)
   const selectedObjectIdsRef = useRef(selectedObjectIds)
@@ -937,10 +816,9 @@ export function InfiniteCanvas({
 
     if (ids.length === 0 || !active) return
 
-    // For single selection, use the ID. For multiple, use 'multiple' marker
-    setObjectToDelete(ids.length === 1 ? ids[0] : 'multiple')
-    setShowDeleteConfirmation(true)
-  }, [])
+    // Trigger delete confirmation dialog
+    triggerDeleteConfirmation()
+  }, [triggerDeleteConfirmation])
 
   // Register Delete key shortcut (only once!)
   useShortcut(
@@ -1032,7 +910,7 @@ export function InfiniteCanvas({
             setIsRectangleSelecting(true)
             setRectangleStart(point)
             setRectangleEnd(point)
-            setContextMenu(null) // Close any existing context menu
+            closeContextMenu() // Close any existing context menu
           }
         }}
         onMouseDown={e => {
@@ -1422,7 +1300,7 @@ export function InfiniteCanvas({
       {/* Context menu */}
       {contextMenu && (
         <ContextMenu
-          onClose={() => setContextMenu(null)}
+          onClose={closeContextMenu}
           onDelete={handleDeleteClick}
           x={contextMenu.x}
           y={contextMenu.y}
