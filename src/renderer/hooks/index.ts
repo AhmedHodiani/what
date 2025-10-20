@@ -18,4 +18,5 @@ export { useMarkdown } from './use-markdown'
 export { useCanvasFileOperations } from './use-canvas-file-operations'
 export { useCanvasDialogs } from './use-canvas-dialogs'
 export { useObjectDuplication } from './use-object-duplication'
+export { useRectangleSelection } from './use-rectangle-selection'
 

@@ -5,10 +5,6 @@ import type {
   StickyNoteObject,
   FreehandObject,
   ArrowObject,
-  YouTubeVideoObject,
-  ShapeObject,
-  FileObject,
-  Point,
 } from 'lib/types/canvas'
 import { logger } from '../../../shared/logger'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
@@ -24,12 +20,12 @@ import { useArrowDrawing } from 'renderer/hooks/use-arrow-drawing'
 import { useCanvasFileOperations } from 'renderer/hooks/use-canvas-file-operations'
 import { useCanvasDialogs } from 'renderer/hooks/use-canvas-dialogs'
 import { useObjectDuplication } from 'renderer/hooks/use-object-duplication'
+import { useRectangleSelection } from 'renderer/hooks/use-rectangle-selection'
 import { ErrorBoundary } from '../error-boundary'
 import { CanvasGrid } from './canvas-grid'
 import { CanvasObject } from './canvas-object'
 import { YouTubeUrlDialog } from './youtube-url-dialog'
 import { ShapePickerDialog } from './shape-picker-dialog'
-import type { ShapeType } from './shape-picker-dialog'
 import { ContextMenu } from './context-menu'
 import { ConfirmationDialog } from './confirmation-dialog'
 import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
@@ -94,17 +90,6 @@ export function InfiniteCanvas({
 
   // Active tab context for syncing state
   const { brushSettings, updateActiveTab } = useActiveTab()
-
-  // Rectangle selection state
-  const [isRectangleSelecting, setIsRectangleSelecting] = useState(false)
-  const [rectangleStart, setRectangleStart] = useState<{
-    x: number
-    y: number
-  } | null>(null)
-  const [rectangleEnd, setRectangleEnd] = useState<{
-    x: number
-    y: number
-  } | null>(null)
 
   // Use generic canvas objects hook
   const {
@@ -280,6 +265,24 @@ export function InfiniteCanvas({
     addObject,
     selectMultipleObjects,
     showToast,
+  })
+
+  // Rectangle selection hook - Windows 7-style right-click drag selection
+  const {
+    isRectangleSelecting,
+    rectangleStart,
+    rectangleEnd,
+    handleRectangleContextMenu,
+    handleRectangleMouseMove,
+    handleRectangleMouseUp,
+    handleRectangleMouseLeave,
+  } = useRectangleSelection({
+    objects,
+    screenToWorld,
+    selectMultipleObjects,
+    clearSelection,
+    closeContextMenu,
+    isActive: isActive ?? true,
   })
 
   // Object management callbacks - now using generic methods
@@ -703,21 +706,7 @@ export function InfiniteCanvas({
         height={dimensions.height}
         onClick={handleCanvasBackgroundClick}
         onContextMenu={e => {
-          // Handle right-click for rectangle selection on canvas background
-          const clickedOnWidget = (e as any)._clickedWidget
-          if (!clickedOnWidget) {
-            e.preventDefault()
-            e.stopPropagation()
-            const point = screenToWorld(e.clientX, e.clientY)
-            logger.debug(
-              'Right-click on canvas - starting rectangle selection',
-              point
-            )
-            setIsRectangleSelecting(true)
-            setRectangleStart(point)
-            setRectangleEnd(point)
-            closeContextMenu() // Close any existing context menu
-          }
+          handleRectangleContextMenu(e)
         }}
         onMouseDown={e => {
           // Handle freehand drawing
@@ -745,11 +734,8 @@ export function InfiniteCanvas({
         }}
         onMouseLeave={() => {
           // Cancel rectangle selection if mouse leaves canvas
-          if (isRectangleSelecting) {
-            setIsRectangleSelecting(false)
-            setRectangleStart(null)
-            setRectangleEnd(null)
-          } else if (isFreehandDrawing) {
+          handleRectangleMouseLeave()
+          if (isFreehandDrawing) {
             handleFreehandEnd()
           } else if (isArrowDrawing) {
             handleArrowEnd()
@@ -757,10 +743,7 @@ export function InfiniteCanvas({
         }}
         onMouseMove={e => {
           if (isRectangleSelecting && rectangleStart) {
-            // Update rectangle selection end point
-            e.stopPropagation()
-            const point = screenToWorld(e.clientX, e.clientY)
-            setRectangleEnd(point)
+            handleRectangleMouseMove(e)
           } else if (isFreehandDrawing) {
             e.stopPropagation()
             handleFreehandMove(e.nativeEvent)
@@ -771,99 +754,7 @@ export function InfiniteCanvas({
         }}
         onMouseUp={() => {
           if (isRectangleSelecting && rectangleStart && rectangleEnd) {
-            // Complete rectangle selection
-            const minX = Math.min(rectangleStart.x, rectangleEnd.x)
-            const maxX = Math.max(rectangleStart.x, rectangleEnd.x)
-            const minY = Math.min(rectangleStart.y, rectangleEnd.y)
-            const maxY = Math.max(rectangleStart.y, rectangleEnd.y)
-
-            // Check if this was just a click (no drag) or an actual rectangle selection
-            const isClick =
-              Math.abs(rectangleEnd.x - rectangleStart.x) < 5 &&
-              Math.abs(rectangleEnd.y - rectangleStart.y) < 5
-
-            if (isClick) {
-              // Just a right-click, clear selection
-              clearSelection()
-            } else {
-              // Find all objects that intersect with the rectangle
-              const selectedIds: string[] = []
-              objects.forEach(obj => {
-                let objMinX = obj.x
-                let objMaxX = obj.x + 100 // default size
-                let objMinY = obj.y
-                let objMaxY = obj.y + 100 // default size
-
-                // Get actual dimensions based on object type
-                if (obj.type === 'freehand') {
-                  // For freehand, calculate bounds from points
-                  const freehandObj = obj as FreehandObject
-                  const points = freehandObj.object_data.points
-                  if (points && points.length > 0) {
-                    const xs = points.map(p => p.x)
-                    const ys = points.map(p => p.y)
-                    objMinX = Math.min(...xs)
-                    objMaxX = Math.max(...xs)
-                    objMinY = Math.min(...ys)
-                    objMaxY = Math.max(...ys)
-
-                    // Add stroke padding for easier selection
-                    const strokePadding =
-                      (freehandObj.object_data.strokeWidth || 5) * 2
-                    objMinX -= strokePadding
-                    objMaxX += strokePadding
-                    objMinY -= strokePadding
-                    objMaxY += strokePadding
-                  }
-                } else if (obj.type === 'arrow') {
-                  // For arrow, calculate bounds from control points
-                  const arrowObj = obj as ArrowObject
-                  const points = arrowObj.object_data.controlPoints
-                  if (points && points.length > 0) {
-                    const xs = points.map(p => p.x)
-                    const ys = points.map(p => p.y)
-                    objMinX = Math.min(...xs)
-                    objMaxX = Math.max(...xs)
-                    objMinY = Math.min(...ys)
-                    objMaxY = Math.max(...ys)
-
-                    // Add stroke padding for easier selection
-                    const strokePadding =
-                      (arrowObj.object_data.strokeWidth || 5) * 2
-                    objMinX -= strokePadding
-                    objMaxX += strokePadding
-                    objMinY -= strokePadding
-                    objMaxY += strokePadding
-                  }
-                } else if ('width' in obj && 'height' in obj) {
-                  // For objects with explicit dimensions
-                  objMaxX = obj.x + obj.width
-                  objMaxY = obj.y + obj.height
-                }
-
-                // Rectangle intersection test
-                if (
-                  objMaxX >= minX &&
-                  objMinX <= maxX &&
-                  objMaxY >= minY &&
-                  objMinY <= maxY
-                ) {
-                  selectedIds.push(obj.id)
-                }
-              })
-
-              // Update selection
-              if (selectedIds.length > 0) {
-                selectMultipleObjects(selectedIds)
-              } else {
-                clearSelection()
-              }
-            }
-
-            // Reset rectangle selection state
-            setIsRectangleSelecting(false)
-            setRectangleStart(null)
-            setRectangleEnd(null)
+            handleRectangleMouseUp()
           } else if (isFreehandDrawing) {
             handleFreehandEnd()
           } else if (isArrowDrawing) {
