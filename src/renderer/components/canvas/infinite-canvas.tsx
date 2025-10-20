@@ -3,7 +3,6 @@ import type {
   Viewport,
   DrawingObject,
   StickyNoteObject,
-  TextObject,
   FreehandObject,
   ArrowObject,
   YouTubeVideoObject,
@@ -476,35 +475,6 @@ export function InfiniteCanvas({
             }
             await addObject(stickyNote)
             selectObject(stickyNote.id)
-            setTool('select') // Switch back to select mode after creating
-            break
-          }
-
-          case 'text': {
-            const textBox: TextObject = {
-              id: generateId(),
-              type: 'text',
-              x: worldPos.x - 150, // Center the text box
-              y: worldPos.y - 50,
-              width: 300,
-              height: 100,
-              z_index: objects.length,
-              object_data: {
-                text: '',
-                fontSize: 24,
-                fontFamily: 'Inter, system-ui, sans-serif',
-                fontWeight: 'normal',
-                fontStyle: 'normal',
-                textAlign: 'left',
-                color: '#FFFFFF',
-                backgroundColor: 'transparent',
-                lineHeight: 1.5,
-              },
-              created: new Date().toISOString(),
-              updated: new Date().toISOString(),
-            }
-            await addObject(textBox)
-            selectObject(textBox.id)
             setTool('select') // Switch back to select mode after creating
             break
           }

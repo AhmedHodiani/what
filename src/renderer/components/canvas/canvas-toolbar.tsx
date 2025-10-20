@@ -16,7 +16,6 @@ interface Tool {
 const tools: Tool[] = [
   { type: 'select', label: 'Select', icon: '↖' },
   { type: 'sticky-note', label: 'Sticky Note', icon: '📝' },
-  { type: 'text', label: 'Text', icon: '📄' },
   { type: 'shape', label: 'Shape', icon: '⬜' },
   { type: 'freehand', label: 'Pen', icon: '✏️' },
   { type: 'arrow', label: 'Arrow', icon: '➡️' },
@@ -37,7 +36,6 @@ function getToolShortcut(
   const descriptionMap: Record<string, string[]> = {
     select: ['select tool'],
     'sticky-note': ['sticky note tool'],
-    text: ['text tool'],
     shape: ['shape tool'],
     freehand: ['pen', 'freehand'],
     arrow: ['arrow tool'],
