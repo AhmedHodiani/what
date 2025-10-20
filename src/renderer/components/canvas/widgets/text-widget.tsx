@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import type { TextObject, DrawingObject } from 'lib/types/canvas'
 import { WidgetWrapper } from './widget-wrapper'
 import { useAutoResize } from 'renderer/hooks/use-auto-resize'
+import { useMarkdown } from 'renderer/hooks/use-markdown'
 
 interface TextWidgetProps {
   object: TextObject
@@ -37,6 +38,9 @@ export function TextWidget({
   const [isEditing, setIsEditing] = useState(false)
   const [text, setText] = useState(object.object_data.text || '')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Markdown rendering hook
+  const { renderMarkdown } = useMarkdown()
 
   // Check if auto-resize is enabled (default: true)
   const autoResizeEnabled = object.object_data.autoResize !== false
@@ -186,7 +190,7 @@ export function TextWidget({
           />
         ) : (
           <div
-            className="w-full h-full p-4 whitespace-pre-wrap break-words"
+            className="w-full h-full p-4 whitespace-pre-wrap break-words markdown-content text-widget-markdown"
             style={{
               fontSize: `${fontSize}px`,
               fontFamily,
@@ -197,7 +201,9 @@ export function TextWidget({
               lineHeight,
             }}
           >
-            {text || (
+            {text ? (
+              renderMarkdown(text)
+            ) : (
               <span className="text-gray-500 italic">Click to edit text</span>
             )}
           </div>

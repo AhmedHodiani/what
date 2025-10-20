@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import type { StickyNoteObject, DrawingObject } from 'lib/types/canvas'
 import { WidgetWrapper } from './widget-wrapper'
 import { useAutoResize } from 'renderer/hooks/use-auto-resize'
+import { useMarkdown } from 'renderer/hooks/use-markdown'
 
 interface StickyNoteWidgetProps {
   object: StickyNoteObject
@@ -41,6 +42,9 @@ export function StickyNoteWidget({
   const paperColor = object.object_data.paperColor || '#ffd700'
   const fontColor = object.object_data.fontColor || '#333333'
   const fontSize = object.object_data.fontSize || 16
+
+  // Markdown rendering hook
+  const { renderMarkdown } = useMarkdown()
 
   // Check if auto-resize is enabled (default: true)
   const autoResizeEnabled = object.object_data.autoResize !== false
@@ -237,7 +241,7 @@ export function StickyNoteWidget({
             />
           ) : (
             <div
-              className="relative w-full h-full whitespace-pre-wrap break-words"
+              className="relative w-full h-full markdown-content"
               style={{
                 color: fontColor,
                 fontSize: `${fontSize}px`,
@@ -248,7 +252,9 @@ export function StickyNoteWidget({
                 paddingRight: '25px',
               }}
             >
-              {object.object_data.text || (
+              {object.object_data.text ? (
+                renderMarkdown(object.object_data.text)
+              ) : (
                 <span
                   style={{ color: 'rgba(0, 0, 0, 0.4)', fontStyle: 'italic' }}
                 >

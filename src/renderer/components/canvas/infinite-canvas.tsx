@@ -155,7 +155,6 @@ export function InfiniteCanvas({
   // Sync with ActiveTabContext when this canvas is active
   useEffect(() => {
     if (isActive && tabId) {
-      console.log('🔄 InfiniteCanvas syncing to ActiveTabContext:', { tabId, objectsCount: objects.length, hasUpdateObject: !!updateObject })
       updateActiveTab({
         tabId,
         viewport,
