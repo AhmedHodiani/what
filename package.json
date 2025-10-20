@@ -2,7 +2,7 @@
   "displayName": "What",
   "name": "what",
   "description": "Visual thinking app. Draw, organize, and save ideas locally in .what files.",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "main": "./node_modules/.dev/main/index.js",
   "resources": "src/resources",
   "author": {
