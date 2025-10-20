@@ -455,6 +455,14 @@ export function InfiniteCanvas({
 
         switch (currentTool) {
           case 'sticky-note': {
+            // Random color from palette (excluding transparent)
+            const colors = [
+              '#fffacd', '#fddde6', '#d0e7f9', '#d8f4d8',
+              '#ffe5b4', '#e8d5f9', '#d0fff0', '#ffcccb',
+              '#f3e6ff', '#e0f7ff', '#fff8dc'
+            ]
+            const randomColor = colors[Math.floor(Math.random() * colors.length)]
+
             const stickyNote: StickyNoteObject = {
               id: generateId(),
               type: 'sticky-note',
@@ -465,7 +473,7 @@ export function InfiniteCanvas({
               z_index: objects.length,
               object_data: {
                 text: '',
-                paperColor: '#ffd700', // Classic yellow
+                paperColor: randomColor,
                 fontColor: '#333333',
                 fontSize: 16,
                 fontFamily: 'Kalam',

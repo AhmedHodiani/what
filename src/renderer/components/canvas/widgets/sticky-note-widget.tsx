@@ -43,6 +43,9 @@ export function StickyNoteWidget({
   const fontColor = object.object_data.fontColor || '#333333'
   const fontSize = object.object_data.fontSize || 16
 
+  // Check if transparent (alpha channel is 00)
+  const isTransparent = paperColor.toLowerCase().endsWith('00')
+
   // Markdown rendering hook
   const { renderMarkdown } = useMarkdown()
 
@@ -189,35 +192,41 @@ export function StickyNoteWidget({
             : '2px 2px 8px rgba(0, 0, 0, 0.2)',
         }}
       >
-        {/* Paper gradient overlay */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
-          }}
-        />
+        {/* Paper gradient overlay (hidden when transparent) */}
+        {!isTransparent && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+            }}
+          />
+        )}
 
-        {/* Folded corner */}
-        <div
-          className="absolute top-0 right-0 w-0 h-0 border-solid border-transparent border-r-[#e0e0e0]"
-          style={{
-            borderWidth: '0 35px 35px 0',
-            filter: 'drop-shadow(-2px 2px 3px rgba(0, 0, 0, 0.15))',
-          }}
-        />
+        {/* Folded corner (hidden when transparent) */}
+        {!isTransparent && (
+          <div
+            className="absolute top-0 right-0 w-0 h-0 border-solid border-transparent border-r-[#e0e0e0]"
+            style={{
+              borderWidth: '0 35px 35px 0',
+              filter: 'drop-shadow(-2px 2px 3px rgba(0, 0, 0, 0.15))',
+            }}
+          />
+        )}
 
         {/* Text content with paper texture */}
         <div className="relative w-full h-full p-4 box-border">
-          {/* Paper texture */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-50"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.02) 1px, transparent 0)',
-              backgroundSize: '20px 20px',
-            }}
-          />
+          {/* Paper texture (hidden when transparent) */}
+          {!isTransparent && (
+            <div
+              className="absolute inset-0 pointer-events-none opacity-50"
+              style={{
+                backgroundImage:
+                  'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.02) 1px, transparent 0)',
+                backgroundSize: '20px 20px',
+              }}
+            />
+          )}
 
           {/* Editable text */}
           {isEditing ? (
