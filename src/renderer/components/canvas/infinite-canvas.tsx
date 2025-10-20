@@ -351,8 +351,26 @@ export function InfiniteCanvas({
     [dimensions, screenToWorld, objects.length, addObject, selectObject, tabId, showToast]
   )
 
+  // Handle file paste (non-image files)
+  const handleFilePaste = useCallback(
+    async (
+      pastedFile: { file: File },
+      mousePosition?: { x: number; y: number }
+    ) => {
+      try {
+        await handleFileAdd(pastedFile.file, mousePosition)
+        showToast(`File "${pastedFile.file.name}" added to canvas`, 'success')
+      } catch (error) {
+        logger.error('Failed to paste file:', error)
+        showToast(`Failed to add file "${pastedFile.file.name}"`, 'error')
+      }
+    },
+    [handleFileAdd, showToast]
+  )
+
   useClipboardPaste({
     onImagePaste: handleImagePaste,
+    onFilePaste: handleFilePaste,
     enabled: isActive,
     containerRef, // Pass container ref for accurate mouse position tracking
   })
