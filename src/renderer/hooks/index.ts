@@ -14,3 +14,5 @@ export { useCanvasTool } from './use-canvas-tool'
 export { useFreehandDrawing } from './use-freehand-drawing'
 export { useArrowDrawing } from './use-arrow-drawing'
 export { useAutoResize } from './use-auto-resize'
+export { useMarkdown } from './use-markdown'
+

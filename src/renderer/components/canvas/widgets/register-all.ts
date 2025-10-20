@@ -17,7 +17,6 @@ import { widgetRegistry } from './widget-registry'
 // Import all widget components
 import { ImageWidget } from '../image-widget'
 import { StickyNoteWidget } from './sticky-note-widget'
-import { TextWidget } from './text-widget'
 import { FreehandWidget } from './freehand-widget'
 import { ArrowWidget } from './arrow-widget'
 import { YouTubeWidget } from './youtube-widget'
@@ -39,12 +38,6 @@ export function registerAllWidgets(): void {
   widgetRegistry.register('sticky-note', StickyNoteWidget, {
     displayName: 'Sticky Note',
     description: 'Colorful sticky notes with editable text',
-  })
-
-  // Text widget
-  widgetRegistry.register('text', TextWidget, {
-    displayName: 'Text Box',
-    description: 'Rich text editor with formatting options',
   })
 
   // Shape widget

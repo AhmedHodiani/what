@@ -93,31 +93,6 @@ export interface ImageObject {
   updated: string
 }
 
-// Text box
-export interface TextObject {
-  id: string
-  type: 'text'
-  x: number
-  y: number
-  width: number
-  height: number
-  z_index: number
-  object_data: {
-    text: string // Text content
-    fontSize?: number // Font size
-    fontFamily?: string // Font family
-    fontWeight?: string // bold, normal, etc
-    fontStyle?: string // italic, normal
-    textAlign?: 'left' | 'center' | 'right'
-    color?: string // Text color
-    backgroundColor?: string // Background color
-    lineHeight?: number // Line spacing
-    autoResize?: boolean // Auto-resize to fit content (default: true)
-  }
-  created: string
-  updated: string
-}
-
 // Shapes (rectangle, circle, etc)
 export interface ShapeObject {
   id: string
@@ -212,7 +187,6 @@ export type DrawingObject =
   | FreehandObject
   | StickyNoteObject
   | ImageObject
-  | TextObject
   | ShapeObject
   | ArrowObject
   | YouTubeVideoObject

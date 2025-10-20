@@ -68,10 +68,31 @@ export function CanvasObject({
 
   if (!WidgetComponent) {
     return (
-      <div className="text-red-400 p-4 bg-red-900/20 rounded border border-red-600">
+      <div 
+        className="text-red-400 p-4 bg-red-900/20 rounded border border-red-600 cursor-pointer select-none"
+        onClick={(e) => {
+          e.stopPropagation()
+          onSelect(object.id)
+        }}
+        onContextMenu={(e) => {
+          e.stopPropagation()
+          onContextMenu(e, object.id)
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation()
+          onStartDrag(e, object.id)
+        }}
+        style={{
+          outline: isSelected ? '2px solid #ef4444' : 'none',
+          outlineOffset: '2px',
+        }}
+      >
         <p className="font-bold">⚠️ Unknown widget type: {object.type}</p>
         <p className="text-sm mt-1">
           This widget is not registered. Check widgets/register-all.ts
+        </p>
+        <p className="text-xs mt-2 opacity-70">
+          Right-click to delete this orphaned object
         </p>
       </div>
     )

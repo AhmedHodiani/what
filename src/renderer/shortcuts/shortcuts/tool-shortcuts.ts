@@ -59,15 +59,6 @@ export function registerToolShortcuts(
     registry.register({
       key: '2',
       context: ShortcutContext.Tool,
-      action: () => handlers.onToolChange('text'),
-      description: 'Text tool',
-    })
-  )
-
-  ids.push(
-    registry.register({
-      key: '3',
-      context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('shape'),
       description: 'Shape tool',
     })
@@ -75,7 +66,7 @@ export function registerToolShortcuts(
 
   ids.push(
     registry.register({
-      key: '4',
+      key: '3',
       context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('freehand'),
       description: 'Freehand pen tool',
@@ -84,7 +75,7 @@ export function registerToolShortcuts(
 
   ids.push(
     registry.register({
-      key: '5',
+      key: '4',
       context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('arrow'),
       description: 'Arrow tool',
@@ -93,7 +84,7 @@ export function registerToolShortcuts(
 
   ids.push(
     registry.register({
-      key: '6',
+      key: '5',
       context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('image'),
       description: 'Image tool',
@@ -102,7 +93,7 @@ export function registerToolShortcuts(
 
   ids.push(
     registry.register({
-      key: '7',
+      key: '6',
       context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('youtube'),
       description: 'YouTube video tool',
@@ -111,7 +102,7 @@ export function registerToolShortcuts(
 
   ids.push(
     registry.register({
-      key: '8',
+      key: '7',
       context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('emoji'),
       description: 'Emoji tool',

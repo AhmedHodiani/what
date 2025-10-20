@@ -2,17 +2,20 @@ import { useCallback } from 'react'
 import type { StickyNoteObject, DrawingObject } from 'lib/types/canvas'
 import { BasePanel, PanelSection, ColorGrid, ButtonGroup } from './base-panel'
 
-// Preset color palettes
 const PAPER_COLORS = [
-  { name: 'Yellow', value: '#ffd700' },
-  { name: 'Pink', value: '#ffb3d9' },
-  { name: 'Blue', value: '#87ceeb' },
-  { name: 'Green', value: '#98fb98' },
-  { name: 'Orange', value: '#ffa500' },
-  { name: 'Purple', value: '#dda0dd' },
-  { name: 'Mint', value: '#98ffcc' },
+  { name: 'Yellow', value: '#fffacd' },
+  { name: 'Pink', value: '#fddde6' },
+  { name: 'Blue', value: '#d0e7f9' },
+  { name: 'Green', value: '#d8f4d8' },
+  { name: 'Orange', value: '#ffe5b4' },
+  { name: 'Purple', value: '#e8d5f9' },
+  { name: 'Mint', value: '#d0fff0' },
   { name: 'Peach', value: '#ffcccb' },
-]
+  { name: 'Lavender', value: '#f3e6ff' },   // new soft lavender
+  { name: 'Sky', value: '#e0f7ff' },        // pale sky blue
+  { name: 'Cream', value: '#fff8dc' },      // light cream
+  { name: 'NoColor', value: '#00000000' },
+];
 
 const FONT_COLORS = [
   { name: 'Dark Gray', value: '#333333' },
@@ -26,14 +29,14 @@ const FONT_COLORS = [
 ]
 
 const FONT_SIZES = [
-  { label: '12', value: 12 },
-  { label: '14', value: 14 },
   { label: '16', value: 16 },
   { label: '18', value: 18 },
   { label: '20', value: 20 },
   { label: '24', value: 24 },
   { label: '28', value: 28 },
   { label: '32', value: 32 },
+  { label: '36', value: 36 },
+  { label: '40', value: 40 },
 ]
 
 interface StickyNotePanelProps {

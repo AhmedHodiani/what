@@ -3,7 +3,6 @@ import type {
   Viewport,
   DrawingObject,
   StickyNoteObject,
-  TextObject,
   FreehandObject,
   ArrowObject,
   YouTubeVideoObject,
@@ -160,9 +159,10 @@ export function InfiniteCanvas({
         viewport,
         selectedObjectIds,
         objects,
+        updateObject, // Pass the updateObject function so properties panels can trigger saves
       })
     }
-  }, [isActive, tabId, viewport, selectedObjectIds, objects, updateActiveTab])
+  }, [isActive, tabId, viewport, selectedObjectIds, objects, updateObject, updateActiveTab])
 
   // Convert screen coordinates to world coordinates
   const screenToWorld = useCallback(
@@ -455,6 +455,14 @@ export function InfiniteCanvas({
 
         switch (currentTool) {
           case 'sticky-note': {
+            // Random color from palette (excluding transparent)
+            const colors = [
+              '#fffacd', '#fddde6', '#d0e7f9', '#d8f4d8',
+              '#ffe5b4', '#e8d5f9', '#d0fff0', '#ffcccb',
+              '#f3e6ff', '#e0f7ff', '#fff8dc'
+            ]
+            const randomColor = colors[Math.floor(Math.random() * colors.length)]
+
             const stickyNote: StickyNoteObject = {
               id: generateId(),
               type: 'sticky-note',
@@ -465,7 +473,7 @@ export function InfiniteCanvas({
               z_index: objects.length,
               object_data: {
                 text: '',
-                paperColor: '#ffd700', // Classic yellow
+                paperColor: randomColor,
                 fontColor: '#333333',
                 fontSize: 16,
                 fontFamily: 'Kalam',
@@ -475,35 +483,6 @@ export function InfiniteCanvas({
             }
             await addObject(stickyNote)
             selectObject(stickyNote.id)
-            setTool('select') // Switch back to select mode after creating
-            break
-          }
-
-          case 'text': {
-            const textBox: TextObject = {
-              id: generateId(),
-              type: 'text',
-              x: worldPos.x - 150, // Center the text box
-              y: worldPos.y - 50,
-              width: 300,
-              height: 100,
-              z_index: objects.length,
-              object_data: {
-                text: '',
-                fontSize: 24,
-                fontFamily: 'Inter, system-ui, sans-serif',
-                fontWeight: 'normal',
-                fontStyle: 'normal',
-                textAlign: 'left',
-                color: '#FFFFFF',
-                backgroundColor: 'transparent',
-                lineHeight: 1.5,
-              },
-              created: new Date().toISOString(),
-              updated: new Date().toISOString(),
-            }
-            await addObject(textBox)
-            selectObject(textBox.id)
             setTool('select') // Switch back to select mode after creating
             break
           }

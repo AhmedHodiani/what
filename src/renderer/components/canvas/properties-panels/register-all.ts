@@ -16,9 +16,7 @@ import { panelRegistry } from './panel-registry'
 
 // Import all panel components
 import { StickyNotePanel } from './sticky-note-panel'
-import { TextPanel } from './text-panel'
 import { ShapePanel } from './shape-panel'
-// import { BrushPanel } from './brush-panel' // Not used - drawings not editable
 import { EmojiPanel } from './emoji-panel'
 
 /**
@@ -31,35 +29,15 @@ export function registerAllPanels(): void {
     displayName: 'Sticky Note Properties',
   })
 
-  // Text panel
-  panelRegistry.register('text', TextPanel, {
-    displayName: 'Text Properties',
-  })
-
   // Shape panel
   panelRegistry.register('shape', ShapePanel, {
     displayName: 'Shape Properties',
   })
 
-  // Freehand drawing panel - DISABLED (drawings not editable after creation)
-  // panelRegistry.register('freehand', BrushPanel, {
-  //   displayName: 'Brush Properties',
-  // })
-
-  // Arrow drawing panel - DISABLED (drawings not editable after creation)
-  // panelRegistry.register('arrow', BrushPanel, {
-  //   displayName: 'Arrow Properties',
-  // })
-
   // Emoji panel
   panelRegistry.register('emoji', EmojiPanel, {
     displayName: 'Emoji Selector',
   })
-
-  // Note: Arrow and YouTube widgets don't have properties panels yet
-  // Add them here when created:
-  // panelRegistry.register('arrow', ArrowPanel)
-  // panelRegistry.register('youtube', YouTubePanel)
 }
 
 // Auto-register on import (runs immediately when this module is loaded)
