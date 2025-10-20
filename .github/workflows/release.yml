@@ -6,27 +6,25 @@ on:
 
 jobs:
   release:
-    runs-on: ${{ matrix.os }}
-
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - run: npm i -g --force corepack && corepack enable
-
-      - name: Install Node.js, NPM and PNPM
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "pnpm"
+          cache: 'pnpm'
 
-      - run: pnpm install
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      # Linux-specific setup
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
@@ -39,3 +37,4 @@ jobs:
           package_manager: "pnpm"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release: true
+          skip_build: true
