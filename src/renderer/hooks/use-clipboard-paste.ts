@@ -11,6 +11,10 @@ export interface PastedFile {
   file: File
 }
 
+export interface PastedText {
+  text: string
+}
+
 interface UseClipboardPasteOptions {
   onImagePaste: (
     image: PastedImage,
@@ -20,22 +24,28 @@ interface UseClipboardPasteOptions {
     file: PastedFile,
     mousePosition?: { x: number; y: number }
   ) => void
+  onTextPaste?: (
+    text: PastedText,
+    mousePosition?: { x: number; y: number }
+  ) => void
   enabled?: boolean
   containerRef?: RefObject<HTMLElement | null> // Reference to canvas container for position tracking
 }
 
 /**
- * Hook for handling clipboard paste events (Ctrl+V) for images and files.
- * Automatically extracts image/file data from clipboard and provides it to the callback.
+ * Hook for handling clipboard paste events (Ctrl+V) for images, files, and text.
+ * Automatically extracts data from clipboard and provides it to the appropriate callback.
  *
  * @param onImagePaste - Callback fired when an image is pasted
  * @param onFilePaste - Callback fired when a non-image file is pasted
+ * @param onTextPaste - Callback fired when plain text is pasted
  * @param enabled - Whether paste handling is enabled (default: true)
  * @param containerRef - Reference to container element for accurate mouse position
  */
 export function useClipboardPaste({
   onImagePaste,
   onFilePaste,
+  onTextPaste,
   enabled = true,
   containerRef,
 }: UseClipboardPasteOptions) {
@@ -140,6 +150,7 @@ export function useClipboardPaste({
         // Handle images
         if (file.type.startsWith('image/')) {
           e.preventDefault()
+          handled = true
 
           // Read the image to get dimensions
           const dataUrl = await new Promise<string>(resolve => {
@@ -172,7 +183,19 @@ export function useClipboardPaste({
         // Handle non-image files
         else if (onFilePaste) {
           e.preventDefault()
+          handled = true
           onFilePaste({ file }, mousePosition)
+        }
+      }
+
+      // THIRD: Handle plain text paste (only if nothing else was handled)
+      if (!handled && onTextPaste && e.clipboardData) {
+        const text = e.clipboardData.getData('text/plain')
+        
+        // Only process if there's actual text content
+        if (text && text.trim().length > 0) {
+          e.preventDefault()
+          onTextPaste({ text: text.trim() }, mousePosition)
         }
       }
     }
@@ -185,5 +208,5 @@ export function useClipboardPaste({
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('paste', handlePaste)
     }
-  }, [onImagePaste, onFilePaste, enabled, containerRef])
+  }, [onImagePaste, onFilePaste, onTextPaste, enabled, containerRef])
 }

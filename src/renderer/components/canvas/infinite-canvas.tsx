@@ -368,9 +368,60 @@ export function InfiniteCanvas({
     [handleFileAdd, showToast]
   )
 
+  // Handle text paste (creates sticky note)
+  const handleTextPaste = useCallback(
+    async (
+      pastedText: { text: string },
+      mousePosition?: { x: number; y: number }
+    ) => {
+      try {
+        // Random color from palette (excluding transparent)
+        const colors = [
+          '#fffacd', '#fddde6', '#d0e7f9', '#d8f4d8',
+          '#ffe5b4', '#e8d5f9', '#d0fff0', '#ffcccb',
+          '#f3e6ff', '#e0f7ff', '#fff8dc'
+        ]
+        const randomColor = colors[Math.floor(Math.random() * colors.length)]
+
+        // Get world position (use mouse position if available, otherwise center)
+        const worldPos = mousePosition
+          ? screenToWorld(mousePosition.x, mousePosition.y)
+          : screenToWorld(dimensions.width / 2, dimensions.height / 2)
+
+        const stickyNote: StickyNoteObject = {
+          id: generateId(),
+          type: 'sticky-note',
+          x: worldPos.x - 100, // Center the note
+          y: worldPos.y - 100,
+          width: 200,
+          height: 200,
+          z_index: objects.length,
+          object_data: {
+            text: pastedText.text,
+            paperColor: randomColor,
+            fontColor: '#333333',
+            fontSize: 16,
+            fontFamily: 'Kalam',
+          },
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        }
+        
+        await addObject(stickyNote)
+        selectObject(stickyNote.id)
+        showToast('Sticky note created from pasted text', 'success')
+      } catch (error) {
+        logger.error('Failed to paste text:', error)
+        showToast('Failed to create sticky note from text', 'error')
+      }
+    },
+    [screenToWorld, dimensions, objects.length, addObject, selectObject, showToast]
+  )
+
   useClipboardPaste({
     onImagePaste: handleImagePaste,
     onFilePaste: handleFilePaste,
+    onTextPaste: handleTextPaste,
     enabled: isActive,
     containerRef, // Pass container ref for accurate mouse position tracking
   })
