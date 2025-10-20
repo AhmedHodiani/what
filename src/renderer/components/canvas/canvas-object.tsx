@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import type { DrawingObject } from 'lib/types/canvas'
 import { widgetRegistry } from './widgets/widget-registry'
 import './widgets/register-all' // Auto-registers all widgets
-import { ImageWidget } from './image-widget' // Special case: needs getImageUrl
+import { ImageWidget } from './widgets/image-widget' // Special case: needs getImageUrl
 
 interface CanvasObjectProps {
   object: DrawingObject & { _imageUrl?: string }

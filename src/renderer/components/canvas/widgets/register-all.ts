@@ -15,7 +15,7 @@
 import { widgetRegistry } from './widget-registry'
 
 // Import all widget components
-import { ImageWidget } from '../image-widget'
+import { ImageWidget } from './image-widget'
 import { StickyNoteWidget } from './sticky-note-widget'
 import { FreehandWidget } from './freehand-widget'
 import { ArrowWidget } from './arrow-widget'
