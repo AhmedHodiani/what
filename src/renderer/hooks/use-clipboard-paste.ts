@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 
 export interface PastedImage {
   file: File
@@ -49,6 +49,10 @@ export function useClipboardPaste({
   enabled = true,
   containerRef,
 }: UseClipboardPasteOptions) {
+  // Use ref to persist debounce state across event handler calls
+  const lastPasteTimeRef = useRef<number>(0)
+  const PASTE_DEBOUNCE_MS = 600 // cooldown between pastes
+
   useEffect(() => {
     if (!enabled) return
 
@@ -60,6 +64,14 @@ export function useClipboardPaste({
     }
 
     const handlePaste = async (e: ClipboardEvent) => {
+      // Debounce check - prevent rapid consecutive pastes
+      const now = Date.now()
+      if (now - lastPasteTimeRef.current < PASTE_DEBOUNCE_MS) {
+        e.preventDefault()
+        e.stopPropagation()
+        return // Ignore this paste event
+      }
+
       // Check if clipboard has data
       const items = e.clipboardData?.items
       const files = e.clipboardData?.files
@@ -126,6 +138,8 @@ export function useClipboardPaste({
               mousePosition
             )
 
+            // Update debounce timestamp after successful paste
+            lastPasteTimeRef.current = Date.now()
             return // Exit after handling
           }
           // Handle non-image files
@@ -137,6 +151,9 @@ export function useClipboardPaste({
             if (!file) continue
 
             onFilePaste({ file }, mousePosition)
+            
+            // Update debounce timestamp after successful paste
+            lastPasteTimeRef.current = Date.now()
             return // Exit after handling
           }
         }
@@ -179,12 +196,18 @@ export function useClipboardPaste({
             },
             mousePosition
           )
+          
+          // Update debounce timestamp after successful paste
+          lastPasteTimeRef.current = Date.now()
         }
         // Handle non-image files
         else if (onFilePaste) {
           e.preventDefault()
           handled = true
           onFilePaste({ file }, mousePosition)
+          
+          // Update debounce timestamp after successful paste
+          lastPasteTimeRef.current = Date.now()
         }
       }
 
@@ -196,6 +219,9 @@ export function useClipboardPaste({
         if (text && text.trim().length > 0) {
           e.preventDefault()
           onTextPaste({ text: text.trim() }, mousePosition)
+          
+          // Update debounce timestamp after successful paste
+          lastPasteTimeRef.current = Date.now()
         }
       }
     }
