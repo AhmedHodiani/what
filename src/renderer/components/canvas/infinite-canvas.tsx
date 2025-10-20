@@ -30,6 +30,7 @@ import { ConfirmationDialog } from './confirmation-dialog'
 import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
 import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 import { useActiveTab } from 'renderer/contexts'
+import { Toast, useToast } from '../ui/toast'
 
 interface InfiniteCanvasProps {
   initialViewport?: Viewport
@@ -82,6 +83,9 @@ export function InfiniteCanvas({
 
   // Tool selection
   const { currentTool, setTool } = useCanvasTool()
+
+  // Toast notifications
+  const { toasts, show: showToast, remove: removeToast } = useToast()
 
   // Active tab context for syncing state
   const { brushSettings, updateActiveTab } = useActiveTab()
@@ -299,6 +303,74 @@ export function InfiniteCanvas({
     enabled: isActive,
     containerRef, // Pass container ref for accurate mouse position tracking
   })
+
+  // Handle drag-and-drop for images
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Show that drop is allowed
+    e.dataTransfer.dropEffect = 'copy'
+  }, [])
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const files = Array.from(e.dataTransfer.files)
+      if (files.length === 0) return
+
+      const file = files[0] // Only handle the first file
+
+      // Check if it's an image
+      const isImage = file.type.startsWith('image/')
+      
+      if (!isImage) {
+        // Show error toast for non-image files
+        showToast(`Cannot add "${file.name}". Only image files are supported.`, 'error')
+        logger.error(`Rejected non-image file: ${file.name} (${file.type})`)
+        return
+      }
+
+      try {
+        // Read file as data URL
+        const reader = new FileReader()
+        reader.onload = async (readerEvent) => {
+          const dataUrl = readerEvent.target?.result as string
+
+          // Load image to get dimensions
+          const img = new Image()
+          img.onload = async () => {
+            await handleImagePaste(
+              {
+                file,
+                dataUrl,
+                width: img.width,
+                height: img.height,
+              },
+              { x: e.clientX, y: e.clientY }
+            )
+
+            showToast(`Image "${file.name}" added to canvas`, 'success')
+          }
+          img.onerror = () => {
+            showToast(`Failed to load image "${file.name}"`, 'error')
+            logger.error(`Failed to load dropped image: ${file.name}`)
+          }
+          img.src = dataUrl
+        }
+        reader.onerror = () => {
+          showToast(`Failed to read file "${file.name}"`, 'error')
+          logger.error(`Failed to read dropped file: ${file.name}`)
+        }
+        reader.readAsDataURL(file)
+      } catch (error) {
+        showToast(`Error processing file "${file.name}"`, 'error')
+        logger.error('Failed to process dropped file:', error)
+      }
+    },
+    [handleImagePaste, showToast, dimensions, screenToWorld]
+  )
 
   // Object management callbacks - now using generic methods
   const handleUpdateObject = useCallback(
@@ -792,6 +864,8 @@ export function InfiniteCanvas({
     <div
       className="absolute inset-0 overflow-hidden bg-[#0a0a0a] select-none"
       onMouseDown={handleMouseDown}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
       ref={containerRef}
       style={{
         cursor:
@@ -1236,6 +1310,16 @@ export function InfiniteCanvas({
         }
         variant="danger"
       />
+
+      {/* Toast notifications */}
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          onClose={() => removeToast(toast.id)}
+          type={toast.type}
+        />
+      ))}
     </div>
   )
 }
