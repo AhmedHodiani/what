@@ -26,6 +26,7 @@ export interface ActiveTabData {
   selectedObjectIds: string[]
   objects: DrawingObject[]
   brushSettings: BrushSettings
+  updateObject?: (id: string, updates: Partial<DrawingObject>) => void
 }
 
 /**
@@ -74,6 +75,7 @@ export function ActiveTabProvider({ children }: ActiveTabProviderProps) {
       strokeWidth: 15,
       opacity: 1,
     },
+    updateObject: undefined,
   })
 
   const updateActiveTab = useCallback((data: Partial<ActiveTabData>) => {

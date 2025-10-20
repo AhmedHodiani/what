@@ -155,14 +155,16 @@ export function InfiniteCanvas({
   // Sync with ActiveTabContext when this canvas is active
   useEffect(() => {
     if (isActive && tabId) {
+      console.log('🔄 InfiniteCanvas syncing to ActiveTabContext:', { tabId, objectsCount: objects.length, hasUpdateObject: !!updateObject })
       updateActiveTab({
         tabId,
         viewport,
         selectedObjectIds,
         objects,
+        updateObject, // Pass the updateObject function so properties panels can trigger saves
       })
     }
-  }, [isActive, tabId, viewport, selectedObjectIds, objects, updateActiveTab])
+  }, [isActive, tabId, viewport, selectedObjectIds, objects, updateObject, updateActiveTab])
 
   // Convert screen coordinates to world coordinates
   const screenToWorld = useCallback(

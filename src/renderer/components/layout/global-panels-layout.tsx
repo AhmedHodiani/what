@@ -38,7 +38,7 @@ interface GlobalPanelsLayoutProps {
  */
 export function GlobalPanelsLayout({ children }: GlobalPanelsLayoutProps) {
   const { currentTool, setTool } = useGlobalTool()
-  const { selectedObjectIds, objects, brushSettings, updateActiveTab } =
+  const { selectedObjectIds, objects, brushSettings, updateActiveTab, updateObject } =
     useActiveTab()
 
   // Register tool shortcuts using the centralized registry
@@ -63,11 +63,21 @@ export function GlobalPanelsLayout({ children }: GlobalPanelsLayoutProps) {
 
   // Handle properties update
   const handleUpdateObject = (id: string, updates: Partial<DrawingObject>) => {
-    // Update the object in the active tab's objects array
-    const updatedObjects = objects.map(obj =>
-      obj.id === id ? ({ ...obj, ...updates } as DrawingObject) : obj
-    )
-    updateActiveTab({ objects: updatedObjects })
+    console.log('🔵 GlobalPanelsLayout.handleUpdateObject called:', { id, updates, hasUpdateObjectFn: !!updateObject })
+    // Use the updateObject function from ActiveTabContext (passed from InfiniteCanvas)
+    // This ensures database persistence through the canvas's useCanvasObjects hook
+    if (updateObject) {
+      console.log('✅ Calling updateObject from ActiveTabContext')
+      updateObject(id, updates)
+    } else {
+      console.warn('⚠️ updateObject not available, using fallback')
+      // Fallback: Just update the state if updateObject is not available yet
+      // This shouldn't happen in normal operation but provides a safety net
+      const updatedObjects = objects.map(obj =>
+        obj.id === id ? ({ ...obj, ...updates } as DrawingObject) : obj
+      )
+      updateActiveTab({ objects: updatedObjects })
+    }
   }
 
   // Handle brush settings changes
