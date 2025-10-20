@@ -18,6 +18,7 @@ import { panelRegistry } from './panel-registry'
 import { StickyNotePanel } from './sticky-note-panel'
 import { ShapePanel } from './shape-panel'
 import { EmojiPanel } from './emoji-panel'
+import { FilePanel } from './file-panel'
 
 /**
  * Register all properties panels with the registry
@@ -37,6 +38,11 @@ export function registerAllPanels(): void {
   // Emoji panel
   panelRegistry.register('emoji', EmojiPanel, {
     displayName: 'Emoji Selector',
+  })
+
+  // File panel
+  panelRegistry.register('file', FilePanel, {
+    displayName: 'File Properties',
   })
 }
 

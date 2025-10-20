@@ -20,6 +20,7 @@ const tools: Tool[] = [
   { type: 'freehand', label: 'Pen', icon: '✏️' },
   { type: 'arrow', label: 'Arrow', icon: '➡️' },
   { type: 'image', label: 'Image', icon: '🖼️' },
+  { type: 'file', label: 'File', icon: '📎' },
   { type: 'youtube', label: 'YouTube', icon: '📺' },
   { type: 'emoji', label: 'Emoji', icon: '😀' },
 ]
@@ -40,6 +41,7 @@ function getToolShortcut(
     freehand: ['pen', 'freehand'],
     arrow: ['arrow tool'],
     image: ['image tool'],
+    file: ['file tool'],
     youtube: ['youtube video tool'],
     emoji: ['emoji tool'],
   }

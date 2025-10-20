@@ -22,6 +22,7 @@ import { ArrowWidget } from './arrow-widget'
 import { YouTubeWidget } from './youtube-widget'
 import { ShapeWidget } from './shape-widget'
 import { EmojiWidget } from './emoji-widget'
+import { FileWidget } from './file-widget'
 
 /**
  * Register all widgets with the registry
@@ -68,6 +69,12 @@ export function registerAllWidgets(): void {
   widgetRegistry.register('emoji', EmojiWidget, {
     displayName: 'Emoji',
     description: 'Large emoji symbols from 6 categories',
+  })
+
+  // File widget
+  widgetRegistry.register('file', FileWidget, {
+    displayName: 'File',
+    description: 'Generic file attachment with download capability',
   })
 }
 

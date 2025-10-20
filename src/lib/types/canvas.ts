@@ -27,6 +27,7 @@ export type DrawingObjectType =
   | 'arrow'
   | 'youtube'
   | 'emoji'
+  | 'file'
 
 // Freehand drawing (pen/pencil stroke)
 export interface FreehandObject {
@@ -182,6 +183,25 @@ export interface EmojiObject {
   updated: string
 }
 
+// File object (generic file attachment)
+export interface FileObject {
+  id: string
+  type: 'file'
+  x: number
+  y: number
+  width: number
+  height: number
+  z_index: number
+  object_data: {
+    assetId: string // Links to assets table -> assets/filename
+    fileName: string // Original filename
+    fileSize: number // File size in bytes
+    mimeType: string // MIME type
+  }
+  created: string
+  updated: string
+}
+
 // Union type for all drawing objects
 export type DrawingObject =
   | FreehandObject
@@ -191,3 +211,4 @@ export type DrawingObject =
   | ArrowObject
   | YouTubeVideoObject
   | EmojiObject
+  | FileObject

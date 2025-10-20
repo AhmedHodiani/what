@@ -7,6 +7,7 @@ import type {
   ArrowObject,
   YouTubeVideoObject,
   ShapeObject,
+  FileObject,
 } from 'lib/types/canvas'
 import { logger } from '../../../shared/logger'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
@@ -298,13 +299,65 @@ export function InfiniteCanvas({
     [dimensions, screenToWorld, objects.length, addObject, selectObject, tabId]
   )
 
+  // Handle file addition (for non-image files)
+  const handleFileAdd = useCallback(
+    async (
+      file: File,
+      mousePosition?: { x: number; y: number }
+    ) => {
+      try {
+        // Read file as array buffer
+        const arrayBuffer = await file.arrayBuffer()
+
+        // Save asset
+        const assetId = await window.App.file.saveAsset(
+          file.name,
+          arrayBuffer,
+          file.type || 'application/octet-stream',
+          tabId || undefined
+        )
+
+        // Get world position (use mouse position if available, otherwise center)
+        const worldPos = mousePosition
+          ? screenToWorld(mousePosition.x, mousePosition.y)
+          : screenToWorld(dimensions.width / 2, dimensions.height / 2)
+
+        // Create file object
+        const newFile: FileObject = {
+          id: `file-${Date.now()}`,
+          type: 'file',
+          x: worldPos.x - 75, // Center (150px width / 2)
+          y: worldPos.y - 75, // Center (150px height / 2)
+          width: 250,
+          height: 320,
+          z_index: objects.length,
+          object_data: {
+            assetId,
+            fileName: file.name,
+            fileSize: file.size,
+            mimeType: file.type || 'application/octet-stream',
+          },
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        }
+
+        await addObject(newFile)
+        selectObject(newFile.id)
+      } catch (error) {
+        logger.error('Failed to add file:', error)
+        showToast(`Failed to add file "${file.name}"`, 'error')
+      }
+    },
+    [dimensions, screenToWorld, objects.length, addObject, selectObject, tabId, showToast]
+  )
+
   useClipboardPaste({
     onImagePaste: handleImagePaste,
     enabled: isActive,
     containerRef, // Pass container ref for accurate mouse position tracking
   })
 
-  // Handle drag-and-drop for images
+  // Handle drag-and-drop for images and files
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -325,51 +378,56 @@ export function InfiniteCanvas({
       // Check if it's an image
       const isImage = file.type.startsWith('image/')
       
-      if (!isImage) {
-        // Show error toast for non-image files
-        showToast(`Cannot add "${file.name}". Only image files are supported.`, 'error')
-        logger.error(`Rejected non-image file: ${file.name} (${file.type})`)
-        return
-      }
+      if (isImage) {
+        // Handle as image
+        try {
+          // Read file as data URL
+          const reader = new FileReader()
+          reader.onload = async (readerEvent) => {
+            const dataUrl = readerEvent.target?.result as string
 
-      try {
-        // Read file as data URL
-        const reader = new FileReader()
-        reader.onload = async (readerEvent) => {
-          const dataUrl = readerEvent.target?.result as string
+            // Load image to get dimensions
+            const img = new Image()
+            img.onload = async () => {
+              await handleImagePaste(
+                {
+                  file,
+                  dataUrl,
+                  width: img.width,
+                  height: img.height,
+                },
+                { x: e.clientX, y: e.clientY }
+              )
 
-          // Load image to get dimensions
-          const img = new Image()
-          img.onload = async () => {
-            await handleImagePaste(
-              {
-                file,
-                dataUrl,
-                width: img.width,
-                height: img.height,
-              },
-              { x: e.clientX, y: e.clientY }
-            )
-
-            showToast(`Image "${file.name}" added to canvas`, 'success')
+              showToast(`Image "${file.name}" added to canvas`, 'success')
+            }
+            img.onerror = () => {
+              showToast(`Failed to load image "${file.name}"`, 'error')
+              logger.error(`Failed to load dropped image: ${file.name}`)
+            }
+            img.src = dataUrl
           }
-          img.onerror = () => {
-            showToast(`Failed to load image "${file.name}"`, 'error')
-            logger.error(`Failed to load dropped image: ${file.name}`)
+          reader.onerror = () => {
+            showToast(`Failed to read file "${file.name}"`, 'error')
+            logger.error(`Failed to read dropped file: ${file.name}`)
           }
-          img.src = dataUrl
+          reader.readAsDataURL(file)
+        } catch (error) {
+          showToast(`Error processing file "${file.name}"`, 'error')
+          logger.error('Failed to process dropped file:', error)
         }
-        reader.onerror = () => {
-          showToast(`Failed to read file "${file.name}"`, 'error')
-          logger.error(`Failed to read dropped file: ${file.name}`)
+      } else {
+        // Handle as generic file
+        try {
+          await handleFileAdd(file, { x: e.clientX, y: e.clientY })
+          showToast(`File "${file.name}" added to canvas`, 'success')
+        } catch (error) {
+          showToast(`Error processing file "${file.name}"`, 'error')
+          logger.error('Failed to process dropped file:', error)
         }
-        reader.readAsDataURL(file)
-      } catch (error) {
-        showToast(`Error processing file "${file.name}"`, 'error')
-        logger.error('Failed to process dropped file:', error)
       }
     },
-    [handleImagePaste, showToast, dimensions, screenToWorld]
+    [handleImagePaste, handleFileAdd, showToast]
   )
 
   // Object management callbacks - now using generic methods
@@ -604,6 +662,32 @@ export function InfiniteCanvas({
             break
           }
 
+          case 'file': {
+            // Capture mouse position for file placement
+            const clickX = e.clientX
+            const clickY = e.clientY
+
+            // Open file picker for any file type
+            const input = document.createElement('input')
+            input.type = 'file'
+            input.accept = '*/*' // Accept all file types
+            input.onchange = async event => {
+              const file = (event.target as HTMLInputElement).files?.[0]
+              if (!file) return
+
+              try {
+                await handleFileAdd(file, { x: clickX, y: clickY })
+                showToast(`File "${file.name}" added to canvas`, 'success')
+                setTool('select') // Switch back to select mode after creating
+              } catch (error) {
+                logger.error('Failed to add file:', error)
+                showToast(`Failed to add file "${file.name}"`, 'error')
+              }
+            }
+            input.click()
+            break
+          }
+
           case 'youtube': {
             const worldPos = screenToWorld(e.clientX, e.clientY)
             // Store position and show dialog
@@ -658,6 +742,8 @@ export function InfiniteCanvas({
       selectObject,
       setTool,
       handleImagePaste,
+      handleFileAdd,
+      showToast,
     ]
   )
 
