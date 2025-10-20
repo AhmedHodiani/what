@@ -1,4 +1,6 @@
+// React
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react'
+// Types
 import type {
   Viewport,
   DrawingObject,
@@ -6,9 +8,11 @@ import type {
   FreehandObject,
   ArrowObject,
 } from 'lib/types/canvas'
+// Utils
 import { logger } from '../../../shared/logger'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
 import { generateId } from 'lib/utils/id-generator'
+// Hooks
 import { useContainerSize } from 'renderer/hooks/use-container-size'
 import { useViewport } from 'renderer/hooks/use-viewport'
 import { useCanvasPan } from 'renderer/hooks/use-canvas-pan'
@@ -21,17 +25,21 @@ import { useCanvasFileOperations } from 'renderer/hooks/use-canvas-file-operatio
 import { useCanvasDialogs } from 'renderer/hooks/use-canvas-dialogs'
 import { useObjectDuplication } from 'renderer/hooks/use-object-duplication'
 import { useRectangleSelection } from 'renderer/hooks/use-rectangle-selection'
+import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
+import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
+import { useActiveTab } from 'renderer/contexts'
+// UI / Components
 import { ErrorBoundary } from '../error-boundary'
 import { CanvasGrid } from './canvas-grid'
 import { CanvasObject } from './canvas-object'
+import { FreehandPreview } from './freehand-preview'
+import { ArrowPreview } from './arrow-preview'
 import { YouTubeUrlDialog } from './youtube-url-dialog'
 import { ShapePickerDialog } from './shape-picker-dialog'
 import { ContextMenu } from './context-menu'
 import { ConfirmationDialog } from './confirmation-dialog'
-import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
-import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
-import { useActiveTab } from 'renderer/contexts'
 import { Toast, useToast } from '../ui/toast'
+
 
 interface InfiniteCanvasProps {
   initialViewport?: Viewport
@@ -828,136 +836,22 @@ export function InfiniteCanvas({
 
         {/* Freehand/Arrow drawing preview */}
         {isFreehandDrawing && freehandPath.length > 0 && (
-          <path
-            d={
-              freehandPath.length === 1
-                ? `M ${freehandPath[0].x} ${freehandPath[0].y} L ${freehandPath[0].x} ${freehandPath[0].y}`
-                : freehandPath.length === 2
-                  ? `M ${freehandPath[0].x} ${freehandPath[0].y} L ${freehandPath[1].x} ${freehandPath[1].y}`
-                  : `M ${freehandPath[0].x} ${freehandPath[0].y} ${freehandPath
-                      .slice(1)
-                      .map((point, i) => {
-                        if (i === freehandPath.length - 2) {
-                          return `L ${point.x} ${point.y}`
-                        }
-                        const next = freehandPath[i + 2]
-                        const midX = (point.x + next.x) / 2
-                        const midY = (point.y + next.y) / 2
-                        return `Q ${point.x} ${point.y} ${midX} ${midY}`
-                      })
-                      .join(' ')}`
-            }
-            fill="none"
-            stroke={brushSettings.strokeColor}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeOpacity={brushSettings.opacity}
+          <FreehandPreview
+            path={freehandPath}
+            strokeColor={brushSettings.strokeColor}
             strokeWidth={brushSettings.strokeWidth}
+            opacity={brushSettings.opacity}
           />
         )}
 
         {/* Arrow drawing preview (with arrowhead) */}
         {isArrowDrawing && arrowPath.length > 0 && (
-          <>
-            <path
-              d={
-                arrowPath.length === 1
-                  ? `M ${arrowPath[0].x} ${arrowPath[0].y} L ${arrowPath[0].x} ${arrowPath[0].y}`
-                  : arrowPath.length === 2
-                    ? `M ${arrowPath[0].x} ${arrowPath[0].y} L ${arrowPath[1].x} ${arrowPath[1].y}`
-                    : `M ${arrowPath[0].x} ${arrowPath[0].y} ${arrowPath
-                        .slice(1)
-                        .map((point, i) => {
-                          if (i === arrowPath.length - 2) {
-                            return `L ${point.x} ${point.y}`
-                          }
-                          const next = arrowPath[i + 2]
-                          const midX = (point.x + next.x) / 2
-                          const midY = (point.y + next.y) / 2
-                          return `Q ${point.x} ${point.y} ${midX} ${midY}`
-                        })
-                        .join(' ')}`
-              }
-              fill="none"
-              stroke={brushSettings.strokeColor}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeOpacity={brushSettings.opacity}
-              strokeWidth={brushSettings.strokeWidth}
-            />
-            {/* Preview arrowhead */}
-            {arrowPath.length >= 2 &&
-              (() => {
-                const lastPoint = arrowPath[arrowPath.length - 1]
-
-                // Look back further for stable angle - avoid jitter
-                let referencePoint = arrowPath[arrowPath.length - 2]
-                const lookbackDistance = 20
-
-                for (let i = arrowPath.length - 2; i >= 0; i--) {
-                  const dist = Math.sqrt(
-                    (lastPoint.x - arrowPath[i].x) ** 2 +
-                      (lastPoint.y - arrowPath[i].y) ** 2
-                  )
-                  if (dist >= lookbackDistance) {
-                    referencePoint = arrowPath[i]
-                    break
-                  }
-                }
-
-                const angle = Math.atan2(
-                  lastPoint.y - referencePoint.y,
-                  lastPoint.x - referencePoint.x
-                )
-
-                // Better proportions for hand-drawn look
-                const arrowLength = Math.max(brushSettings.strokeWidth * 3, 15)
-                const arrowWidth = arrowLength * 0.5
-                const tipX = lastPoint.x
-                const tipY = lastPoint.y
-                const baseX = tipX - arrowLength * Math.cos(angle)
-                const baseY = tipY - arrowLength * Math.sin(angle)
-                const leftX = baseX - arrowWidth * Math.sin(angle)
-                const leftY = baseY + arrowWidth * Math.cos(angle)
-                const rightX = baseX + arrowWidth * Math.sin(angle)
-                const rightY = baseY - arrowWidth * Math.cos(angle)
-
-                // Add curve for hand-drawn feel
-                const curveDepth = arrowLength * 0.3
-                const leftCtrlX =
-                  baseX -
-                  curveDepth * Math.cos(angle) -
-                  arrowWidth * 0.7 * Math.sin(angle)
-                const leftCtrlY =
-                  baseY -
-                  curveDepth * Math.sin(angle) +
-                  arrowWidth * 0.7 * Math.cos(angle)
-                const rightCtrlX =
-                  baseX -
-                  curveDepth * Math.cos(angle) +
-                  arrowWidth * 0.7 * Math.sin(angle)
-                const rightCtrlY =
-                  baseY -
-                  curveDepth * Math.sin(angle) -
-                  arrowWidth * 0.7 * Math.cos(angle)
-
-                return (
-                  <path
-                    d={`M ${tipX} ${tipY} 
-                      Q ${leftCtrlX} ${leftCtrlY}, ${leftX} ${leftY}
-                      L ${rightX} ${rightY}
-                      Q ${rightCtrlX} ${rightCtrlY}, ${tipX} ${tipY}
-                      Z`}
-                    fill={brushSettings.strokeColor}
-                    opacity={brushSettings.opacity}
-                    stroke={brushSettings.strokeColor}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={brushSettings.strokeWidth * 0.5}
-                  />
-                )
-              })()}
-          </>
+          <ArrowPreview
+            path={arrowPath}
+            strokeColor={brushSettings.strokeColor}
+            strokeWidth={brushSettings.strokeWidth}
+            opacity={brushSettings.opacity}
+          />
         )}
 
         {/* Rectangle selection visual */}
