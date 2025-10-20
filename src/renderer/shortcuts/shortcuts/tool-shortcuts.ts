@@ -17,6 +17,7 @@ export type ToolType =
   | 'freehand'
   | 'arrow'
   | 'image'
+  | 'file'
   | 'youtube'
   | 'emoji'
 
@@ -103,6 +104,15 @@ export function registerToolShortcuts(
   ids.push(
     registry.register({
       key: '7',
+      context: ShortcutContext.Tool,
+      action: () => handlers.onToolChange('file'),
+      description: 'File tool',
+    })
+  )
+
+  ids.push(
+    registry.register({
+      key: '8',
       context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('emoji'),
       description: 'Emoji tool',

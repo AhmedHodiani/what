@@ -1,16 +1,18 @@
+// React
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react'
+// Types
 import type {
   Viewport,
   DrawingObject,
   StickyNoteObject,
   FreehandObject,
   ArrowObject,
-  YouTubeVideoObject,
-  ShapeObject,
 } from 'lib/types/canvas'
+// Utils
 import { logger } from '../../../shared/logger'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
 import { generateId } from 'lib/utils/id-generator'
+// Hooks
 import { useContainerSize } from 'renderer/hooks/use-container-size'
 import { useViewport } from 'renderer/hooks/use-viewport'
 import { useCanvasPan } from 'renderer/hooks/use-canvas-pan'
@@ -19,17 +21,25 @@ import { useClipboardPaste } from 'renderer/hooks/use-clipboard-paste'
 import { useCanvasObjects } from 'renderer/hooks/use-canvas-objects'
 import { useFreehandDrawing } from 'renderer/hooks/use-freehand-drawing'
 import { useArrowDrawing } from 'renderer/hooks/use-arrow-drawing'
-import { ErrorBoundary } from '../error-boundary'
-import { CanvasGrid } from './canvas-grid'
-import { CanvasObject } from './canvas-object'
-import { YouTubeUrlDialog } from './youtube-url-dialog'
-import { ShapePickerDialog } from './shape-picker-dialog'
-import type { ShapeType } from './shape-picker-dialog'
-import { ContextMenu } from './context-menu'
-import { ConfirmationDialog } from './confirmation-dialog'
+import { useCanvasFileOperations } from 'renderer/hooks/use-canvas-file-operations'
+import { useCanvasDialogs } from 'renderer/hooks/use-canvas-dialogs'
+import { useObjectDuplication } from 'renderer/hooks/use-object-duplication'
+import { useRectangleSelection } from 'renderer/hooks/use-rectangle-selection'
 import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
 import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 import { useActiveTab } from 'renderer/contexts'
+// UI / Components
+import { ErrorBoundary } from '../error-boundary'
+import { CanvasGrid } from './canvas-grid'
+import { CanvasObject } from './canvas-object'
+import { FreehandPreview } from './freehand-preview'
+import { ArrowPreview } from './arrow-preview'
+import { YouTubeUrlDialog } from './youtube-url-dialog'
+import { ShapePickerDialog } from './shape-picker-dialog'
+import { ContextMenu } from './context-menu'
+import { ConfirmationDialog } from './confirmation-dialog'
+import { Toast, useToast } from '../ui/toast'
+
 
 interface InfiniteCanvasProps {
   initialViewport?: Viewport
@@ -83,43 +93,11 @@ export function InfiniteCanvas({
   // Tool selection
   const { currentTool, setTool } = useCanvasTool()
 
+  // Toast notifications
+  const { toasts, show: showToast, remove: removeToast } = useToast()
+
   // Active tab context for syncing state
   const { brushSettings, updateActiveTab } = useActiveTab()
-
-  // YouTube dialog state
-  const [showYouTubeDialog, setShowYouTubeDialog] = useState(false)
-  const [youtubeDialogPosition, setYoutubeDialogPosition] = useState({
-    x: 0,
-    y: 0,
-  })
-
-  // Shape picker dialog state
-  const [showShapeDialog, setShowShapeDialog] = useState(false)
-  const [shapeDialogPosition, setShapeDialogPosition] = useState({ x: 0, y: 0 })
-
-  // Context menu state
-  const [contextMenu, setContextMenu] = useState<{
-    x: number
-    y: number
-    objectId: string
-  } | null>(null)
-
-  // Confirmation dialog state
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [objectToDelete, setObjectToDelete] = useState<
-    string | 'multiple' | null
-  >(null)
-
-  // Rectangle selection state
-  const [isRectangleSelecting, setIsRectangleSelecting] = useState(false)
-  const [rectangleStart, setRectangleStart] = useState<{
-    x: number
-    y: number
-  } | null>(null)
-  const [rectangleEnd, setRectangleEnd] = useState<{
-    x: number
-    y: number
-  } | null>(null)
 
   // Use generic canvas objects hook
   const {
@@ -228,76 +206,91 @@ export function InfiniteCanvas({
     ),
   })
 
-  // Handle clipboard paste for images
-  const handleImagePaste = useCallback(
-    async (
-      image: { file: File; dataUrl: string; width: number; height: number },
-      mousePosition?: { x: number; y: number }
-    ) => {
-      try {
-        // Convert data URL to buffer
-        const base64 = image.dataUrl.split(',')[1]
-        const binaryString = atob(base64)
-        const buffer = new ArrayBuffer(binaryString.length)
-        const view = new Uint8Array(buffer)
-        for (let i = 0; i < binaryString.length; i++) {
-          view[i] = binaryString.charCodeAt(i)
-        }
-
-        // Save asset
-        const assetId = await window.App.file.saveAsset(
-          `image-${Date.now()}.png`,
-          buffer,
-          'image/png',
-          tabId || undefined
-        )
-
-        // Get asset as data URL for display
-        const assetDataUrl = await window.App.file.getAssetDataUrl(
-          assetId,
-          tabId || undefined
-        )
-        if (!assetDataUrl) {
-          throw new Error('Failed to retrieve asset data URL')
-        }
-
-        // Get world position (use mouse position if available, otherwise center)
-        const worldPos = mousePosition
-          ? screenToWorld(mousePosition.x, mousePosition.y)
-          : screenToWorld(dimensions.width / 2, dimensions.height / 2)
-
-        // Create image object with data URL
-        const newImage: DrawingObject & { _imageUrl?: string } = {
-          id: `img-${Date.now()}`,
-          type: 'image',
-          x: worldPos.x - image.width / 2,
-          y: worldPos.y - image.height / 2,
-          width: image.width,
-          height: image.height,
-          z_index: objects.length,
-          object_data: {
-            assetId,
-            originalWidth: image.width,
-            originalHeight: image.height,
-          },
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-          _imageUrl: assetDataUrl, // Store data URL for immediate display
-        }
-
-        await addObject(newImage)
-        selectObject(newImage.id)
-      } catch (error) {
-        logger.error('Failed to paste image:', error)
-      }
-    },
-    [dimensions, screenToWorld, objects.length, addObject, selectObject, tabId]
-  )
+  // File operations hook - handles image/file paste, drag-and-drop, text paste
+  const {
+    handleImagePaste,
+    handleFileAdd,
+    handleFilePaste,
+    handleTextPaste,
+    handleDragOver,
+    handleDrop,
+  } = useCanvasFileOperations({
+    tabId: tabId || null,
+    dimensions,
+    objectsLength: objects.length,
+    screenToWorld,
+    addObject,
+    selectObject,
+    showToast,
+  })
 
   useClipboardPaste({
     onImagePaste: handleImagePaste,
+    onFilePaste: handleFilePaste,
+    onTextPaste: handleTextPaste,
     enabled: isActive,
     containerRef, // Pass container ref for accurate mouse position tracking
+  })
+
+  // Dialog management hook - handles all dialogs (YouTube, Shape, Delete, Context menu)
+  const {
+    showYouTubeDialog,
+    youtubeDialogPosition,
+    openYouTubeDialog,
+    handleYouTubeConfirm,
+    handleYouTubeCancel,
+    showShapeDialog,
+    shapeDialogPosition,
+    openShapeDialog,
+    handleShapeSelect,
+    handleShapeCancel,
+    contextMenu,
+    handleContextMenu,
+    closeContextMenu,
+    showDeleteConfirmation,
+    objectToDelete,
+    handleDeleteClick,
+    handleDeleteConfirm,
+    handleDeleteCancel,
+    triggerDeleteConfirmation,
+  } = useCanvasDialogs({
+    objectsLength: objects.length,
+    selectedObjectIds,
+    addObject,
+    deleteObject,
+    selectObject,
+    clearSelection,
+    setTool,
+  })
+
+  // Object duplication hook - handles Ctrl+D duplication with asset copying
+  const { duplicateObjects } = useObjectDuplication({
+    tabId: tabId || null,
+    objects,
+    selectedObjectIds,
+    isActive,
+    screenToWorld,
+    addObject,
+    selectMultipleObjects,
+    showToast,
+  })
+
+  // Rectangle selection hook - Windows 7-style right-click drag selection
+  const {
+    isRectangleSelecting,
+    rectangleStart,
+    rectangleEnd,
+    handleRectangleContextMenu,
+    handleRectangleMouseMove,
+    handleRectangleMouseUp,
+    handleRectangleMouseLeave,
+  } = useRectangleSelection({
+    objects,
+    screenToWorld,
+    selectMultipleObjects,
+    clearSelection,
+    closeContextMenu,
+    isActive: isActive ?? true,
   })
 
   // Object management callbacks - now using generic methods
@@ -318,27 +311,6 @@ export function InfiniteCanvas({
       selectObject(id, isCtrlPressed)
     },
     [selectObject]
-  )
-
-  const handleContextMenu = useCallback(
-    (event: React.MouseEvent, id: string) => {
-      event.preventDefault()
-      event.stopPropagation()
-
-      // If the right-clicked object is not in the current selection, select only it
-      // If it's already selected as part of multi-selection, keep the multi-selection
-      if (!selectedObjectIds.includes(id)) {
-        selectObject(id)
-      }
-
-      // Show context menu at mouse position
-      setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        objectId: id,
-      })
-    },
-    [selectedObjectIds, selectObject]
   )
 
   // Handle object dragging - generic for all object types
@@ -532,19 +504,43 @@ export function InfiniteCanvas({
             break
           }
 
+          case 'file': {
+            // Capture mouse position for file placement
+            const clickX = e.clientX
+            const clickY = e.clientY
+
+            // Open file picker for any file type
+            const input = document.createElement('input')
+            input.type = 'file'
+            input.accept = '*/*' // Accept all file types
+            input.onchange = async event => {
+              const file = (event.target as HTMLInputElement).files?.[0]
+              if (!file) return
+
+              try {
+                await handleFileAdd(file, { x: clickX, y: clickY })
+                showToast(`File "${file.name}" added to canvas`, 'success')
+                setTool('select') // Switch back to select mode after creating
+              } catch (error) {
+                logger.error('Failed to add file:', error)
+                showToast(`Failed to add file "${file.name}"`, 'error')
+              }
+            }
+            input.click()
+            break
+          }
+
           case 'youtube': {
             const worldPos = screenToWorld(e.clientX, e.clientY)
             // Store position and show dialog
-            setYoutubeDialogPosition({ x: worldPos.x, y: worldPos.y })
-            setShowYouTubeDialog(true)
+            openYouTubeDialog({ x: worldPos.x, y: worldPos.y })
             break
           }
 
           case 'shape': {
             const worldPos = screenToWorld(e.clientX, e.clientY)
             // Store position and show shape picker dialog
-            setShapeDialogPosition({ x: worldPos.x, y: worldPos.y })
-            setShowShapeDialog(true)
+            openShapeDialog({ x: worldPos.x, y: worldPos.y })
             break
           }
 
@@ -586,6 +582,8 @@ export function InfiniteCanvas({
       selectObject,
       setTool,
       handleImagePaste,
+      handleFileAdd,
+      showToast,
     ]
   )
 
@@ -618,112 +616,6 @@ export function InfiniteCanvas({
     } ${dimensions.height / viewport.zoom}`
   }, [viewport, dimensions])
 
-  // YouTube dialog handlers
-  const handleYouTubeConfirm = useCallback(
-    async (url: string, videoId: string) => {
-      const youtubeVideo: YouTubeVideoObject = {
-        id: generateId(),
-        type: 'youtube',
-        x: youtubeDialogPosition.x - 280, // Center the video
-        y: youtubeDialogPosition.y - 158,
-        width: 560,
-        height: 315, // 16:9 aspect ratio
-        z_index: objects.length,
-        object_data: {
-          videoUrl: url,
-          videoId: videoId,
-          title: `Video ${videoId}`,
-        },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      }
-      await addObject(youtubeVideo)
-      selectObject(youtubeVideo.id)
-      setShowYouTubeDialog(false)
-      setTool('select')
-    },
-    [youtubeDialogPosition, objects.length, addObject, selectObject, setTool]
-  )
-
-  const handleYouTubeCancel = useCallback(() => {
-    setShowYouTubeDialog(false)
-    setTool('select')
-  }, [setTool])
-
-  // Shape picker dialog handlers
-  const handleShapeSelect = useCallback(
-    async (shapeType: ShapeType) => {
-      const shape: ShapeObject = {
-        id: generateId(),
-        type: 'shape',
-        x: shapeDialogPosition.x - 100, // Center the shape
-        y: shapeDialogPosition.y - 100,
-        width: 200,
-        height: 200,
-        z_index: objects.length,
-        object_data: {
-          shapeType: shapeType,
-          fill: '#3b82f6',
-          stroke: '#1e40af',
-          strokeWidth: 2,
-          cornerRadius: 0,
-          points: shapeType === 'star' ? 5 : 6,
-          rotation: 0,
-          opacity: 1,
-        },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      }
-      await addObject(shape)
-      selectObject(shape.id)
-      setShowShapeDialog(false)
-      setTool('select')
-    },
-    [shapeDialogPosition, objects.length, addObject, selectObject, setTool]
-  )
-
-  const handleShapeCancel = useCallback(() => {
-    setShowShapeDialog(false)
-    setTool('select')
-  }, [setTool])
-
-  // Delete handlers
-  const handleDeleteClick = useCallback(() => {
-    if (contextMenu) {
-      // If the right-clicked object is part of multi-selection, delete all selected objects
-      if (
-        selectedObjectIds.includes(contextMenu.objectId) &&
-        selectedObjectIds.length > 1
-      ) {
-        setObjectToDelete('multiple')
-      } else {
-        setObjectToDelete(contextMenu.objectId)
-      }
-      setShowDeleteConfirmation(true)
-      setContextMenu(null)
-    }
-  }, [contextMenu, selectedObjectIds])
-
-  const handleDeleteConfirm = useCallback(async () => {
-    if (objectToDelete === 'multiple') {
-      // Delete all selected objects
-      for (const id of selectedObjectIds) {
-        await deleteObject(id)
-      }
-      clearSelection()
-    } else if (objectToDelete) {
-      // Delete single object
-      await deleteObject(objectToDelete)
-    }
-    setShowDeleteConfirmation(false)
-    setObjectToDelete(null)
-  }, [objectToDelete, selectedObjectIds, deleteObject, clearSelection])
-
-  const handleDeleteCancel = useCallback(() => {
-    setShowDeleteConfirmation(false)
-    setObjectToDelete(null)
-  }, [])
-
   // Refs for shortcuts (prevent re-registration)
   const selectedObjectIdsRef = useRef(selectedObjectIds)
   const isActiveRef = useRef(isActive)
@@ -740,10 +632,9 @@ export function InfiniteCanvas({
 
     if (ids.length === 0 || !active) return
 
-    // For single selection, use the ID. For multiple, use 'multiple' marker
-    setObjectToDelete(ids.length === 1 ? ids[0] : 'multiple')
-    setShowDeleteConfirmation(true)
-  }, [])
+    // Trigger delete confirmation dialog
+    triggerDeleteConfirmation()
+  }, [triggerDeleteConfirmation])
 
   // Register Delete key shortcut (only once!)
   useShortcut(
@@ -771,6 +662,20 @@ export function InfiniteCanvas({
     [handleDeleteShortcut]
   )
 
+  // Register Ctrl+D shortcut for duplicate
+  // Register Ctrl+D shortcut for duplicate
+  useShortcut(
+    {
+      key: 'ctrl+d',
+      context: ShortcutContext.Canvas,
+      action: duplicateObjects,
+      description: 'Duplicate selected objects',
+      enabled: () =>
+        selectedObjectIdsRef.current.length > 0 && isActiveRef.current,
+    },
+    [duplicateObjects]
+  )
+
   // Cleanup drag handlers on unmount to prevent stale event listeners
   useEffect(() => {
     return () => {
@@ -792,6 +697,8 @@ export function InfiniteCanvas({
     <div
       className="absolute inset-0 overflow-hidden bg-[#0a0a0a] select-none"
       onMouseDown={handleMouseDown}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
       ref={containerRef}
       style={{
         cursor:
@@ -807,21 +714,7 @@ export function InfiniteCanvas({
         height={dimensions.height}
         onClick={handleCanvasBackgroundClick}
         onContextMenu={e => {
-          // Handle right-click for rectangle selection on canvas background
-          const clickedOnWidget = (e as any)._clickedWidget
-          if (!clickedOnWidget) {
-            e.preventDefault()
-            e.stopPropagation()
-            const point = screenToWorld(e.clientX, e.clientY)
-            logger.debug(
-              'Right-click on canvas - starting rectangle selection',
-              point
-            )
-            setIsRectangleSelecting(true)
-            setRectangleStart(point)
-            setRectangleEnd(point)
-            setContextMenu(null) // Close any existing context menu
-          }
+          handleRectangleContextMenu(e)
         }}
         onMouseDown={e => {
           // Handle freehand drawing
@@ -849,11 +742,8 @@ export function InfiniteCanvas({
         }}
         onMouseLeave={() => {
           // Cancel rectangle selection if mouse leaves canvas
-          if (isRectangleSelecting) {
-            setIsRectangleSelecting(false)
-            setRectangleStart(null)
-            setRectangleEnd(null)
-          } else if (isFreehandDrawing) {
+          handleRectangleMouseLeave()
+          if (isFreehandDrawing) {
             handleFreehandEnd()
           } else if (isArrowDrawing) {
             handleArrowEnd()
@@ -861,10 +751,7 @@ export function InfiniteCanvas({
         }}
         onMouseMove={e => {
           if (isRectangleSelecting && rectangleStart) {
-            // Update rectangle selection end point
-            e.stopPropagation()
-            const point = screenToWorld(e.clientX, e.clientY)
-            setRectangleEnd(point)
+            handleRectangleMouseMove(e)
           } else if (isFreehandDrawing) {
             e.stopPropagation()
             handleFreehandMove(e.nativeEvent)
@@ -875,99 +762,7 @@ export function InfiniteCanvas({
         }}
         onMouseUp={() => {
           if (isRectangleSelecting && rectangleStart && rectangleEnd) {
-            // Complete rectangle selection
-            const minX = Math.min(rectangleStart.x, rectangleEnd.x)
-            const maxX = Math.max(rectangleStart.x, rectangleEnd.x)
-            const minY = Math.min(rectangleStart.y, rectangleEnd.y)
-            const maxY = Math.max(rectangleStart.y, rectangleEnd.y)
-
-            // Check if this was just a click (no drag) or an actual rectangle selection
-            const isClick =
-              Math.abs(rectangleEnd.x - rectangleStart.x) < 5 &&
-              Math.abs(rectangleEnd.y - rectangleStart.y) < 5
-
-            if (isClick) {
-              // Just a right-click, clear selection
-              clearSelection()
-            } else {
-              // Find all objects that intersect with the rectangle
-              const selectedIds: string[] = []
-              objects.forEach(obj => {
-                let objMinX = obj.x
-                let objMaxX = obj.x + 100 // default size
-                let objMinY = obj.y
-                let objMaxY = obj.y + 100 // default size
-
-                // Get actual dimensions based on object type
-                if (obj.type === 'freehand') {
-                  // For freehand, calculate bounds from points
-                  const freehandObj = obj as FreehandObject
-                  const points = freehandObj.object_data.points
-                  if (points && points.length > 0) {
-                    const xs = points.map(p => p.x)
-                    const ys = points.map(p => p.y)
-                    objMinX = Math.min(...xs)
-                    objMaxX = Math.max(...xs)
-                    objMinY = Math.min(...ys)
-                    objMaxY = Math.max(...ys)
-
-                    // Add stroke padding for easier selection
-                    const strokePadding =
-                      (freehandObj.object_data.strokeWidth || 5) * 2
-                    objMinX -= strokePadding
-                    objMaxX += strokePadding
-                    objMinY -= strokePadding
-                    objMaxY += strokePadding
-                  }
-                } else if (obj.type === 'arrow') {
-                  // For arrow, calculate bounds from control points
-                  const arrowObj = obj as ArrowObject
-                  const points = arrowObj.object_data.controlPoints
-                  if (points && points.length > 0) {
-                    const xs = points.map(p => p.x)
-                    const ys = points.map(p => p.y)
-                    objMinX = Math.min(...xs)
-                    objMaxX = Math.max(...xs)
-                    objMinY = Math.min(...ys)
-                    objMaxY = Math.max(...ys)
-
-                    // Add stroke padding for easier selection
-                    const strokePadding =
-                      (arrowObj.object_data.strokeWidth || 5) * 2
-                    objMinX -= strokePadding
-                    objMaxX += strokePadding
-                    objMinY -= strokePadding
-                    objMaxY += strokePadding
-                  }
-                } else if ('width' in obj && 'height' in obj) {
-                  // For objects with explicit dimensions
-                  objMaxX = obj.x + obj.width
-                  objMaxY = obj.y + obj.height
-                }
-
-                // Rectangle intersection test
-                if (
-                  objMaxX >= minX &&
-                  objMinX <= maxX &&
-                  objMaxY >= minY &&
-                  objMinY <= maxY
-                ) {
-                  selectedIds.push(obj.id)
-                }
-              })
-
-              // Update selection
-              if (selectedIds.length > 0) {
-                selectMultipleObjects(selectedIds)
-              } else {
-                clearSelection()
-              }
-            }
-
-            // Reset rectangle selection state
-            setIsRectangleSelecting(false)
-            setRectangleStart(null)
-            setRectangleEnd(null)
+            handleRectangleMouseUp()
           } else if (isFreehandDrawing) {
             handleFreehandEnd()
           } else if (isArrowDrawing) {
@@ -1041,136 +836,22 @@ export function InfiniteCanvas({
 
         {/* Freehand/Arrow drawing preview */}
         {isFreehandDrawing && freehandPath.length > 0 && (
-          <path
-            d={
-              freehandPath.length === 1
-                ? `M ${freehandPath[0].x} ${freehandPath[0].y} L ${freehandPath[0].x} ${freehandPath[0].y}`
-                : freehandPath.length === 2
-                  ? `M ${freehandPath[0].x} ${freehandPath[0].y} L ${freehandPath[1].x} ${freehandPath[1].y}`
-                  : `M ${freehandPath[0].x} ${freehandPath[0].y} ${freehandPath
-                      .slice(1)
-                      .map((point, i) => {
-                        if (i === freehandPath.length - 2) {
-                          return `L ${point.x} ${point.y}`
-                        }
-                        const next = freehandPath[i + 2]
-                        const midX = (point.x + next.x) / 2
-                        const midY = (point.y + next.y) / 2
-                        return `Q ${point.x} ${point.y} ${midX} ${midY}`
-                      })
-                      .join(' ')}`
-            }
-            fill="none"
-            stroke={brushSettings.strokeColor}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeOpacity={brushSettings.opacity}
+          <FreehandPreview
+            path={freehandPath}
+            strokeColor={brushSettings.strokeColor}
             strokeWidth={brushSettings.strokeWidth}
+            opacity={brushSettings.opacity}
           />
         )}
 
         {/* Arrow drawing preview (with arrowhead) */}
         {isArrowDrawing && arrowPath.length > 0 && (
-          <>
-            <path
-              d={
-                arrowPath.length === 1
-                  ? `M ${arrowPath[0].x} ${arrowPath[0].y} L ${arrowPath[0].x} ${arrowPath[0].y}`
-                  : arrowPath.length === 2
-                    ? `M ${arrowPath[0].x} ${arrowPath[0].y} L ${arrowPath[1].x} ${arrowPath[1].y}`
-                    : `M ${arrowPath[0].x} ${arrowPath[0].y} ${arrowPath
-                        .slice(1)
-                        .map((point, i) => {
-                          if (i === arrowPath.length - 2) {
-                            return `L ${point.x} ${point.y}`
-                          }
-                          const next = arrowPath[i + 2]
-                          const midX = (point.x + next.x) / 2
-                          const midY = (point.y + next.y) / 2
-                          return `Q ${point.x} ${point.y} ${midX} ${midY}`
-                        })
-                        .join(' ')}`
-              }
-              fill="none"
-              stroke={brushSettings.strokeColor}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeOpacity={brushSettings.opacity}
-              strokeWidth={brushSettings.strokeWidth}
-            />
-            {/* Preview arrowhead */}
-            {arrowPath.length >= 2 &&
-              (() => {
-                const lastPoint = arrowPath[arrowPath.length - 1]
-
-                // Look back further for stable angle - avoid jitter
-                let referencePoint = arrowPath[arrowPath.length - 2]
-                const lookbackDistance = 20
-
-                for (let i = arrowPath.length - 2; i >= 0; i--) {
-                  const dist = Math.sqrt(
-                    (lastPoint.x - arrowPath[i].x) ** 2 +
-                      (lastPoint.y - arrowPath[i].y) ** 2
-                  )
-                  if (dist >= lookbackDistance) {
-                    referencePoint = arrowPath[i]
-                    break
-                  }
-                }
-
-                const angle = Math.atan2(
-                  lastPoint.y - referencePoint.y,
-                  lastPoint.x - referencePoint.x
-                )
-
-                // Better proportions for hand-drawn look
-                const arrowLength = Math.max(brushSettings.strokeWidth * 3, 15)
-                const arrowWidth = arrowLength * 0.5
-                const tipX = lastPoint.x
-                const tipY = lastPoint.y
-                const baseX = tipX - arrowLength * Math.cos(angle)
-                const baseY = tipY - arrowLength * Math.sin(angle)
-                const leftX = baseX - arrowWidth * Math.sin(angle)
-                const leftY = baseY + arrowWidth * Math.cos(angle)
-                const rightX = baseX + arrowWidth * Math.sin(angle)
-                const rightY = baseY - arrowWidth * Math.cos(angle)
-
-                // Add curve for hand-drawn feel
-                const curveDepth = arrowLength * 0.3
-                const leftCtrlX =
-                  baseX -
-                  curveDepth * Math.cos(angle) -
-                  arrowWidth * 0.7 * Math.sin(angle)
-                const leftCtrlY =
-                  baseY -
-                  curveDepth * Math.sin(angle) +
-                  arrowWidth * 0.7 * Math.cos(angle)
-                const rightCtrlX =
-                  baseX -
-                  curveDepth * Math.cos(angle) +
-                  arrowWidth * 0.7 * Math.sin(angle)
-                const rightCtrlY =
-                  baseY -
-                  curveDepth * Math.sin(angle) -
-                  arrowWidth * 0.7 * Math.cos(angle)
-
-                return (
-                  <path
-                    d={`M ${tipX} ${tipY} 
-                      Q ${leftCtrlX} ${leftCtrlY}, ${leftX} ${leftY}
-                      L ${rightX} ${rightY}
-                      Q ${rightCtrlX} ${rightCtrlY}, ${tipX} ${tipY}
-                      Z`}
-                    fill={brushSettings.strokeColor}
-                    opacity={brushSettings.opacity}
-                    stroke={brushSettings.strokeColor}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={brushSettings.strokeWidth * 0.5}
-                  />
-                )
-              })()}
-          </>
+          <ArrowPreview
+            path={arrowPath}
+            strokeColor={brushSettings.strokeColor}
+            strokeWidth={brushSettings.strokeWidth}
+            opacity={brushSettings.opacity}
+          />
         )}
 
         {/* Rectangle selection visual */}
@@ -1210,7 +891,7 @@ export function InfiniteCanvas({
       {/* Context menu */}
       {contextMenu && (
         <ContextMenu
-          onClose={() => setContextMenu(null)}
+          onClose={closeContextMenu}
           onDelete={handleDeleteClick}
           x={contextMenu.x}
           y={contextMenu.y}
@@ -1236,6 +917,16 @@ export function InfiniteCanvas({
         }
         variant="danger"
       />
+
+      {/* Toast notifications */}
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          onClose={() => removeToast(toast.id)}
+          type={toast.type}
+        />
+      ))}
     </div>
   )
 }

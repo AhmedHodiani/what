@@ -1,5 +1,5 @@
 import type { ImageObject, DrawingObject } from 'lib/types/canvas'
-import { WidgetWrapper } from './widgets/widget-wrapper'
+import { WidgetWrapper } from './widget-wrapper'
 
 interface ImageWidgetProps {
   object: ImageObject & { _imageUrl?: string }

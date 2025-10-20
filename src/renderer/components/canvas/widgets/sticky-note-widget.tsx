@@ -76,6 +76,11 @@ export function StickyNoteWidget({
     [object.object_data.text]
   )
 
+  // Prevent drag when interacting with textarea
+  const handleTextareaMouseDown = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+  }, [])
+
   const handleTextChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setEditText(e.target.value)
@@ -235,6 +240,7 @@ export function StickyNoteWidget({
               onBlur={handleTextBlur}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
+              onMouseDown={handleTextareaMouseDown}
               placeholder="Type your note..."
               ref={textareaRef}
               style={{

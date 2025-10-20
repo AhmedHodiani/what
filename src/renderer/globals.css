@@ -312,12 +312,6 @@ input[type="range"].slider::-moz-range-thumb:hover {
   cursor: pointer;
 }
 
-.markdown-content .task-list-item-checkbox:hover {
-  opacity: 0.3;
-  /* transform: scale(1.05); */
-  background-color: currentColor;
-}
-
 .markdown-content .task-list-item-checkbox:checked {
   background-color: currentColor;
 }
