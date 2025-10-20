@@ -8,6 +8,7 @@ import type {
   YouTubeVideoObject,
   ShapeObject,
   FileObject,
+  Point,
 } from 'lib/types/canvas'
 import { logger } from '../../../shared/logger'
 import { sanitizeViewport } from 'lib/types/canvas-validators'
@@ -954,11 +955,219 @@ export function InfiniteCanvas({
   // Refs for shortcuts (prevent re-registration)
   const selectedObjectIdsRef = useRef(selectedObjectIds)
   const isActiveRef = useRef(isActive)
+  const lastMousePositionRef = useRef({ x: 0, y: 0 })
+  const lastDuplicateTimeRef = useRef<number>(0) // Debounce for duplicate
+  const DUPLICATE_DEBOUNCE_MS = 300 // 300ms cooldown between duplicates
 
   useEffect(() => {
     selectedObjectIdsRef.current = selectedObjectIds
     isActiveRef.current = isActive
   }, [selectedObjectIds, isActive])
+
+  // Track mouse position for duplicate placement
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      lastMousePositionRef.current = { x: e.clientX, y: e.clientY }
+    }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    return () => document.removeEventListener('mousemove', handleMouseMove)
+  }, [])
+
+  // Canvas shortcut: Duplicate selected objects
+  const handleDuplicateShortcut = useCallback(async () => {
+    const ids = selectedObjectIdsRef.current
+    const active = isActiveRef.current
+
+    if (ids.length === 0 || !active) return
+
+    // Debounce check - prevent rapid consecutive duplicates
+    const now = Date.now()
+    if (now - lastDuplicateTimeRef.current < DUPLICATE_DEBOUNCE_MS) {
+      return // Ignore this duplicate request
+    }
+    lastDuplicateTimeRef.current = now
+
+    const newObjectIds: string[] = []
+    const offset = 20 // Offset for duplicated objects
+
+    // Get mouse world position for placement
+    const mousePos = lastMousePositionRef.current
+    const worldPos = screenToWorld(mousePos.x, mousePos.y)
+
+    for (const id of ids) {
+      const originalObject = objects.find(obj => obj.id === id)
+      if (!originalObject) continue
+
+      try {
+        // Generate new ID
+        const newId = `${originalObject.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+        // Deep clone object data
+        let newObjectData = { ...originalObject.object_data }
+
+        // Handle asset duplication for images and files
+        if (originalObject.type === 'image' || originalObject.type === 'file') {
+          const assetId = originalObject.object_data.assetId as string
+          
+          // Get original asset data
+          const assetDataUrl = await window.App.file.getAssetDataUrl(assetId, tabId || undefined)
+          if (assetDataUrl) {
+            // Convert data URL to buffer
+            const base64Data = assetDataUrl.split(',')[1]
+            const binaryString = atob(base64Data)
+            const bytes = new Uint8Array(binaryString.length)
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i)
+            }
+
+            // Save as new asset
+            const fileName = originalObject.type === 'file' 
+              ? (originalObject.object_data.fileName as string)
+              : `image-${Date.now()}.png`
+            const mimeType = originalObject.type === 'file'
+              ? (originalObject.object_data.mimeType as string)
+              : 'image/png'
+              
+            const newAssetId = await window.App.file.saveAsset(
+              fileName,
+              bytes.buffer,
+              mimeType,
+              tabId || undefined
+            )
+
+            // Update object data with new asset ID
+            newObjectData = { ...newObjectData, assetId: newAssetId }
+          }
+        }
+
+        // Create duplicated object at mouse position
+        let duplicatedObject: DrawingObject
+
+        // Handle freehand and arrow objects differently (they use points arrays)
+        if (originalObject.type === 'freehand') {
+          const points = (originalObject.object_data.points as Point[]) || []
+          
+          // Calculate the center of the original points
+          const xs = points.map(p => p.x)
+          const ys = points.map(p => p.y)
+          const centerX = (Math.min(...xs) + Math.max(...xs)) / 2
+          const centerY = (Math.min(...ys) + Math.max(...ys)) / 2
+
+          // Calculate offset from original center to mouse position
+          const offsetX = worldPos.x - centerX
+          const offsetY = worldPos.y - centerY
+
+          // Offset all points
+          const offsetPoints = points.map(p => ({
+            x: p.x + offsetX,
+            y: p.y + offsetY
+          }))
+
+          newObjectData = { ...newObjectData, points: offsetPoints }
+
+          // Freehand x/y stay at 0
+          duplicatedObject = {
+            ...originalObject,
+            id: newId,
+            x: 0,
+            y: 0,
+            z_index: objects.length + newObjectIds.length,
+            object_data: newObjectData,
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+          } as DrawingObject
+          
+        } else if (originalObject.type === 'arrow') {
+          const points = (originalObject.object_data.controlPoints as Point[]) || []
+          
+          // Calculate the center of the original points
+          const xs = points.map(p => p.x)
+          const ys = points.map(p => p.y)
+          const centerX = (Math.min(...xs) + Math.max(...xs)) / 2
+          const centerY = (Math.min(...ys) + Math.max(...ys)) / 2
+
+          // Calculate offset from original center to mouse position
+          const offsetX = worldPos.x - centerX
+          const offsetY = worldPos.y - centerY
+
+          // Offset all points
+          const offsetPoints = points.map(p => ({
+            x: p.x + offsetX,
+            y: p.y + offsetY
+          }))
+
+          // Calculate new bounding box
+          const newXs = offsetPoints.map(p => p.x)
+          const newYs = offsetPoints.map(p => p.y)
+          const minX = Math.min(...newXs)
+          const minY = Math.min(...newYs)
+          const maxX = Math.max(...newXs)
+          const maxY = Math.max(...newYs)
+
+          newObjectData = { 
+            ...newObjectData, 
+            controlPoints: offsetPoints,
+            startX: offsetPoints[0].x,
+            startY: offsetPoints[0].y,
+            endX: offsetPoints[offsetPoints.length - 1].x,
+            endY: offsetPoints[offsetPoints.length - 1].y,
+          }
+
+          duplicatedObject = {
+            ...originalObject,
+            id: newId,
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY,
+            z_index: objects.length + newObjectIds.length,
+            object_data: newObjectData,
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+          } as DrawingObject
+          
+        } else {
+          // Standard objects (sticky, image, file, shape, emoji, youtube)
+          duplicatedObject = {
+            ...originalObject,
+            id: newId,
+            x: worldPos.x + offset,
+            y: worldPos.y + offset,
+            z_index: objects.length + newObjectIds.length,
+            object_data: newObjectData,
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+          } as DrawingObject
+        }
+
+        // Add image URL for immediate display
+        if (originalObject.type === 'image' && '_imageUrl' in originalObject) {
+          const assetDataUrl = await window.App.file.getAssetDataUrl(
+            (newObjectData as any).assetId,
+            tabId || undefined
+          )
+          if (assetDataUrl) {
+            (duplicatedObject as any)._imageUrl = assetDataUrl
+          }
+        }
+
+        await addObject(duplicatedObject)
+        newObjectIds.push(newId)
+      } catch (error) {
+        logger.error(`Failed to duplicate object ${id}:`, error)
+      }
+    }
+
+    // Select the duplicated objects
+    if (newObjectIds.length > 0) {
+      selectMultipleObjects(newObjectIds)
+      showToast(
+        `Duplicated ${newObjectIds.length} object${newObjectIds.length > 1 ? 's' : ''}`,
+        'success'
+      )
+    }
+  }, [objects, screenToWorld, addObject, selectMultipleObjects, showToast, tabId])
 
   // Canvas shortcut: Delete selected objects
   const handleDeleteShortcut = useCallback(() => {
@@ -996,6 +1205,19 @@ export function InfiniteCanvas({
         selectedObjectIdsRef.current.length > 0 && isActiveRef.current,
     },
     [handleDeleteShortcut]
+  )
+
+  // Register Ctrl+D shortcut for duplicate
+  useShortcut(
+    {
+      key: 'ctrl+d',
+      context: ShortcutContext.Canvas,
+      action: handleDuplicateShortcut,
+      description: 'Duplicate selected objects',
+      enabled: () =>
+        selectedObjectIdsRef.current.length > 0 && isActiveRef.current,
+    },
+    [handleDuplicateShortcut]
   )
 
   // Cleanup drag handlers on unmount to prevent stale event listeners
