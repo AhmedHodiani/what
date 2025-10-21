@@ -64,6 +64,18 @@ export function useClipboardPaste({
     }
 
     const handlePaste = async (e: ClipboardEvent) => {
+      // CRITICAL: Don't intercept paste events when user is typing in inputs/textareas
+      const target = e.target as HTMLElement
+      const isTypingInInput = 
+        target.tagName === 'INPUT' || 
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable ||
+        target.closest('input, textarea, [contenteditable="true"]')
+      
+      if (isTypingInInput) {
+        return // Let the browser handle it naturally
+      }
+
       // Debounce check - prevent rapid consecutive pastes
       const now = Date.now()
       if (now - lastPasteTimeRef.current < PASTE_DEBOUNCE_MS) {
