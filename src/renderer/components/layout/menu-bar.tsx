@@ -14,6 +14,9 @@ import {
 } from 'lucide-react'
 import { version } from '~/package.json'
 
+// Platform detection (works in renderer process)
+const IS_MAC = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+
 interface MenuBarProps {
   onMenuClick?: (menu: string) => void
   currentFileName?: string | null
@@ -30,6 +33,11 @@ export function MenuBar({
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [isMaximized, setIsMaximized] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  // On macOS, use native menu bar instead
+  if (IS_MAC) {
+    return null
+  }
 
   useEffect(() => {
     // Get initial maximize state

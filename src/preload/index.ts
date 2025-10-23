@@ -1,11 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-declare global {
-  interface Window {
-    App: typeof API
-  }
-}
-
 const API = {
   sayHelloFromBridge: () => console.log('\nHello from bridgeAPI! 👋\n\n'),
   username: process.env.USER,
@@ -174,6 +168,35 @@ const API = {
       const listener = (_event: any, error: any) => callback(error)
       ipcRenderer.on('update-error', listener)
       return () => ipcRenderer.removeListener('update-error', listener)
+    },
+  },
+
+  // Native menu handlers (macOS)
+  menu: {
+    onFileNew: (callback: () => void) => {
+      const listener = () => callback()
+      ipcRenderer.on('menu-file-new', listener)
+      return () => ipcRenderer.removeListener('menu-file-new', listener)
+    },
+    onFileOpen: (callback: () => void) => {
+      const listener = () => callback()
+      ipcRenderer.on('menu-file-open', listener)
+      return () => ipcRenderer.removeListener('menu-file-open', listener)
+    },
+    onFileSave: (callback: () => void) => {
+      const listener = () => callback()
+      ipcRenderer.on('menu-file-save', listener)
+      return () => ipcRenderer.removeListener('menu-file-save', listener)
+    },
+    onFileSaveAs: (callback: () => void) => {
+      const listener = () => callback()
+      ipcRenderer.on('menu-file-save-as', listener)
+      return () => ipcRenderer.removeListener('menu-file-save-as', listener)
+    },
+    onFileClose: (callback: () => void) => {
+      const listener = () => callback()
+      ipcRenderer.on('menu-file-close', listener)
+      return () => ipcRenderer.removeListener('menu-file-close', listener)
     },
   },
 }
