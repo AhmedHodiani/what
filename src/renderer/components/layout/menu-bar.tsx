@@ -36,7 +36,19 @@ export function MenuBar({
 
   // On macOS, use native menu bar instead
   if (IS_MAC) {
-    return null
+    return (
+      <div className="h-9 bg-[#1e1e1e] border-b border-[#2d2d2d] flex justify-center items-center app-drag-region">
+        {/* App Title */}
+        <div className="text-xs font-semibold text-gray-400 px-3 mr-2">
+          What {version}
+        </div>
+
+        {/* Current File Name */}
+        {currentFileName && (
+          <div className="ml-4 text-xs text-gray-500">{currentFileName}</div>
+        )}
+      </div>
+    )
   }
 
   useEffect(() => {
@@ -164,11 +176,10 @@ export function MenuBar({
                     <div className="h-px bg-[#454545] my-1" />
 
                     <button
-                      className={`w-full px-4 py-1.5 text-xs text-left flex items-center gap-3 ${
-                        hasOpenFile
-                          ? 'text-gray-300 hover:bg-[#2a2d2e]'
-                          : 'text-gray-600 cursor-not-allowed'
-                      }`}
+                      className={`w-full px-4 py-1.5 text-xs text-left flex items-center gap-3 ${hasOpenFile
+                        ? 'text-gray-300 hover:bg-[#2a2d2e]'
+                        : 'text-gray-600 cursor-not-allowed'
+                        }`}
                       disabled={!hasOpenFile}
                       onClick={() => handleFileAction('save')}
                     >
@@ -177,11 +188,10 @@ export function MenuBar({
                       <span className="ml-auto text-gray-500">Ctrl+S</span>
                     </button>
                     <button
-                      className={`w-full px-4 py-1.5 text-xs text-left flex items-center gap-3 ${
-                        hasOpenFile
-                          ? 'text-gray-300 hover:bg-[#2a2d2e]'
-                          : 'text-gray-600 cursor-not-allowed'
-                      }`}
+                      className={`w-full px-4 py-1.5 text-xs text-left flex items-center gap-3 ${hasOpenFile
+                        ? 'text-gray-300 hover:bg-[#2a2d2e]'
+                        : 'text-gray-600 cursor-not-allowed'
+                        }`}
                       disabled={!hasOpenFile}
                       onClick={() => handleFileAction('saveAs')}
                     >
@@ -195,11 +205,10 @@ export function MenuBar({
                     <div className="h-px bg-[#454545] my-1" />
 
                     <button
-                      className={`w-full px-4 py-1.5 text-xs text-left flex items-center gap-3 ${
-                        hasOpenFile
-                          ? 'text-gray-300 hover:bg-[#2a2d2e]'
-                          : 'text-gray-600 cursor-not-allowed'
-                      }`}
+                      className={`w-full px-4 py-1.5 text-xs text-left flex items-center gap-3 ${hasOpenFile
+                        ? 'text-gray-300 hover:bg-[#2a2d2e]'
+                        : 'text-gray-600 cursor-not-allowed'
+                        }`}
                       disabled={!hasOpenFile}
                       onClick={() => handleFileAction('close')}
                     >
