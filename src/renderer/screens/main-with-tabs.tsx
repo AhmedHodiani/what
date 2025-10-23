@@ -416,6 +416,51 @@ export function MainScreenWithTabs() {
     return cleanup
   }, [activeTabId])
 
+  // Listen for native macOS menu events
+  useEffect(() => {
+    const cleanupHandlers: (() => void)[] = []
+
+    // File menu handlers
+    const handleMenuFileNew = async () => {
+      await window.App.file.new()
+    }
+
+    const handleMenuFileOpen = async () => {
+      await window.App.file.open()
+    }
+
+    const handleMenuFileSave = async () => {
+      if (activeTabId) {
+        await window.App.file.save(activeTabId)
+      }
+    }
+
+    const handleMenuFileSaveAs = async () => {
+      await window.App.file.saveAs()
+    }
+
+    const handleMenuFileClose = async () => {
+      if (activeTabId) {
+        await window.App.file.close(activeTabId)
+      }
+    }
+
+    // Register listeners if they exist (macOS only)
+    if (window.App.menu) {
+      cleanupHandlers.push(
+        window.App.menu.onFileNew(handleMenuFileNew),
+        window.App.menu.onFileOpen(handleMenuFileOpen),
+        window.App.menu.onFileSave(handleMenuFileSave),
+        window.App.menu.onFileSaveAs(handleMenuFileSaveAs),
+        window.App.menu.onFileClose(handleMenuFileClose)
+      )
+    }
+
+    return () => {
+      cleanupHandlers.forEach(cleanup => cleanup())
+    }
+  }, [activeTabId])
+
   const handleNewFile = async () => {
     await window.App.file.new()
     // The file-opened event handler will handle adding the tab
