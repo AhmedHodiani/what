@@ -23,6 +23,7 @@ const tools: Tool[] = [
   { type: 'file', label: 'File', icon: '📎' },
   { type: 'youtube', label: 'YouTube', icon: '📺' },
   { type: 'emoji', label: 'Emoji', icon: '😀' },
+  { type: 'spreadsheet', label: 'Spreadsheet', icon: '📊' },
 ]
 
 /**

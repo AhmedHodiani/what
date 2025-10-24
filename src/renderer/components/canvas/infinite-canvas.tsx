@@ -566,6 +566,29 @@ export function InfiniteCanvas({
             break
           }
 
+          case 'spreadsheet': {
+            const worldPos = screenToWorld(e.clientX, e.clientY)
+            const newSpreadsheet = {
+              id: generateId(),
+              type: 'spreadsheet' as const,
+              x: worldPos.x - 400, // Center horizontally (800px / 2)
+              y: worldPos.y - 300, // Center vertically (600px / 2)
+              width: 800,
+              height: 600,
+              z_index: objects.length,
+              object_data: {
+                title: 'New Spreadsheet',
+                workbookData: undefined, // Will be initialized by widget
+              },
+              created: new Date().toISOString(),
+              updated: new Date().toISOString(),
+            }
+            await addObject(newSpreadsheet)
+            selectObject(newSpreadsheet.id)
+            setTool('select')
+            break
+          }
+
           // TODO: Add other object types
         }
         return

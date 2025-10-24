@@ -23,6 +23,7 @@ import { YouTubeWidget } from './youtube-widget'
 import { ShapeWidget } from './shape-widget'
 import { EmojiWidget } from './emoji-widget'
 import { FileWidget } from './file-widget'
+import { SpreadsheetWidget } from './spreadsheet-widget'
 
 /**
  * Register all widgets with the registry
@@ -75,6 +76,12 @@ export function registerAllWidgets(): void {
   widgetRegistry.register('file', FileWidget, {
     displayName: 'File',
     description: 'Generic file attachment with download capability',
+  })
+
+  // Spreadsheet widget
+  widgetRegistry.register('spreadsheet', SpreadsheetWidget, {
+    displayName: 'Spreadsheet',
+    description: 'Full-featured spreadsheet with formulas (powered by Univer)',
   })
 }
 
