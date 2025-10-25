@@ -103,7 +103,13 @@ export function MainScreenWithTabs() {
   const layoutRef = useRef<Layout>(null)
   const saveTimeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map())
   const viewportsRef = useRef<Map<string, Viewport>>(new Map())
+  const tabsRef = useRef<FileTab[]>([]) // Keep current tabs in ref to avoid stale closures
   const isInitialLoadRef = useRef(true)
+
+  // Keep tabsRef in sync with tabs state
+  useEffect(() => {
+    tabsRef.current = tabs
+  }, [tabs])
 
   // Load tabs on mount
   useEffect(() => {
@@ -239,7 +245,46 @@ export function MainScreenWithTabs() {
 
     // Listen for files being closed
     const cleanupClosed = window.App.file.onFileClosed(({ tabId }) => {
-      logger.debug('File closed via menu:', tabId)
+      logger.debug('File closed via IPC/menu:', tabId)
+
+      // Use tabsRef to get current tabs (avoid stale closure)
+      const closingTab = tabsRef.current.find(t => t.id === tabId)
+      
+      logger.debug('Closing tab type:', closingTab?.type)
+      
+      // If closing a canvas tab (.what file), also close all its spreadsheet tabs
+      if (closingTab?.type === 'canvas') {
+        const spreadsheetTabsToClose = tabsRef.current.filter(
+          t => t.type === 'spreadsheet' && t.parentTabId === tabId
+        )
+        
+        logger.debug('Found spreadsheet tabs to close:', {
+          parentTabId: tabId,
+          spreadsheetCount: spreadsheetTabsToClose.length,
+          spreadsheetIds: spreadsheetTabsToClose.map(t => t.id),
+        })
+        
+        if (spreadsheetTabsToClose.length > 0) {
+          logger.debug('Closing spreadsheet tabs for parent file (via IPC):', {
+            parentTabId: tabId,
+            spreadsheetCount: spreadsheetTabsToClose.length,
+          })
+          
+          // Close each spreadsheet tab in FlexLayout
+          for (const spreadsheetTab of spreadsheetTabsToClose) {
+            const node = model.getNodeById(spreadsheetTab.id)
+            if (node) {
+              logger.debug('Deleting spreadsheet tab from FlexLayout:', spreadsheetTab.id)
+              model.doAction(Actions.deleteTab(spreadsheetTab.id))
+            }
+          }
+          
+          // Remove spreadsheet tabs from state
+          setTabs(prevTabs => prevTabs.filter(
+            t => !(t.type === 'spreadsheet' && t.parentTabId === tabId)
+          ))
+        }
+      }
 
       // Remove from tabs state
       setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
@@ -699,11 +744,41 @@ export function MainScreenWithTabs() {
       const tabId = action.data.node
       logger.debug('Closing tab:', tabId)
 
+      const closingTab = tabs.find(t => t.id === tabId)
+      
+      // If closing a canvas tab (.what file), also close all its spreadsheet tabs
+      if (closingTab?.type === 'canvas') {
+        const spreadsheetTabsToClose = tabs.filter(
+          t => t.type === 'spreadsheet' && t.parentTabId === tabId
+        )
+        
+        if (spreadsheetTabsToClose.length > 0) {
+          logger.debug('Closing spreadsheet tabs for parent file:', {
+            parentTabId: tabId,
+            spreadsheetCount: spreadsheetTabsToClose.length,
+          })
+          
+          // Close each spreadsheet tab in FlexLayout
+          for (const spreadsheetTab of spreadsheetTabsToClose) {
+            const node = model.getNodeById(spreadsheetTab.id)
+            if (node) {
+              model.doAction(Actions.deleteTab(spreadsheetTab.id))
+            }
+          }
+        }
+      }
+
       // Close the file
       window.App.file.close(tabId)
 
-      // Remove from state
-      setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
+      // Remove from state (also remove spreadsheet tabs if this was a canvas tab)
+      if (closingTab?.type === 'canvas') {
+        setTabs(prevTabs => prevTabs.filter(
+          t => t.id !== tabId && !(t.type === 'spreadsheet' && t.parentTabId === tabId)
+        ))
+      } else {
+        setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
+      }
 
       // Clean up viewport cache and timeout
       viewportsRef.current.delete(tabId)
@@ -725,7 +800,24 @@ export function MainScreenWithTabs() {
     )
   }
 
-  const currentFileName = tabs.find(t => t.id === activeTabId)?.fileName
+  // Calculate current file name for menu bar
+  const activeTab = tabs.find(t => t.id === activeTabId)
+  let currentFileName: string | undefined
+
+  if (activeTab) {
+    if (activeTab.type === 'spreadsheet') {
+      // For spreadsheet tabs, show: "parentFile.what - SheetName sheet"
+      const parentTab = tabs.find(t => t.id === activeTab.parentTabId)
+      if (parentTab) {
+        currentFileName = `${parentTab.fileName} - ${activeTab.fileName} sheet`
+      } else {
+        currentFileName = `${activeTab.fileName} sheet`
+      }
+    } else {
+      // For canvas tabs, show just the file name
+      currentFileName = activeTab.fileName
+    }
+  }
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#1e1e1e] overflow-hidden">
