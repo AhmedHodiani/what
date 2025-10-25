@@ -55,7 +55,7 @@ class WidgetRegistry {
       description: metadata?.description,
     })
 
-    console.log(`✅ Widget registered: ${type}`)
+    // console.log(`✅ Widget registered: ${type}`)
   }
 
   /**

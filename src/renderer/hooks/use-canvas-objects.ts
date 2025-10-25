@@ -80,10 +80,6 @@ export function useCanvasObjects({
           })
         )
 
-        logger.objects.success(
-          `Loaded ${objectsWithAssets.length} objects for tab ${tabId}`
-        )
-
         setObjects(objectsWithAssets as any)
         onLoad?.(objectsWithAssets)
       } catch (error) {
@@ -314,29 +310,17 @@ export function useCanvasObjects({
       const object = objectsRef.current.find(obj => obj.id === id)
       if (!object) return
 
-      const { _imageUrl, ...objectToSave } = object
-
-      logger.objects.debug('Saving object position:', {
-        id,
-        type: object.type,
-        oldX: object.x,
-        oldY: object.y,
-        newX: x,
-        newY: y,
-        object_data: objectToSave.object_data,
-      })
-
       try {
+        // Only save position fields to avoid overwriting object_data with stale state
         await window.App.file.saveObject(
           {
-            ...objectToSave,
+            id,
             x,
             y,
             updated: new Date().toISOString(),
           },
           tabId
         )
-        logger.objects.success(`Saved object ${id} position: (${x}, ${y})`)
       } catch (error) {
         logger.objects.error('Failed to save object position:', error)
       }

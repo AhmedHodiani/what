@@ -582,7 +582,10 @@ export class WhatFileService {
     if (!this.db) throw new Error('No database connection')
 
     const now = new Date().toISOString()
-    const objectData = JSON.stringify(object.object_data || {})
+    // Only stringify object_data if it's actually provided (not undefined)
+    const objectData = object.object_data !== undefined 
+      ? JSON.stringify(object.object_data) 
+      : undefined
 
     logger.debug({
       id: object.id,
@@ -740,6 +743,46 @@ export class WhatFileService {
   }
 
   /**
+   * Update existing asset file (for spreadsheets, etc.)
+   * Keeps the same asset ID, just updates the file content and metadata
+   */
+  updateAsset(assetId: string, data: Buffer, mimeType?: string): boolean {
+    if (!this.db || !this.workingDir) {
+      throw new Error('No database connection or working directory')
+    }
+
+    // Get existing asset record
+    const asset = this.db
+      .prepare('SELECT filename, mime_type FROM assets WHERE id = ?')
+      .get(assetId) as { filename: string; mime_type: string } | undefined
+
+    if (!asset) {
+      logger.error('Asset not found for update:', assetId)
+      return false
+    }
+
+    const assetsDir = join(this.workingDir, 'assets')
+    const assetPath = join(assetsDir, asset.filename)
+
+    // Update file content
+    writeFileSync(assetPath, data)
+
+    // Update database record (size and optionally mime_type)
+    if (mimeType) {
+      this.db
+        .prepare('UPDATE assets SET size = ?, mime_type = ? WHERE id = ?')
+        .run(data.length, mimeType, assetId)
+    } else {
+      this.db
+        .prepare('UPDATE assets SET size = ? WHERE id = ?')
+        .run(data.length, assetId)
+    }
+
+    this.markAsModified()
+    return true
+  }
+
+  /**
    * Get asset file path
    */
   getAssetPath(assetId: string): string | null {
@@ -774,6 +817,25 @@ export class WhatFileService {
     const fileData = readFileSync(assetPath)
     const base64 = fileData.toString('base64')
     return `data:${asset.mime_type};base64,${base64}`
+  }
+
+  /**
+   * Get asset content as string (for JSON files, etc.)
+   */
+  getAssetContent(assetId: string): string | null {
+    if (!this.db || !this.workingDir) return null
+
+    const asset = this.db
+      .prepare('SELECT filename FROM assets WHERE id = ?')
+      .get(assetId) as { filename: string } | undefined
+
+    if (!asset) return null
+
+    const assetPath = join(this.workingDir, 'assets', asset.filename)
+    if (!existsSync(assetPath)) return null
+
+    // Read file as UTF-8 string
+    return readFileSync(assetPath, 'utf-8')
   }
 
   /**

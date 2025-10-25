@@ -41,11 +41,21 @@ declare global {
           mimeType: string,
           tabId?: string
         ) => Promise<string>
+        updateAsset: (
+          assetId: string,
+          dataBuffer: ArrayBuffer,
+          mimeType?: string,
+          tabId?: string
+        ) => Promise<boolean>
         getAssetPath: (
           assetId: string,
           tabId?: string
         ) => Promise<string | null>
         getAssetDataUrl: (
+          assetId: string,
+          tabId?: string
+        ) => Promise<string | null>
+        getAssetContent: (
           assetId: string,
           tabId?: string
         ) => Promise<string | null>
@@ -64,7 +74,7 @@ declare global {
           parentTabId: string
           objectId: string
           title: string
-          workbookData?: any
+          assetId?: string
           splitView?: boolean
         }) => Promise<string>
         onTabOpen: (callback: (tab: any) => void) => () => void

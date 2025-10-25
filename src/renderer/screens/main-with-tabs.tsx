@@ -202,8 +202,6 @@ export function MainScreenWithTabs() {
 
       // Only add to FlexLayout if not already loaded (not initial load)
       if (!isInitialLoadRef.current) {
-        logger.debug('Adding tab to FlexLayout:', tabId)
-
         // Check if tab already exists in model
         const existingNode = model.getNodeById(tabId)
         if (!existingNode) {
@@ -227,7 +225,6 @@ export function MainScreenWithTabs() {
 
       // Load viewport for the new tab
       window.App.file.getCanvas(DEFAULT_CANVAS_ID, tabId).then(canvas => {
-        logger.debug('Loaded viewport for tab:', tabId, canvas)
         if (canvas) {
           const newViewport = {
             x: canvas.viewport_x,
@@ -236,7 +233,6 @@ export function MainScreenWithTabs() {
           }
           viewportsRef.current.set(tabId, newViewport)
           setViewports(prev => new Map(prev).set(tabId, newViewport))
-          logger.debug('Set viewport in cache:', tabId, newViewport)
         }
       })
 
@@ -245,12 +241,8 @@ export function MainScreenWithTabs() {
 
     // Listen for files being closed
     const cleanupClosed = window.App.file.onFileClosed(({ tabId }) => {
-      logger.debug('File closed via IPC/menu:', tabId)
-
       // Use tabsRef to get current tabs (avoid stale closure)
       const closingTab = tabsRef.current.find(t => t.id === tabId)
-      
-      logger.debug('Closing tab type:', closingTab?.type)
       
       // If closing a canvas tab (.what file), also close all its spreadsheet tabs
       if (closingTab?.type === 'canvas') {
@@ -258,18 +250,7 @@ export function MainScreenWithTabs() {
           t => t.type === 'spreadsheet' && t.parentTabId === tabId
         )
         
-        logger.debug('Found spreadsheet tabs to close:', {
-          parentTabId: tabId,
-          spreadsheetCount: spreadsheetTabsToClose.length,
-          spreadsheetIds: spreadsheetTabsToClose.map(t => t.id),
-        })
-        
         if (spreadsheetTabsToClose.length > 0) {
-          logger.debug('Closing spreadsheet tabs for parent file (via IPC):', {
-            parentTabId: tabId,
-            spreadsheetCount: spreadsheetTabsToClose.length,
-          })
-          
           // Close each spreadsheet tab in FlexLayout
           for (const spreadsheetTab of spreadsheetTabsToClose) {
             const node = model.getNodeById(spreadsheetTab.id)
@@ -318,43 +299,35 @@ export function MainScreenWithTabs() {
   // Listen for spreadsheet tabs being opened
   useEffect(() => {
     const cleanup = window.App.spreadsheet.onTabOpen((spreadsheetTab: SpreadsheetTab) => {
-      logger.debug('📊 Spreadsheet tab opened:', spreadsheetTab)
+      // Check if tab already exists - if so, focus it instead of creating duplicate
+      const existingTab = tabsRef.current.find(t => t.id === spreadsheetTab.id)
+      if (existingTab) {
+        // Focus existing tab in FlexLayout
+        const existingNode = model.getNodeById(spreadsheetTab.id)
+        if (existingNode) {
+          model.doAction(Actions.selectTab(spreadsheetTab.id))
+        }
+        
+        // Update active tab state
+        setActiveTabId(spreadsheetTab.id)
+        window.App.tabs.setActive(spreadsheetTab.id)
+        return
+      }
 
       // Add to tabs state
-      setTabs(prevTabs => {
-        if (prevTabs.some(t => t.id === spreadsheetTab.id)) {
-          logger.debug('Spreadsheet tab already exists, skipping:', spreadsheetTab.id)
-          return prevTabs
-        }
-        return [...prevTabs, spreadsheetTab]
-      })
+      setTabs(prevTabs => [...prevTabs, spreadsheetTab])
 
       // Add to FlexLayout
       const existingNode = model.getNodeById(spreadsheetTab.id)
       if (!existingNode) {
-        logger.debug('📊 Adding spreadsheet to FlexLayout:', {
-          splitView: spreadsheetTab.splitView,
-          parentTabId: spreadsheetTab.parentTabId,
-        })
-        
         if (spreadsheetTab.splitView) {
           // Split view: Find parent canvas tab and split it 50/50
           const parentNode = model.getNodeById(spreadsheetTab.parentTabId)
-          logger.debug('📊 Split view - Parent node:', {
-            found: !!parentNode,
-            type: parentNode?.getType(),
-            id: parentNode?.getId(),
-          })
           
           if (parentNode) {
             // Try to split the parent's tabset, not the tab itself
             const parentTabSet = parentNode.getParent()
             const targetId = parentTabSet?.getType() === 'tabset' ? parentTabSet.getId() : spreadsheetTab.parentTabId
-            
-            logger.debug('📊 Attempting split - Target:', {
-              targetId,
-              targetType: model.getNodeById(targetId)?.getType(),
-            })
             
             model.doAction(
               Actions.addNode(
@@ -369,7 +342,7 @@ export function MainScreenWithTabs() {
                     objectId: spreadsheetTab.objectId,
                     parentTabId: spreadsheetTab.parentTabId,
                     title: spreadsheetTab.fileName,
-                    workbookData: spreadsheetTab.workbookData,
+                    assetId: spreadsheetTab.assetId,
                   },
                   enablePopout: true,
                 },
@@ -378,7 +351,6 @@ export function MainScreenWithTabs() {
                 -1
               )
             )
-            logger.debug('✅ Split view created with DockLocation.RIGHT')
           } else {
             logger.error('Parent tab not found for split view:', spreadsheetTab.parentTabId)
             // Fallback to CENTER if parent not found
@@ -395,7 +367,7 @@ export function MainScreenWithTabs() {
                     objectId: spreadsheetTab.objectId,
                     parentTabId: spreadsheetTab.parentTabId,
                     title: spreadsheetTab.fileName,
-                    workbookData: spreadsheetTab.workbookData,
+                    assetId: spreadsheetTab.assetId,
                   },
                   enablePopout: true,
                 },
@@ -442,7 +414,7 @@ export function MainScreenWithTabs() {
                   objectId: spreadsheetTab.objectId,
                   parentTabId: spreadsheetTab.parentTabId,
                   title: spreadsheetTab.fileName,
-                  workbookData: spreadsheetTab.workbookData,
+                  assetId: spreadsheetTab.assetId,
                 },
                 enablePopout: true,
               },
@@ -477,7 +449,7 @@ export function MainScreenWithTabs() {
 
       // Debounce viewport saving to database
       const timeout = setTimeout(() => {
-        logger.debug('🔵 Saving viewport for tab:', tabId, newViewport)
+        // logger.debug('🔵 Saving viewport for tab:', tabId, newViewport)
         window.App.file
           .saveViewport(
             DEFAULT_CANVAS_ID,
@@ -653,7 +625,7 @@ export function MainScreenWithTabs() {
       objectId?: string
       parentTabId?: string
       title?: string
-      workbookData?: any
+      assetId?: string
     }
     
     const tabId = config.tabId
@@ -668,15 +640,6 @@ export function MainScreenWithTabs() {
       isSelected = tabset.getSelectedNode()?.getId() === node.getId()
     }
 
-    logger.debug(
-      'Rendering tab:',
-      tabId,
-      'type:',
-      tabType,
-      'isSelected:',
-      isSelected
-    )
-
     // Only render if the tab is selected to avoid event conflicts
     if (!isSelected) {
       return <div className="absolute inset-0 bg-[#0a0a0a]" />
@@ -688,13 +651,9 @@ export function MainScreenWithTabs() {
         <CanvasErrorBoundary>
           <SpreadsheetEditor
             objectId={config.objectId!}
+            parentTabId={config.parentTabId!}
             title={config.title || 'Spreadsheet'}
-            workbookData={config.workbookData}
-            onSave={(workbookData) => {
-              logger.debug('💾 Saving spreadsheet:', config.objectId, workbookData)
-              // TODO: Save workbook data back to the object
-              // window.App.file.saveObject({ id: config.objectId, object_data: { workbookData } }, config.parentTabId)
-            }}
+            assetId={config.assetId}
           />
         </CanvasErrorBoundary>
       )

@@ -59,13 +59,6 @@ const API = {
       zoom: number,
       tabId?: string
     ) => {
-      console.log('🔵 saveViewport called, invoking IPC:', {
-        canvasId,
-        x,
-        y,
-        zoom,
-        tabId,
-      })
       const result = ipcRenderer.invoke(
         'file-save-viewport',
         canvasId,
@@ -74,7 +67,6 @@ const API = {
         zoom,
         tabId
       )
-      console.log('🔵 IPC invoke returned:', result)
       return result
     },
     // Asset operations
@@ -91,10 +83,25 @@ const API = {
         mimeType,
         tabId
       ),
+    updateAsset: (
+      assetId: string,
+      dataBuffer: ArrayBuffer,
+      mimeType?: string,
+      tabId?: string
+    ) =>
+      ipcRenderer.invoke(
+        'file-update-asset',
+        assetId,
+        dataBuffer,
+        mimeType,
+        tabId
+      ),
     getAssetPath: (assetId: string, tabId?: string) =>
       ipcRenderer.invoke('file-get-asset-path', assetId, tabId),
     getAssetDataUrl: (assetId: string, tabId?: string) =>
       ipcRenderer.invoke('file-get-asset-data-url', assetId, tabId),
+    getAssetContent: (assetId: string, tabId?: string) =>
+      ipcRenderer.invoke('file-get-asset-content', assetId, tabId),
     deleteAsset: (assetId: string, tabId?: string) =>
       ipcRenderer.invoke('file-delete-asset', assetId, tabId),
     // Object operations
@@ -123,7 +130,8 @@ const API = {
       parentTabId: string
       objectId: string
       title: string
-      workbookData?: any
+      assetId?: string
+      splitView?: boolean
     }) => ipcRenderer.invoke('spreadsheet-open', params),
     onTabOpen: (callback: (tab: any) => void) => {
       const listener = (_event: any, tab: any) => callback(tab)

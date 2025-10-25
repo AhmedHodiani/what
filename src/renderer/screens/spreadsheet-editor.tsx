@@ -1,36 +1,58 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import { createUniver } from '@univerjs/presets'
 import { LocaleType } from '@univerjs/core'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { logger } from 'shared/logger'
 
 // Import Univer preset styles
 import '@univerjs/preset-sheets-core/lib/index.css'
 
+// Default workbook structure
+function createDefaultWorkbook(name: string) {
+  return {
+    name: name || 'Spreadsheet',
+    sheetOrder: ['sheet-1'],
+    sheets: {
+      'sheet-1': {
+        id: 'sheet-1',
+        name: 'Sheet1',
+        cellData: {},
+        rowCount: 1000,
+        columnCount: 20,
+        defaultColumnWidth: 100,
+        defaultRowHeight: 27,
+      },
+    },
+  }
+}
+
 interface SpreadsheetEditorProps {
   objectId: string
+  parentTabId: string
   title: string
-  workbookData?: any
-  onSave?: (workbookData: any) => void
+  assetId?: string
 }
 
 /**
  * SpreadsheetEditor - Full-screen Univer spreadsheet in a dedicated tab
  * 
  * Opened when user clicks a spreadsheet widget on the canvas
+ * Data is stored as a JSON asset file in the .what archive
  */
 export function SpreadsheetEditor({
   objectId,
+  parentTabId,
   title,
-  workbookData,
-  onSave,
+  assetId,
 }: SpreadsheetEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const univerRef = useRef<any>(null)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
   const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const initialWorkbookRef = useRef(workbookData) // Store initial data, don't react to changes
   const isInitializedRef = useRef(false)
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const currentAssetIdRef = useRef<string | undefined>(assetId)
 
   // Track container size with debouncing
   useEffect(() => {
@@ -40,7 +62,7 @@ export function SpreadsheetEditor({
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect()
         
-        console.log('📐 Size change detected:', { width: rect.width, height: rect.height })
+        // console.log('📐 Size change detected:', { width: rect.width, height: rect.height })
         
         // Debounce resize to avoid recreating Univer too frequently
         if (resizeTimeoutRef.current) {
@@ -48,14 +70,14 @@ export function SpreadsheetEditor({
         }
         
         resizeTimeoutRef.current = setTimeout(() => {
-          console.log('📐 Applying new container size:', rect.width, rect.height)
+          // console.log('📐 Applying new container size:', rect.width, rect.height)
           setContainerSize(prev => {
             // Only update if actually different (>10px change)
             const widthChanged = Math.abs(rect.width - prev.width) > 10
             const heightChanged = Math.abs(rect.height - prev.height) > 10
             
             if (!widthChanged && !heightChanged) {
-              console.log('📐 Size change too small, ignoring')
+              // console.log('📐 Size change too small, ignoring')
               return prev
             }
             
@@ -68,7 +90,6 @@ export function SpreadsheetEditor({
     // Initial size (no debounce)
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
-      console.log('📏 Initial container size:', rect.width, rect.height)
       setContainerSize({ width: rect.width, height: rect.height })
     }
 
@@ -76,13 +97,109 @@ export function SpreadsheetEditor({
     resizeObserver.observe(containerRef.current)
 
     return () => {
-      console.log('🧹 Cleaning up resize observer')
+      // console.log('🧹 Cleaning up resize observer')
       resizeObserver.disconnect()
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current)
       }
     }
   }, []) // NO DEPENDENCIES - only run once on mount
+
+  // Save workbook to asset file (debounced)
+  const saveWorkbook = useCallback(async () => {
+    if (!univerRef.current) return
+
+    try {
+      // Check if object still exists before saving (race condition protection)
+      const objects = await window.App.file.getObjects(parentTabId)
+      const objectExists = objects.some((obj: any) => obj.id === objectId)
+      
+      if (!objectExists) {
+        logger.warn('⚠️ Object deleted, skipping save:', objectId)
+        return
+      }
+
+      const workbook = univerRef.current.univerAPI.getActiveWorkbook()
+      if (!workbook) {
+        logger.error('❌ No active workbook to save')
+        return
+      }
+
+      // Get workbook snapshot as JSON
+      const workbookData = workbook.save()
+      const workbookJson = JSON.stringify(workbookData)
+      
+      // Convert to ArrayBuffer
+      const buffer = new TextEncoder().encode(workbookJson).buffer
+      
+      let finalAssetId = currentAssetIdRef.current
+      
+      // If we already have an assetId, update the existing file
+      if (currentAssetIdRef.current) {
+        await window.App.file.updateAsset(
+          currentAssetIdRef.current,
+          buffer,
+          'application/json',
+          parentTabId
+        )
+      } else {
+        // First save - create new asset
+        logger.debug('📝 Creating new spreadsheet asset')
+        finalAssetId = await window.App.file.saveAsset(
+          `spreadsheet-${objectId}.json`,
+          buffer,
+          'application/json',
+          parentTabId
+        )
+        
+        // Get current object to preserve all fields
+        const objects = await window.App.file.getObjects(parentTabId)
+        const currentObject = objects.find((obj: any) => obj.id === objectId)
+        
+        logger.debug('📝 Current object before save:', currentObject)
+        
+        // Update the object in database with the assetId
+        const updatedObject = {
+          ...currentObject,
+          object_data: {
+            ...currentObject.object_data,
+            title: title,
+            assetId: finalAssetId,
+          },
+        }
+        
+        logger.debug('💾 About to save object with:', {
+          objectId,
+          updatedObject,
+        })
+        
+        await window.App.file.saveObject(updatedObject, parentTabId)
+        
+        logger.debug('💾 Object saved - verifying...', { objectId })
+        
+        // Verify the update worked
+        const allObjects = await window.App.file.getObjects(parentTabId)
+        const savedObject = allObjects.find((obj: any) => obj.id === objectId)
+        
+        logger.debug('💾 Object after save:', {
+          objectId,
+          savedObject,
+          objectData: savedObject?.object_data,
+          assetIdInDb: savedObject?.object_data?.assetId,
+        })
+        
+        currentAssetIdRef.current = finalAssetId
+      }
+      
+      logger.debug('💾 Spreadsheet saved to asset:', {
+        objectId,
+        assetId: finalAssetId,
+        sizeKB: (workbookJson.length / 1024).toFixed(2),
+      })
+    } catch (error) {
+      logger.error('Failed to save spreadsheet:', error)
+    }
+  }, [objectId, parentTabId, title])
 
   // Initialize Univer spreadsheet - ONLY ONCE on mount
   useEffect(() => {
@@ -97,59 +214,126 @@ export function SpreadsheetEditor({
     // Wait for container to have actual size
     const rect = containerRef.current.getBoundingClientRect()
     if (rect.width === 0 || rect.height === 0) {
-      console.log('⏳ Waiting for container to have size...')
+      logger.debug('⏳ Waiting for container to have size...')
       return
     }
 
-    console.log('📊 Initializing Univer once with size:', rect.width, rect.height)
-
-    // Create Univer using official preset
-    const { univer, univerAPI } = createUniver({
-      locale: LocaleType.EN_US,
-      locales: {
-        [LocaleType.EN_US]: UniverPresetSheetsCoreEnUS,
-      },
-      presets: [
-        UniverSheetsCorePreset({
-          container: containerRef.current,
-        }),
-      ],
-    })
-
-    // Load existing workbook or create new one
-    const initialWorkbook = initialWorkbookRef.current || {
-      name: title || 'Spreadsheet',
-      sheetOrder: ['sheet-1'],
-      sheets: {
-        'sheet-1': {
-          id: 'sheet-1',
-          name: 'Sheet1',
-          cellData: {},
-          rowCount: 1000,
-          columnCount: 20,
-          defaultColumnWidth: 100,
-          defaultRowHeight: 27,
+    // Initialize Univer
+    const initializeUniver = async () => {
+      // Create Univer using official preset
+      const { univer, univerAPI } = createUniver({
+        locale: LocaleType.EN_US,
+        locales: {
+          [LocaleType.EN_US]: UniverPresetSheetsCoreEnUS,
         },
-      },
+        presets: [
+          UniverSheetsCorePreset({
+            container: containerRef.current!,
+          }),
+        ],
+      })
+
+      // Load workbook data from asset if it exists
+      let initialWorkbook: any
+
+      if (assetId) {
+        try {
+          const assetContent = await window.App.file.getAssetContent(assetId, parentTabId)
+          
+          if (assetContent) {
+            try {
+              initialWorkbook = JSON.parse(assetContent)
+              logger.debug('✅ Workbook loaded from asset')
+            } catch (parseError) {
+              logger.error('❌ Failed to parse workbook JSON (corrupted file):', parseError)
+              initialWorkbook = createDefaultWorkbook(title)
+            }
+          } else {
+            logger.error('❌ Asset not found:', assetId)
+            initialWorkbook = createDefaultWorkbook(title)
+          }
+        } catch (error) {
+          logger.error('Failed to load workbook from asset:', error)
+          initialWorkbook = createDefaultWorkbook(title)
+        }
+      } else {
+        // No asset yet, create default workbook
+        logger.debug('📝 Creating new default workbook')
+        initialWorkbook = createDefaultWorkbook(title)
+      }
+
+      // Create workbook in Univer
+      univerAPI.createWorkbook(initialWorkbook)
+      
+      univerRef.current = { univer, univerAPI }
+      isInitializedRef.current = true
+
+      // Set up periodic auto-save (every 5 seconds if data changed)
+      // We'll track if the workbook has been modified
+      let lastSaveTime = Date.now()
+      let hasUnsavedChanges = false
+
+      const autoSaveInterval = setInterval(() => {
+        if (hasUnsavedChanges && Date.now() - lastSaveTime > 1000) {
+          saveWorkbook()
+          hasUnsavedChanges = false
+          lastSaveTime = Date.now()
+        }
+      }, 2000)
+
+      // Mark as dirty on any user interaction (keyboard/mouse in the container)
+      const markDirty = () => {
+        hasUnsavedChanges = true
+      }
+
+      const container = containerRef.current
+      if (container) {
+        container.addEventListener('keydown', markDirty)
+        container.addEventListener('mouseup', markDirty)
+        container.addEventListener('paste', markDirty)
+      }
+
+      // Store interval and cleanup function
+      if (!univerRef.current.cleanup) {
+        univerRef.current.cleanup = []
+      }
+      
+      univerRef.current.cleanup.push(() => {
+        clearInterval(autoSaveInterval)
+        if (container) {
+          container.removeEventListener('keydown', markDirty)
+          container.removeEventListener('mouseup', markDirty)
+          container.removeEventListener('paste', markDirty)
+        }
+      })
+
+      // logger.debug('✅ Univer spreadsheet editor initialized')
     }
 
-    // Create workbook
-    univerAPI.createWorkbook(initialWorkbook)
-    console.log('✅ Univer spreadsheet editor initialized')
-
-    univerRef.current = { univer, univerAPI }
-    isInitializedRef.current = true
+    initializeUniver()
 
     // Cleanup on unmount ONLY
     return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+      
       if (univerRef.current) {
-        console.log('🧹 Disposing Univer editor on component unmount...')
+        logger.debug('🧹 Disposing Univer editor on component unmount')
+        
+        // Run all cleanup functions
+        if (univerRef.current.cleanup) {
+          for (const cleanupFn of univerRef.current.cleanup) {
+            cleanupFn()
+          }
+        }
+        
         univerRef.current.univer.dispose()
         univerRef.current = null
         isInitializedRef.current = false
       }
     }
-  }, [title]) // Only title dependency - containerSize removed!
+  }, [assetId, objectId, parentTabId, title, saveWorkbook]) // Dependencies for initialization
 
   // Handle resize after initialization - tell Univer canvas to resize
   useEffect(() => {
@@ -161,7 +345,7 @@ export function SpreadsheetEditor({
       return
     }
 
-    console.log('🔄 Resizing Univer to:', containerSize)
+    // console.log('🔄 Resizing Univer to:', containerSize)
 
     // Trigger Univer's resize by dispatching window resize event
     // Univer listens to window resize and recalculates its canvas

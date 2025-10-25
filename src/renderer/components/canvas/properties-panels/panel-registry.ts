@@ -57,7 +57,7 @@ class PropertiesPanelRegistry {
       displayName: metadata?.displayName || type,
     })
 
-    console.log(`✅ Properties panel registered: ${type}`)
+    // console.log(`✅ Properties panel registered: ${type}`)
   }
 
   /**

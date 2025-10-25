@@ -213,7 +213,7 @@ export interface SpreadsheetObject {
   height: number
   z_index: number
   object_data: {
-    workbookData?: any // Univer workbook snapshot (JSON)
+    assetId?: string // Reference to JSON file in assets/
     title?: string // Spreadsheet title
   }
   created: string

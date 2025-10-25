@@ -42,10 +42,27 @@ export function SpreadsheetWidget({
       return
     }
     
+    // Reload the object from database to get latest assetId
+    const objects = await window.App.file.getObjects(tabId)
+    const freshObject = objects.find((obj: any) => obj.id === object.id)
+    const assetId = freshObject?.object_data?.assetId
+    
+    logger.debug('📊 Fresh object from DB:', {
+      objectId: object.id,
+      freshObject: freshObject,
+      objectData: freshObject?.object_data,
+      objectDataStringified: JSON.stringify(freshObject?.object_data),
+      assetId: assetId,
+      hasAssetId: 'assetId' in (freshObject?.object_data || {}),
+      objectDataKeys: Object.keys(freshObject?.object_data || {}),
+    })
+    
     const splitView = !e.ctrlKey // Regular click = split (true), Ctrl+Click = full tab (false)
     
     logger.debug('📊 Opening spreadsheet:', {
       title: object.object_data.title,
+      assetId: assetId,
+      freshAssetId: assetId,
       mode: splitView ? 'split (50%)' : 'full tab (100%)',
       ctrlKey: e.ctrlKey,
       splitView,
@@ -56,7 +73,7 @@ export function SpreadsheetWidget({
         parentTabId: tabId,
         objectId: object.id,
         title: object.object_data.title || 'Spreadsheet',
-        workbookData: object.object_data.workbookData,
+        assetId: assetId,
         splitView,
       })
     } catch (error) {

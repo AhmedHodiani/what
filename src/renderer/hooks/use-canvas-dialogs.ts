@@ -198,7 +198,7 @@ export function useCanvasDialogs({
         z_index: objectsLength,
         object_data: {
           title: name,
-          workbookData: undefined, // Will be initialized when opened in tab
+          assetId: undefined, // Will be created on first save
         },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
