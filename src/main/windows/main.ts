@@ -237,7 +237,8 @@ export async function MainWindow() {
       type: 'spreadsheet',
       parentTabId,
       objectId,
-      title,
+      fileName: title, // Use fileName for tab display name (matches BaseTab interface)
+      title, // Keep title for backward compatibility
       workbookData,
       isModified: false,
       isActive: true,
