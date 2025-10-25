@@ -59,6 +59,15 @@ declare global {
         setActive: (tabId: string) => Promise<boolean>
         getActiveId: () => Promise<string | null>
       }
+      spreadsheet: {
+        open: (params: {
+          parentTabId: string
+          objectId: string
+          title: string
+          workbookData?: any
+        }) => Promise<string>
+        onTabOpen: (callback: (tab: any) => void) => () => void
+      }
       shortcuts: {
         onShortcut: (callback: (action: string) => void) => () => void
       }

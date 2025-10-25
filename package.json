@@ -43,6 +43,8 @@
     "@univerjs/docs-ui": "^0.10.12",
     "@univerjs/engine-formula": "^0.10.12",
     "@univerjs/engine-render": "^0.10.12",
+    "@univerjs/preset-sheets-core": "^0.10.12",
+    "@univerjs/presets": "^0.10.12",
     "@univerjs/sheets": "^0.10.12",
     "@univerjs/sheets-formula": "^0.10.12",
     "@univerjs/sheets-ui": "^0.10.12",

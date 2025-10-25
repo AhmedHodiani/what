@@ -9,6 +9,7 @@ interface CanvasObjectProps {
   isSelected: boolean
   zoom: number
   currentTool?: string
+  tabId?: string | null // Parent canvas file's tab ID
   onUpdate: (id: string, updates: Partial<DrawingObject>) => void
   onSelect: (id: string) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
@@ -29,6 +30,7 @@ export function CanvasObject({
   isSelected,
   zoom,
   currentTool,
+  tabId,
   onUpdate,
   onSelect,
   onContextMenu,
@@ -104,6 +106,7 @@ export function CanvasObject({
       currentTool={currentTool}
       isSelected={isSelected}
       object={object}
+      tabId={tabId}
       onContextMenu={onContextMenu}
       onSelect={onSelect}
       onStartDrag={onStartDrag}

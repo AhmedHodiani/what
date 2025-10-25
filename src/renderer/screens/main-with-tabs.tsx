@@ -18,6 +18,7 @@ import {
 import { MenuBar } from 'renderer/components/layout/menu-bar'
 import { UpdateNotification } from 'renderer/components/layout/update-notification'
 import { WelcomeScreen } from 'renderer/components/welcome/welcome-screen'
+import { SpreadsheetEditor } from 'renderer/screens/spreadsheet-editor'
 import {
   GlobalToolProvider,
   ActiveTabProvider,
@@ -26,7 +27,7 @@ import {
 import { GlobalPanelsLayout } from 'renderer/components/layout/global-panels-layout'
 import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 import type { Viewport } from 'lib/types/canvas'
-import type { FileTab } from 'shared/types/tabs'
+import type { FileTab, SpreadsheetTab } from 'shared/types/tabs'
 
 // Default canvas ID (for now we only support one canvas per file)
 const DEFAULT_CANVAS_ID = 'canvas_default'
@@ -182,6 +183,7 @@ export function MainScreenWithTabs() {
 
         logger.debug('Adding new tab:', tabId)
         const newTab: FileTab = {
+          type: 'canvas',
           id: tabId,
           filePath: file.path,
           fileName: file.name,
@@ -265,6 +267,55 @@ export function MainScreenWithTabs() {
     return () => {
       cleanup()
       cleanupClosed()
+    }
+  }, [model])
+
+  // Listen for spreadsheet tabs being opened
+  useEffect(() => {
+    const cleanup = window.App.spreadsheet.onTabOpen((spreadsheetTab: SpreadsheetTab) => {
+      logger.debug('📊 Spreadsheet tab opened:', spreadsheetTab)
+
+      // Add to tabs state
+      setTabs(prevTabs => {
+        if (prevTabs.some(t => t.id === spreadsheetTab.id)) {
+          logger.debug('Spreadsheet tab already exists, skipping:', spreadsheetTab.id)
+          return prevTabs
+        }
+        return [...prevTabs, spreadsheetTab]
+      })
+
+      // Add to FlexLayout
+      const existingNode = model.getNodeById(spreadsheetTab.id)
+      if (!existingNode) {
+        model.doAction(
+          Actions.addNode(
+            {
+              type: 'tab',
+              name: `📊 ${spreadsheetTab.fileName}`,
+              component: 'spreadsheet',
+              id: spreadsheetTab.id,
+              config: { 
+                type: 'spreadsheet',
+                tabId: spreadsheetTab.id,
+                objectId: spreadsheetTab.objectId,
+                parentTabId: spreadsheetTab.parentTabId,
+                title: spreadsheetTab.fileName,
+                workbookData: spreadsheetTab.workbookData,
+              },
+              enablePopout: true,
+            },
+            model.getRoot().getId(),
+            DockLocation.CENTER,
+            -1
+          )
+        )
+      }
+
+      setActiveTabId(spreadsheetTab.id)
+    })
+
+    return () => {
+      cleanup()
     }
   }, [model])
 
@@ -452,9 +503,17 @@ export function MainScreenWithTabs() {
 
   // FlexLayout factory function - renders content for each tab
   const factory = (node: TabNode) => {
-    const config = node.getConfig() as { tabId: string }
+    const config = node.getConfig() as { 
+      type?: 'canvas' | 'spreadsheet'
+      tabId: string
+      objectId?: string
+      parentTabId?: string
+      title?: string
+      workbookData?: any
+    }
+    
     const tabId = config.tabId
-    const viewport = viewports.get(tabId) || { x: 0, y: 0, zoom: 1 }
+    const tabType = config.type || 'canvas' // Default to canvas for backward compatibility
 
     // Check if this tab is actually selected in its tabset
     const parent = node.getParent()
@@ -468,18 +527,38 @@ export function MainScreenWithTabs() {
     logger.debug(
       'Rendering tab:',
       tabId,
+      'type:',
+      tabType,
       'isSelected:',
-      isSelected,
-      'viewport:',
-      viewport
+      isSelected
     )
 
-    // Only render canvas if the tab is selected to avoid event conflicts
-    // This prevents multiple canvases from fighting over mouse events
+    // Only render if the tab is selected to avoid event conflicts
     if (!isSelected) {
       return <div className="absolute inset-0 bg-[#0a0a0a]" />
     }
 
+    // Render spreadsheet editor
+    if (tabType === 'spreadsheet') {
+      return (
+        <CanvasErrorBoundary>
+          <SpreadsheetEditor
+            objectId={config.objectId!}
+            title={config.title || 'Spreadsheet'}
+            workbookData={config.workbookData}
+            onSave={(workbookData) => {
+              logger.debug('💾 Saving spreadsheet:', config.objectId, workbookData)
+              // TODO: Save workbook data back to the object
+              // window.App.file.saveObject({ id: config.objectId, object_data: { workbookData } }, config.parentTabId)
+            }}
+          />
+        </CanvasErrorBoundary>
+      )
+    }
+
+    // Render canvas (default)
+    const viewport = viewports.get(tabId) || { x: 0, y: 0, zoom: 1 }
+    
     return (
       <CanvasErrorBoundary>
         <InfiniteCanvas

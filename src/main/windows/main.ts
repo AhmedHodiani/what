@@ -217,6 +217,34 @@ export async function MainWindow() {
     return multiFileManager.getActiveTabId()
   })
 
+  // Spreadsheet tab management
+  ipcMain.removeHandler('spreadsheet-open')
+  ipcMain.handle('spreadsheet-open', async (_event, { parentTabId, objectId, title, workbookData }: { 
+    parentTabId: string
+    objectId: string
+    title: string
+    workbookData?: any
+  }) => {
+    logger.debug('📊 Opening spreadsheet tab:', { parentTabId, objectId, title })
+    
+    // Generate unique tab ID for spreadsheet
+    const spreadsheetTabId = `spreadsheet-${parentTabId}-${objectId}`
+    
+    // Send event to renderer to create the tab
+    window.webContents.send('spreadsheet-tab-open', {
+      id: spreadsheetTabId,
+      type: 'spreadsheet',
+      parentTabId,
+      objectId,
+      title,
+      workbookData,
+      isModified: false,
+      isActive: true,
+    })
+    
+    return spreadsheetTabId
+  })
+
   ipcMain.removeHandler('file-get-canvas')
   ipcMain.handle(
     'file-get-canvas',

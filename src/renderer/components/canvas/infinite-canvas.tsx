@@ -571,14 +571,14 @@ export function InfiniteCanvas({
             const newSpreadsheet = {
               id: generateId(),
               type: 'spreadsheet' as const,
-              x: worldPos.x - 400, // Center horizontally (800px / 2)
-              y: worldPos.y - 300, // Center vertically (600px / 2)
-              width: 800,
-              height: 600,
+              x: worldPos.x - 90, // Center horizontally (180px / 2)
+              y: worldPos.y - 60, // Center vertically (120px / 2)
+              width: 180,
+              height: 120,
               z_index: objects.length,
               object_data: {
                 title: 'New Spreadsheet',
-                workbookData: undefined, // Will be initialized by widget
+                workbookData: undefined, // Will be initialized when opened in tab
               },
               created: new Date().toISOString(),
               updated: new Date().toISOString(),
@@ -818,6 +818,7 @@ export function InfiniteCanvas({
                 <CanvasObject
                   isSelected={selectedObjectIds.includes(obj.id)}
                   object={obj}
+                  tabId={tabId}
                   onContextMenu={handleContextMenu}
                   onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}
@@ -846,6 +847,7 @@ export function InfiniteCanvas({
                   currentTool={currentTool}
                   isSelected={selectedObjectIds.includes(obj.id)}
                   object={obj}
+                  tabId={tabId}
                   onContextMenu={handleContextMenu}
                   onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}
