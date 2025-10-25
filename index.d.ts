@@ -65,6 +65,7 @@ declare global {
           objectId: string
           title: string
           workbookData?: any
+          splitView?: boolean
         }) => Promise<string>
         onTabOpen: (callback: (tab: any) => void) => () => void
       }

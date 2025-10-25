@@ -287,28 +287,127 @@ export function MainScreenWithTabs() {
       // Add to FlexLayout
       const existingNode = model.getNodeById(spreadsheetTab.id)
       if (!existingNode) {
-        model.doAction(
-          Actions.addNode(
-            {
-              type: 'tab',
-              name: `📊 ${spreadsheetTab.fileName}`,
-              component: 'spreadsheet',
-              id: spreadsheetTab.id,
-              config: { 
-                type: 'spreadsheet',
-                tabId: spreadsheetTab.id,
-                objectId: spreadsheetTab.objectId,
-                parentTabId: spreadsheetTab.parentTabId,
-                title: spreadsheetTab.fileName,
-                workbookData: spreadsheetTab.workbookData,
+        logger.debug('📊 Adding spreadsheet to FlexLayout:', {
+          splitView: spreadsheetTab.splitView,
+          parentTabId: spreadsheetTab.parentTabId,
+        })
+        
+        if (spreadsheetTab.splitView) {
+          // Split view: Find parent canvas tab and split it 50/50
+          const parentNode = model.getNodeById(spreadsheetTab.parentTabId)
+          logger.debug('📊 Split view - Parent node:', {
+            found: !!parentNode,
+            type: parentNode?.getType(),
+            id: parentNode?.getId(),
+          })
+          
+          if (parentNode) {
+            // Try to split the parent's tabset, not the tab itself
+            const parentTabSet = parentNode.getParent()
+            const targetId = parentTabSet?.getType() === 'tabset' ? parentTabSet.getId() : spreadsheetTab.parentTabId
+            
+            logger.debug('📊 Attempting split - Target:', {
+              targetId,
+              targetType: model.getNodeById(targetId)?.getType(),
+            })
+            
+            model.doAction(
+              Actions.addNode(
+                {
+                  type: 'tab',
+                  name: `📊 ${spreadsheetTab.fileName}`,
+                  component: 'spreadsheet',
+                  id: spreadsheetTab.id,
+                  config: { 
+                    type: 'spreadsheet',
+                    tabId: spreadsheetTab.id,
+                    objectId: spreadsheetTab.objectId,
+                    parentTabId: spreadsheetTab.parentTabId,
+                    title: spreadsheetTab.fileName,
+                    workbookData: spreadsheetTab.workbookData,
+                  },
+                  enablePopout: true,
+                },
+                targetId,
+                DockLocation.RIGHT,
+                -1
+              )
+            )
+            logger.debug('✅ Split view created with DockLocation.RIGHT')
+          } else {
+            logger.error('Parent tab not found for split view:', spreadsheetTab.parentTabId)
+            // Fallback to CENTER if parent not found
+            model.doAction(
+              Actions.addNode(
+                {
+                  type: 'tab',
+                  name: `📊 ${spreadsheetTab.fileName}`,
+                  component: 'spreadsheet',
+                  id: spreadsheetTab.id,
+                  config: { 
+                    type: 'spreadsheet',
+                    tabId: spreadsheetTab.id,
+                    objectId: spreadsheetTab.objectId,
+                    parentTabId: spreadsheetTab.parentTabId,
+                    title: spreadsheetTab.fileName,
+                    workbookData: spreadsheetTab.workbookData,
+                  },
+                  enablePopout: true,
+                },
+                model.getRoot().getId(),
+                DockLocation.CENTER,
+                -1
+              )
+            )
+          }
+        } else {
+          // Full tab: Add to the main tabset (100% standalone tab in tab bar)
+          logger.debug('📊 Creating full standalone tab with DockLocation.CENTER')
+          
+          // Find the main tabset (first child of root that's a tabset)
+          const root = model.getRoot()
+          let mainTabsetId = root.getId()
+          
+          // Try to find the first tabset in the layout
+          root.getChildren().forEach((child: any) => {
+            if (child.getType() === 'tabset') {
+              mainTabsetId = child.getId()
+            } else if (child.getType() === 'row') {
+              // Check children of row for tabset
+              child.getChildren().forEach((grandchild: any) => {
+                if (grandchild.getType() === 'tabset') {
+                  mainTabsetId = grandchild.getId()
+                }
+              })
+            }
+          })
+          
+          logger.debug('📊 Main tabset ID:', mainTabsetId)
+          
+          model.doAction(
+            Actions.addNode(
+              {
+                type: 'tab',
+                name: `📊 ${spreadsheetTab.fileName}`,
+                component: 'spreadsheet',
+                id: spreadsheetTab.id,
+                config: { 
+                  type: 'spreadsheet',
+                  tabId: spreadsheetTab.id,
+                  objectId: spreadsheetTab.objectId,
+                  parentTabId: spreadsheetTab.parentTabId,
+                  title: spreadsheetTab.fileName,
+                  workbookData: spreadsheetTab.workbookData,
+                },
+                enablePopout: true,
               },
-              enablePopout: true,
-            },
-            model.getRoot().getId(),
-            DockLocation.CENTER,
-            -1
+              mainTabsetId,
+              DockLocation.CENTER,
+              -1
+            )
           )
-        )
+          logger.debug('✅ Full tab created with DockLocation.CENTER')
+        }
       }
 
       setActiveTabId(spreadsheetTab.id)

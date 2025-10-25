@@ -219,13 +219,14 @@ export async function MainWindow() {
 
   // Spreadsheet tab management
   ipcMain.removeHandler('spreadsheet-open')
-  ipcMain.handle('spreadsheet-open', async (_event, { parentTabId, objectId, title, workbookData }: { 
+  ipcMain.handle('spreadsheet-open', async (_event, { parentTabId, objectId, title, workbookData, splitView = true }: { 
     parentTabId: string
     objectId: string
     title: string
     workbookData?: any
+    splitView?: boolean
   }) => {
-    logger.debug('📊 Opening spreadsheet tab:', { parentTabId, objectId, title })
+    logger.debug('📊 Opening spreadsheet tab:', { parentTabId, objectId, title, splitView })
     
     // Generate unique tab ID for spreadsheet
     const spreadsheetTabId = `spreadsheet-${parentTabId}-${objectId}`
@@ -240,6 +241,7 @@ export async function MainWindow() {
       workbookData,
       isModified: false,
       isActive: true,
+      splitView,
     })
     
     return spreadsheetTabId

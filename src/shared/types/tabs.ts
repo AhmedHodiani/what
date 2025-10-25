@@ -25,6 +25,7 @@ export interface SpreadsheetTab extends BaseTab {
   parentTabId: string // The canvas file this spreadsheet belongs to
   objectId: string // The spreadsheet object ID
   workbookData?: any // Univer workbook data
+  splitView?: boolean // Whether to open in split view (50%) or full tab (100%)
 }
 
 export type FileTab = CanvasTab | SpreadsheetTab

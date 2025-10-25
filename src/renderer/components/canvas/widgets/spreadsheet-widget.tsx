@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import type { DrawingObject, SpreadsheetObject } from 'lib/types/canvas'
 import { WidgetWrapper } from './widget-wrapper'
 import { Sheet } from 'lucide-react'
+import { logger } from 'shared/logger'
 
 interface SpreadsheetWidgetProps {
   object: SpreadsheetObject
@@ -37,11 +38,18 @@ export function SpreadsheetWidget({
     e.stopPropagation()
     
     if (!tabId) {
-      console.error('❌ Cannot open spreadsheet: no parent tabId available')
+      logger.error('❌ Cannot open spreadsheet: no parent tabId available')
       return
     }
     
-    console.log('📊 Opening spreadsheet in new tab:', object.object_data.title)
+    const splitView = !e.ctrlKey // Regular click = split (true), Ctrl+Click = full tab (false)
+    
+    logger.debug('📊 Opening spreadsheet:', {
+      title: object.object_data.title,
+      mode: splitView ? 'split (50%)' : 'full tab (100%)',
+      ctrlKey: e.ctrlKey,
+      splitView,
+    })
     
     try {
       await window.App.spreadsheet.open({
@@ -49,9 +57,10 @@ export function SpreadsheetWidget({
         objectId: object.id,
         title: object.object_data.title || 'Spreadsheet',
         workbookData: object.object_data.workbookData,
+        splitView,
       })
     } catch (error) {
-      console.error('Failed to open spreadsheet tab:', error)
+      logger.error('Failed to open spreadsheet tab:', error)
     }
   }, [object.id, object.object_data, tabId])
 
@@ -80,7 +89,7 @@ export function SpreadsheetWidget({
               {object.object_data.title || 'Spreadsheet'}
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              Click to open
+              Click: Split view • Ctrl+Click: Full tab
             </div>
           </div>
         </div>

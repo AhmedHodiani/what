@@ -171,12 +171,70 @@ export function SpreadsheetEditor({
 
   }, [containerSize])
 
+  // Allow system shortcuts (Ctrl+Tab, etc.) to work even when spreadsheet is focused
+  // We need to re-dispatch these events to trigger our global shortcut handlers
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if this is a re-dispatched event from us (avoid infinite loop)
+      if ((e as any).__fromSpreadsheet) {
+        return // Let it through to the shortcut handlers
+      }
+      
+      // System shortcuts that should always work
+      const isSystemShortcut = 
+        (e.ctrlKey && e.key === 'Tab' && !e.shiftKey) ||     // Ctrl+Tab (next tab)
+        (e.ctrlKey && e.shiftKey && e.key === 'Tab') ||      // Ctrl+Shift+Tab (prev tab)
+        (e.ctrlKey && e.key === 's') ||                       // Ctrl+S (save)
+        (e.ctrlKey && e.key === 'n') ||                       // Ctrl+N (new)
+        (e.ctrlKey && e.key === 'o') ||                       // Ctrl+O (open)
+        (e.ctrlKey && e.key === 'w')                          // Ctrl+W (close)
+      
+      if (isSystemShortcut) {
+        console.log('📌 System shortcut detected - preventing Univer, re-dispatching:', {
+          key: e.key,
+          ctrlKey: e.ctrlKey,
+          shiftKey: e.shiftKey,
+        })
+        
+        // Stop Univer from seeing this event
+        e.stopImmediatePropagation()
+        e.preventDefault()
+        
+        // Re-dispatch the event to document with a marker to avoid infinite loop
+        const newEvent = new KeyboardEvent('keydown', {
+          key: e.key,
+          code: e.code,
+          ctrlKey: e.ctrlKey,
+          shiftKey: e.shiftKey,
+          altKey: e.altKey,
+          metaKey: e.metaKey,
+          bubbles: true,
+          cancelable: true,
+        })
+        
+        // Mark this as a re-dispatched event
+        ;(newEvent as any).__fromSpreadsheet = true
+        
+        console.log('📌 Re-dispatching to document (marked to avoid loop)')
+        document.dispatchEvent(newEvent)
+      }
+    }
+
+    // Use capture phase to intercept before Univer's handlers
+    window.addEventListener('keydown', handleKeyDown, { capture: true })
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, { capture: true })
+    }
+  }, [])
+
   return (
     <div className="w-full h-full bg-white overflow-hidden" style={{ position: 'relative', zIndex: 50 }}>
       <div
         ref={containerRef}
         className="w-full h-full"
         style={{ width: '100%', height: '100%' }}
+        tabIndex={-1}
       />
     </div>
   )
