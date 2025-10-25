@@ -172,7 +172,7 @@ export function SpreadsheetEditor({
   }, [containerSize])
 
   return (
-    <div className="w-full h-full bg-white overflow-hidden">
+    <div className="w-full h-full bg-white overflow-hidden" style={{ position: 'relative', zIndex: 50 }}>
       <div
         ref={containerRef}
         className="w-full h-full"
