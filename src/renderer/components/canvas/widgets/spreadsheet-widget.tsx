@@ -34,7 +34,7 @@ export function SpreadsheetWidget({
   onStartDrag,
 }: SpreadsheetWidgetProps) {
   
-  const handleClick = useCallback(async (e: React.MouseEvent) => {
+  const handleDoubleClick = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation()
     
     if (!tabId) {
@@ -47,26 +47,7 @@ export function SpreadsheetWidget({
     const freshObject = objects.find((obj: any) => obj.id === object.id)
     const assetId = freshObject?.object_data?.assetId
     
-    logger.debug('📊 Fresh object from DB:', {
-      objectId: object.id,
-      freshObject: freshObject,
-      objectData: freshObject?.object_data,
-      objectDataStringified: JSON.stringify(freshObject?.object_data),
-      assetId: assetId,
-      hasAssetId: 'assetId' in (freshObject?.object_data || {}),
-      objectDataKeys: Object.keys(freshObject?.object_data || {}),
-    })
-    
-    const splitView = !e.ctrlKey // Regular click = split (true), Ctrl+Click = full tab (false)
-    
-    logger.debug('📊 Opening spreadsheet:', {
-      title: object.object_data.title,
-      assetId: assetId,
-      freshAssetId: assetId,
-      mode: splitView ? 'split (50%)' : 'full tab (100%)',
-      ctrlKey: e.ctrlKey,
-      splitView,
-    })
+    const splitView = !e.ctrlKey // Regular double-click = split (true), Ctrl+Double-click = full tab (false)
     
     try {
       await window.App.spreadsheet.open({
@@ -96,7 +77,7 @@ export function SpreadsheetWidget({
     >
       <div
         className="relative w-full h-full bg-gradient-to-br from-green-50 to-teal-50 rounded-lg overflow-hidden shadow-lg cursor-pointer hover:shadow-xl transition-shadow border-2 border-green-200"
-        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
       >
         {/* Icon */}
         <div className="flex flex-col items-center justify-center h-full p-4">
@@ -106,7 +87,10 @@ export function SpreadsheetWidget({
               {object.object_data.title || 'Spreadsheet'}
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              Click: Split view • Ctrl+Click: Full tab
+              Double-click: Split view
+            </div>
+            <div className="text-xs text-gray-500 mt-2">
+              Ctrl+Double-click: Full tab
             </div>
           </div>
         </div>

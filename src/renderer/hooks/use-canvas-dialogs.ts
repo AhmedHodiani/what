@@ -194,7 +194,7 @@ export function useCanvasDialogs({
         x: spreadsheetDialogPosition.x - 90, // Center horizontally (180px / 2)
         y: spreadsheetDialogPosition.y - 60, // Center vertically (120px / 2)
         width: 180,
-        height: 120,
+        height: 200,
         z_index: objectsLength,
         object_data: {
           title: name,
