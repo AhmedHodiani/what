@@ -36,6 +36,7 @@ import { FreehandPreview } from './freehand-preview'
 import { ArrowPreview } from './arrow-preview'
 import { YouTubeUrlDialog } from './youtube-url-dialog'
 import { ShapePickerDialog } from './shape-picker-dialog'
+import { SpreadsheetNameDialog } from './spreadsheet-name-dialog'
 import { ContextMenu } from './context-menu'
 import { ConfirmationDialog } from './confirmation-dialog'
 import { Toast, useToast } from '../ui/toast'
@@ -232,7 +233,7 @@ export function InfiniteCanvas({
     containerRef, // Pass container ref for accurate mouse position tracking
   })
 
-  // Dialog management hook - handles all dialogs (YouTube, Shape, Delete, Context menu)
+  // Dialog management hook - handles all dialogs (YouTube, Shape, Spreadsheet, Delete, Context menu)
   const {
     showYouTubeDialog,
     youtubeDialogPosition,
@@ -244,6 +245,11 @@ export function InfiniteCanvas({
     openShapeDialog,
     handleShapeSelect,
     handleShapeCancel,
+    showSpreadsheetDialog,
+    spreadsheetDialogPosition,
+    openSpreadsheetDialog,
+    handleSpreadsheetConfirm,
+    handleSpreadsheetCancel,
     contextMenu,
     handleContextMenu,
     closeContextMenu,
@@ -566,6 +572,12 @@ export function InfiniteCanvas({
             break
           }
 
+          case 'spreadsheet': {
+            const worldPos = screenToWorld(e.clientX, e.clientY)
+            openSpreadsheetDialog(worldPos)
+            break
+          }
+
           // TODO: Add other object types
         }
         return
@@ -795,6 +807,7 @@ export function InfiniteCanvas({
                 <CanvasObject
                   isSelected={selectedObjectIds.includes(obj.id)}
                   object={obj}
+                  tabId={tabId}
                   onContextMenu={handleContextMenu}
                   onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}
@@ -823,6 +836,7 @@ export function InfiniteCanvas({
                   currentTool={currentTool}
                   isSelected={selectedObjectIds.includes(obj.id)}
                   object={obj}
+                  tabId={tabId}
                   onContextMenu={handleContextMenu}
                   onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}
@@ -885,6 +899,14 @@ export function InfiniteCanvas({
           isOpen={showShapeDialog}
           onClose={handleShapeCancel}
           onSelectShape={handleShapeSelect}
+        />
+      )}
+
+      {/* Spreadsheet name dialog */}
+      {showSpreadsheetDialog && (
+        <SpreadsheetNameDialog
+          onCancel={handleSpreadsheetCancel}
+          onConfirm={handleSpreadsheetConfirm}
         />
       )}
 

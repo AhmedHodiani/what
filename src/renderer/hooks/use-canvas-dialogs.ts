@@ -58,6 +58,13 @@ export function useCanvasDialogs({
     y: 0,
   })
 
+  // Spreadsheet name dialog state
+  const [showSpreadsheetDialog, setShowSpreadsheetDialog] = useState(false)
+  const [spreadsheetDialogPosition, setSpreadsheetDialogPosition] = useState<Point>({
+    x: 0,
+    y: 0,
+  })
+
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
 
@@ -166,6 +173,52 @@ export function useCanvasDialogs({
     setTool('select')
   }, [setTool])
 
+  // ========== Spreadsheet Name Dialog Handlers ==========
+
+  /**
+   * Open spreadsheet name dialog at a specific position
+   */
+  const openSpreadsheetDialog = useCallback((position: Point) => {
+    setSpreadsheetDialogPosition(position)
+    setShowSpreadsheetDialog(true)
+  }, [])
+
+  /**
+   * Handle spreadsheet name confirmation - creates SpreadsheetObject
+   */
+  const handleSpreadsheetConfirm = useCallback(
+    async (name: string) => {
+      const newSpreadsheet = {
+        id: generateId(),
+        type: 'spreadsheet' as const,
+        x: spreadsheetDialogPosition.x - 90, // Center horizontally (180px / 2)
+        y: spreadsheetDialogPosition.y - 60, // Center vertically (120px / 2)
+        width: 180,
+        height: 200,
+        z_index: objectsLength,
+        object_data: {
+          title: name,
+          assetId: undefined, // Will be created on first save
+        },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }
+      await addObject(newSpreadsheet)
+      selectObject(newSpreadsheet.id)
+      setShowSpreadsheetDialog(false)
+      setTool('select')
+    },
+    [spreadsheetDialogPosition, objectsLength, addObject, selectObject, setTool]
+  )
+
+  /**
+   * Handle spreadsheet dialog cancellation
+   */
+  const handleSpreadsheetCancel = useCallback(() => {
+    setShowSpreadsheetDialog(false)
+    setTool('select')
+  }, [setTool])
+
   // ========== Context Menu Handlers ==========
 
   /**
@@ -270,6 +323,13 @@ export function useCanvasDialogs({
     openShapeDialog,
     handleShapeSelect,
     handleShapeCancel,
+
+    // Spreadsheet name dialog
+    showSpreadsheetDialog,
+    spreadsheetDialogPosition,
+    openSpreadsheetDialog,
+    handleSpreadsheetConfirm,
+    handleSpreadsheetCancel,
 
     // Context menu
     contextMenu,

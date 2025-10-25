@@ -41,11 +41,21 @@ declare global {
           mimeType: string,
           tabId?: string
         ) => Promise<string>
+        updateAsset: (
+          assetId: string,
+          dataBuffer: ArrayBuffer,
+          mimeType?: string,
+          tabId?: string
+        ) => Promise<boolean>
         getAssetPath: (
           assetId: string,
           tabId?: string
         ) => Promise<string | null>
         getAssetDataUrl: (
+          assetId: string,
+          tabId?: string
+        ) => Promise<string | null>
+        getAssetContent: (
           assetId: string,
           tabId?: string
         ) => Promise<string | null>
@@ -58,6 +68,16 @@ declare global {
         getAll: () => Promise<any[]>
         setActive: (tabId: string) => Promise<boolean>
         getActiveId: () => Promise<string | null>
+      }
+      spreadsheet: {
+        open: (params: {
+          parentTabId: string
+          objectId: string
+          title: string
+          assetId?: string
+          splitView?: boolean
+        }) => Promise<string>
+        onTabOpen: (callback: (tab: any) => void) => () => void
       }
       shortcuts: {
         onShortcut: (callback: (action: string) => void) => () => void
@@ -93,6 +113,10 @@ declare global {
         ) => () => void
       }
     }
+    // Internal function to close spreadsheet tabs when widget is deleted
+    __closeSpreadsheetTabs?: (objectId: string, parentTabId: string) => void
+    // Internal function to update tab names dynamically
+    __updateTabName?: (tabId: string, newName: string) => void
   }
 }
 

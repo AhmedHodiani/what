@@ -28,6 +28,7 @@ export type DrawingObjectType =
   | 'youtube'
   | 'emoji'
   | 'file'
+  | 'spreadsheet'
 
 // Freehand drawing (pen/pencil stroke)
 export interface FreehandObject {
@@ -202,6 +203,23 @@ export interface FileObject {
   updated: string
 }
 
+// Spreadsheet object (Univer workbook)
+export interface SpreadsheetObject {
+  id: string
+  type: 'spreadsheet'
+  x: number
+  y: number
+  width: number
+  height: number
+  z_index: number
+  object_data: {
+    assetId?: string // Reference to JSON file in assets/
+    title?: string // Spreadsheet title
+  }
+  created: string
+  updated: string
+}
+
 // Union type for all drawing objects
 export type DrawingObject =
   | FreehandObject
@@ -212,3 +230,4 @@ export type DrawingObject =
   | YouTubeVideoObject
   | EmojiObject
   | FileObject
+  | SpreadsheetObject

@@ -266,21 +266,30 @@ export function useObjectDuplication({
         // Deep clone object data
         let newObjectData = { ...originalObject.object_data }
 
-        // Handle asset duplication for images and files
-        if (originalObject.type === 'image' || originalObject.type === 'file') {
+        // Handle asset duplication for images, files, and spreadsheets
+        if (originalObject.type === 'image' || originalObject.type === 'file' || originalObject.type === 'spreadsheet') {
           const assetId = originalObject.object_data.assetId as string
-          const fileName =
-            originalObject.type === 'file'
-              ? (originalObject.object_data.fileName as string)
-              : `image-${Date.now()}.png`
-          const mimeType =
-            originalObject.type === 'file'
-              ? (originalObject.object_data.mimeType as string)
-              : 'image/png'
+          
+          if (assetId) {
+            let fileName: string
+            let mimeType: string
+            
+            if (originalObject.type === 'file') {
+              fileName = (originalObject.object_data.fileName as string)
+              mimeType = (originalObject.object_data.mimeType as string)
+            } else if (originalObject.type === 'spreadsheet') {
+              fileName = `spreadsheet-${Date.now()}.json`
+              mimeType = 'application/json'
+            } else {
+              // image
+              fileName = `image-${Date.now()}.png`
+              mimeType = 'image/png'
+            }
 
-          const newAssetId = await duplicateAsset(assetId, fileName, mimeType)
-          if (newAssetId) {
-            newObjectData = { ...newObjectData, assetId: newAssetId }
+            const newAssetId = await duplicateAsset(assetId, fileName, mimeType)
+            if (newAssetId) {
+              newObjectData = { ...newObjectData, assetId: newAssetId }
+            }
           }
         }
 

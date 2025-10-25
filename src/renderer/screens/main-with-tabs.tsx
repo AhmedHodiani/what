@@ -18,6 +18,7 @@ import {
 import { MenuBar } from 'renderer/components/layout/menu-bar'
 import { UpdateNotification } from 'renderer/components/layout/update-notification'
 import { WelcomeScreen } from 'renderer/components/welcome/welcome-screen'
+import { SpreadsheetEditor } from 'renderer/screens/spreadsheet-editor'
 import {
   GlobalToolProvider,
   ActiveTabProvider,
@@ -26,7 +27,7 @@ import {
 import { GlobalPanelsLayout } from 'renderer/components/layout/global-panels-layout'
 import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 import type { Viewport } from 'lib/types/canvas'
-import type { FileTab } from 'shared/types/tabs'
+import type { FileTab, SpreadsheetTab } from 'shared/types/tabs'
 
 // Default canvas ID (for now we only support one canvas per file)
 const DEFAULT_CANVAS_ID = 'canvas_default'
@@ -102,7 +103,13 @@ export function MainScreenWithTabs() {
   const layoutRef = useRef<Layout>(null)
   const saveTimeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map())
   const viewportsRef = useRef<Map<string, Viewport>>(new Map())
+  const tabsRef = useRef<FileTab[]>([]) // Keep current tabs in ref to avoid stale closures
   const isInitialLoadRef = useRef(true)
+
+  // Keep tabsRef in sync with tabs state
+  useEffect(() => {
+    tabsRef.current = tabs
+  }, [tabs])
 
   // Load tabs on mount
   useEffect(() => {
@@ -182,6 +189,7 @@ export function MainScreenWithTabs() {
 
         logger.debug('Adding new tab:', tabId)
         const newTab: FileTab = {
+          type: 'canvas',
           id: tabId,
           filePath: file.path,
           fileName: file.name,
@@ -194,8 +202,6 @@ export function MainScreenWithTabs() {
 
       // Only add to FlexLayout if not already loaded (not initial load)
       if (!isInitialLoadRef.current) {
-        logger.debug('Adding tab to FlexLayout:', tabId)
-
         // Check if tab already exists in model
         const existingNode = model.getNodeById(tabId)
         if (!existingNode) {
@@ -219,7 +225,6 @@ export function MainScreenWithTabs() {
 
       // Load viewport for the new tab
       window.App.file.getCanvas(DEFAULT_CANVAS_ID, tabId).then(canvas => {
-        logger.debug('Loaded viewport for tab:', tabId, canvas)
         if (canvas) {
           const newViewport = {
             x: canvas.viewport_x,
@@ -228,7 +233,6 @@ export function MainScreenWithTabs() {
           }
           viewportsRef.current.set(tabId, newViewport)
           setViewports(prev => new Map(prev).set(tabId, newViewport))
-          logger.debug('Set viewport in cache:', tabId, newViewport)
         }
       })
 
@@ -237,7 +241,31 @@ export function MainScreenWithTabs() {
 
     // Listen for files being closed
     const cleanupClosed = window.App.file.onFileClosed(({ tabId }) => {
-      logger.debug('File closed via menu:', tabId)
+      // Use tabsRef to get current tabs (avoid stale closure)
+      const closingTab = tabsRef.current.find(t => t.id === tabId)
+      
+      // If closing a canvas tab (.what file), also close all its spreadsheet tabs
+      if (closingTab?.type === 'canvas') {
+        const spreadsheetTabsToClose = tabsRef.current.filter(
+          t => t.type === 'spreadsheet' && t.parentTabId === tabId
+        )
+        
+        if (spreadsheetTabsToClose.length > 0) {
+          // Close each spreadsheet tab in FlexLayout
+          for (const spreadsheetTab of spreadsheetTabsToClose) {
+            const node = model.getNodeById(spreadsheetTab.id)
+            if (node) {
+              logger.debug('Deleting spreadsheet tab from FlexLayout:', spreadsheetTab.id)
+              model.doAction(Actions.deleteTab(spreadsheetTab.id))
+            }
+          }
+          
+          // Remove spreadsheet tabs from state
+          setTabs(prevTabs => prevTabs.filter(
+            t => !(t.type === 'spreadsheet' && t.parentTabId === tabId)
+          ))
+        }
+      }
 
       // Remove from tabs state
       setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
@@ -268,6 +296,145 @@ export function MainScreenWithTabs() {
     }
   }, [model])
 
+  // Listen for spreadsheet tabs being opened
+  useEffect(() => {
+    const cleanup = window.App.spreadsheet.onTabOpen((spreadsheetTab: SpreadsheetTab) => {
+      // Check if tab already exists - if so, focus it instead of creating duplicate
+      const existingTab = tabsRef.current.find(t => t.id === spreadsheetTab.id)
+      if (existingTab) {
+        // Focus existing tab in FlexLayout
+        const existingNode = model.getNodeById(spreadsheetTab.id)
+        if (existingNode) {
+          model.doAction(Actions.selectTab(spreadsheetTab.id))
+        }
+        
+        // Update active tab state
+        setActiveTabId(spreadsheetTab.id)
+        window.App.tabs.setActive(spreadsheetTab.id)
+        return
+      }
+
+      // Add to tabs state
+      setTabs(prevTabs => [...prevTabs, spreadsheetTab])
+
+      // Add to FlexLayout
+      const existingNode = model.getNodeById(spreadsheetTab.id)
+      if (!existingNode) {
+        if (spreadsheetTab.splitView) {
+          // Split view: Find parent canvas tab and split it 50/50
+          const parentNode = model.getNodeById(spreadsheetTab.parentTabId)
+          
+          if (parentNode) {
+            // Try to split the parent's tabset, not the tab itself
+            const parentTabSet = parentNode.getParent()
+            const targetId = parentTabSet?.getType() === 'tabset' ? parentTabSet.getId() : spreadsheetTab.parentTabId
+            
+            model.doAction(
+              Actions.addNode(
+                {
+                  type: 'tab',
+                  name: `📊 ${spreadsheetTab.fileName}`,
+                  component: 'spreadsheet',
+                  id: spreadsheetTab.id,
+                  config: { 
+                    type: 'spreadsheet',
+                    tabId: spreadsheetTab.id,
+                    objectId: spreadsheetTab.objectId,
+                    parentTabId: spreadsheetTab.parentTabId,
+                    title: spreadsheetTab.fileName,
+                    assetId: spreadsheetTab.assetId,
+                  },
+                  enablePopout: true,
+                },
+                targetId,
+                DockLocation.RIGHT,
+                -1
+              )
+            )
+          } else {
+            logger.error('Parent tab not found for split view:', spreadsheetTab.parentTabId)
+            // Fallback to CENTER if parent not found
+            model.doAction(
+              Actions.addNode(
+                {
+                  type: 'tab',
+                  name: `📊 ${spreadsheetTab.fileName}`,
+                  component: 'spreadsheet',
+                  id: spreadsheetTab.id,
+                  config: { 
+                    type: 'spreadsheet',
+                    tabId: spreadsheetTab.id,
+                    objectId: spreadsheetTab.objectId,
+                    parentTabId: spreadsheetTab.parentTabId,
+                    title: spreadsheetTab.fileName,
+                    assetId: spreadsheetTab.assetId,
+                  },
+                  enablePopout: true,
+                },
+                model.getRoot().getId(),
+                DockLocation.CENTER,
+                -1
+              )
+            )
+          }
+        } else {
+          // Full tab: Add to the main tabset (100% standalone tab in tab bar)
+          logger.debug('📊 Creating full standalone tab with DockLocation.CENTER')
+          
+          // Find the main tabset (first child of root that's a tabset)
+          const root = model.getRoot()
+          let mainTabsetId = root.getId()
+          
+          // Try to find the first tabset in the layout
+          root.getChildren().forEach((child: any) => {
+            if (child.getType() === 'tabset') {
+              mainTabsetId = child.getId()
+            } else if (child.getType() === 'row') {
+              // Check children of row for tabset
+              child.getChildren().forEach((grandchild: any) => {
+                if (grandchild.getType() === 'tabset') {
+                  mainTabsetId = grandchild.getId()
+                }
+              })
+            }
+          })
+          
+          logger.debug('📊 Main tabset ID:', mainTabsetId)
+          
+          model.doAction(
+            Actions.addNode(
+              {
+                type: 'tab',
+                name: `📊 ${spreadsheetTab.fileName}`,
+                component: 'spreadsheet',
+                id: spreadsheetTab.id,
+                config: { 
+                  type: 'spreadsheet',
+                  tabId: spreadsheetTab.id,
+                  objectId: spreadsheetTab.objectId,
+                  parentTabId: spreadsheetTab.parentTabId,
+                  title: spreadsheetTab.fileName,
+                  assetId: spreadsheetTab.assetId,
+                },
+                enablePopout: true,
+              },
+              mainTabsetId,
+              DockLocation.CENTER,
+              -1
+            )
+          )
+          logger.debug('✅ Full tab created with DockLocation.CENTER')
+        }
+      }
+
+      setActiveTabId(spreadsheetTab.id)
+    })
+
+    return () => {
+      cleanup()
+    }
+  }, [model])
+
   // Handle viewport changes for a specific tab
   const handleViewportChange = useCallback(
     (tabId: string, newViewport: Viewport) => {
@@ -282,7 +449,7 @@ export function MainScreenWithTabs() {
 
       // Debounce viewport saving to database
       const timeout = setTimeout(() => {
-        logger.debug('🔵 Saving viewport for tab:', tabId, newViewport)
+        // logger.debug('🔵 Saving viewport for tab:', tabId, newViewport)
         window.App.file
           .saveViewport(
             DEFAULT_CANVAS_ID,
@@ -452,9 +619,17 @@ export function MainScreenWithTabs() {
 
   // FlexLayout factory function - renders content for each tab
   const factory = (node: TabNode) => {
-    const config = node.getConfig() as { tabId: string }
+    const config = node.getConfig() as { 
+      type?: 'canvas' | 'spreadsheet'
+      tabId: string
+      objectId?: string
+      parentTabId?: string
+      title?: string
+      assetId?: string
+    }
+    
     const tabId = config.tabId
-    const viewport = viewports.get(tabId) || { x: 0, y: 0, zoom: 1 }
+    const tabType = config.type || 'canvas' // Default to canvas for backward compatibility
 
     // Check if this tab is actually selected in its tabset
     const parent = node.getParent()
@@ -465,21 +640,28 @@ export function MainScreenWithTabs() {
       isSelected = tabset.getSelectedNode()?.getId() === node.getId()
     }
 
-    logger.debug(
-      'Rendering tab:',
-      tabId,
-      'isSelected:',
-      isSelected,
-      'viewport:',
-      viewport
-    )
-
-    // Only render canvas if the tab is selected to avoid event conflicts
-    // This prevents multiple canvases from fighting over mouse events
+    // Only render if the tab is selected to avoid event conflicts
     if (!isSelected) {
       return <div className="absolute inset-0 bg-[#0a0a0a]" />
     }
 
+    // Render spreadsheet editor
+    if (tabType === 'spreadsheet') {
+      return (
+        <CanvasErrorBoundary>
+          <SpreadsheetEditor
+            objectId={config.objectId!}
+            parentTabId={config.parentTabId!}
+            title={config.title || 'Spreadsheet'}
+            assetId={config.assetId}
+          />
+        </CanvasErrorBoundary>
+      )
+    }
+
+    // Render canvas (default)
+    const viewport = viewports.get(tabId) || { x: 0, y: 0, zoom: 1 }
+    
     return (
       <CanvasErrorBoundary>
         <InfiniteCanvas
@@ -515,17 +697,97 @@ export function MainScreenWithTabs() {
     }
   }
 
+  // Close spreadsheet tabs by objectId (called when widget is deleted)
+  const closeSpreadsheetTabsByObjectId = useCallback((objectId: string, parentTabId: string) => {
+    const spreadsheetTabId = `spreadsheet-${parentTabId}-${objectId}`
+    const spreadsheetTab = tabs.find(t => t.id === spreadsheetTabId)
+    
+    if (spreadsheetTab) {
+      logger.debug('Closing spreadsheet tab (widget deleted):', {
+        objectId,
+        tabId: spreadsheetTabId,
+      })
+      
+      // Close in FlexLayout
+      const node = model.getNodeById(spreadsheetTabId)
+      if (node) {
+        model.doAction(Actions.deleteTab(spreadsheetTabId))
+      }
+      
+      // Remove from state
+      setTabs(prevTabs => prevTabs.filter(t => t.id !== spreadsheetTabId))
+    }
+  }, [tabs, model])
+
+  // Expose closeSpreadsheetTabsByObjectId globally for canvas to call
+  useEffect(() => {
+    if (!window.__closeSpreadsheetTabs) {
+      window.__closeSpreadsheetTabs = closeSpreadsheetTabsByObjectId
+    }
+    return () => {
+      delete window.__closeSpreadsheetTabs
+    }
+  }, [closeSpreadsheetTabsByObjectId])
+
+  // Update tab name dynamically (for dirty indicator and file size)
+  const updateTabName = useCallback((tabId: string, newName: string) => {
+    const node = model.getNodeById(tabId)
+    if (node) {
+      model.doAction(Actions.renameTab(tabId, newName))
+    }
+  }, [model])
+
+  // Expose updateTabName globally for SpreadsheetEditor to call
+  useEffect(() => {
+    if (!window.__updateTabName) {
+      window.__updateTabName = updateTabName
+    }
+    return () => {
+      delete window.__updateTabName
+    }
+  }, [updateTabName])
+
   // Handle tab close
   const onAction = (action: any) => {
     if (action.type === 'FlexLayout_DeleteTab') {
       const tabId = action.data.node
       logger.debug('Closing tab:', tabId)
 
+      const closingTab = tabs.find(t => t.id === tabId)
+      
+      // If closing a canvas tab (.what file), also close all its spreadsheet tabs
+      if (closingTab?.type === 'canvas') {
+        const spreadsheetTabsToClose = tabs.filter(
+          t => t.type === 'spreadsheet' && t.parentTabId === tabId
+        )
+        
+        if (spreadsheetTabsToClose.length > 0) {
+          logger.debug('Closing spreadsheet tabs for parent file:', {
+            parentTabId: tabId,
+            spreadsheetCount: spreadsheetTabsToClose.length,
+          })
+          
+          // Close each spreadsheet tab in FlexLayout
+          for (const spreadsheetTab of spreadsheetTabsToClose) {
+            const node = model.getNodeById(spreadsheetTab.id)
+            if (node) {
+              model.doAction(Actions.deleteTab(spreadsheetTab.id))
+            }
+          }
+        }
+      }
+
       // Close the file
       window.App.file.close(tabId)
 
-      // Remove from state
-      setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
+      // Remove from state (also remove spreadsheet tabs if this was a canvas tab)
+      if (closingTab?.type === 'canvas') {
+        setTabs(prevTabs => prevTabs.filter(
+          t => t.id !== tabId && !(t.type === 'spreadsheet' && t.parentTabId === tabId)
+        ))
+      } else {
+        setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
+      }
 
       // Clean up viewport cache and timeout
       viewportsRef.current.delete(tabId)
@@ -547,7 +809,24 @@ export function MainScreenWithTabs() {
     )
   }
 
-  const currentFileName = tabs.find(t => t.id === activeTabId)?.fileName
+  // Calculate current file name for menu bar
+  const activeTab = tabs.find(t => t.id === activeTabId)
+  let currentFileName: string | undefined
+
+  if (activeTab) {
+    if (activeTab.type === 'spreadsheet') {
+      // For spreadsheet tabs, show: "parentFile.what - SheetName sheet"
+      const parentTab = tabs.find(t => t.id === activeTab.parentTabId)
+      if (parentTab) {
+        currentFileName = `${parentTab.fileName} - ${activeTab.fileName} sheet`
+      } else {
+        currentFileName = `${activeTab.fileName} sheet`
+      }
+    } else {
+      // For canvas tabs, show just the file name
+      currentFileName = activeTab.fileName
+    }
+  }
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#1e1e1e] overflow-hidden">

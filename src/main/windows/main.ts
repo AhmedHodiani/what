@@ -217,6 +217,37 @@ export async function MainWindow() {
     return multiFileManager.getActiveTabId()
   })
 
+  // Spreadsheet tab management
+  ipcMain.removeHandler('spreadsheet-open')
+  ipcMain.handle('spreadsheet-open', async (_event, { parentTabId, objectId, title, assetId, splitView = true }: { 
+    parentTabId: string
+    objectId: string
+    title: string
+    assetId?: string
+    splitView?: boolean
+  }) => {
+    logger.debug('📊 Opening spreadsheet tab:', { parentTabId, objectId, title, assetId, splitView })
+    
+    // Generate unique tab ID for spreadsheet
+    const spreadsheetTabId = `spreadsheet-${parentTabId}-${objectId}`
+    
+    // Send event to renderer to create the tab
+    window.webContents.send('spreadsheet-tab-open', {
+      id: spreadsheetTabId,
+      type: 'spreadsheet',
+      parentTabId,
+      objectId,
+      fileName: title, // Use fileName for tab display name (matches BaseTab interface)
+      title, // Keep title for backward compatibility
+      assetId,
+      isModified: false,
+      isActive: true,
+      splitView,
+    })
+    
+    return spreadsheetTabId
+  })
+
   ipcMain.removeHandler('file-get-canvas')
   ipcMain.handle(
     'file-get-canvas',
@@ -347,6 +378,35 @@ export async function MainWindow() {
     }
   )
 
+  ipcMain.removeHandler('file-update-asset')
+  ipcMain.handle(
+    'file-update-asset',
+    async (
+      _event,
+      assetId: string,
+      dataBuffer: ArrayBuffer,
+      mimeType: string | undefined,
+      tabId?: string
+    ) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) throw new Error('No active tab')
+
+        const buffer = Buffer.from(dataBuffer)
+        const success = multiFileManager.updateAsset(
+          targetTabId,
+          assetId,
+          buffer,
+          mimeType
+        )
+        return success
+      } catch (error) {
+        logger.error('Failed to update asset:', error)
+        throw error
+      }
+    }
+  )
+
   ipcMain.removeHandler('file-get-asset-path')
   ipcMain.handle(
     'file-get-asset-path',
@@ -376,6 +436,23 @@ export async function MainWindow() {
         return dataUrl
       } catch (error) {
         logger.error('Failed to get asset data URL:', error)
+        return null
+      }
+    }
+  )
+
+  ipcMain.removeHandler('file-get-asset-content')
+  ipcMain.handle(
+    'file-get-asset-content',
+    async (_event, assetId: string, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) return null
+
+        const content = multiFileManager.getAssetContent(targetTabId, assetId)
+        return content
+      } catch (error) {
+        logger.error('Failed to get asset content:', error)
         return null
       }
     }

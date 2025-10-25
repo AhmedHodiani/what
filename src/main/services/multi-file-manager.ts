@@ -316,6 +316,27 @@ export class MultiFileManager {
   }
 
   /**
+   * Update existing asset in a specific tab's file
+   */
+  updateAsset(
+    tabId: string,
+    assetId: string,
+    data: Buffer,
+    mimeType?: string
+  ): boolean {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    const success = service.updateAsset(assetId, data, mimeType)
+    if (success) {
+      this.markTabModified(tabId)
+    }
+    return success
+  }
+
+  /**
    * Get asset path from a specific tab's file
    */
   getAssetPath(tabId: string, assetId: string): string | null {
@@ -337,6 +358,18 @@ export class MultiFileManager {
     }
 
     return service.getAssetDataUrl(assetId)
+  }
+
+  /**
+   * Get asset content as string from a specific tab's file
+   */
+  getAssetContent(tabId: string, assetId: string): string | null {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    return service.getAssetContent(assetId)
   }
 
   /**

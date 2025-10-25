@@ -20,6 +20,7 @@ export type ToolType =
   | 'file'
   | 'youtube'
   | 'emoji'
+  | 'spreadsheet'
 
 /**
  * Tool shortcut handlers interface
@@ -87,17 +88,17 @@ export function registerToolShortcuts(
     registry.register({
       key: '5',
       context: ShortcutContext.Tool,
-      action: () => handlers.onToolChange('image'),
-      description: 'Image tool',
+      action: () => handlers.onToolChange('youtube'),
+      description: 'YouTube video tool',
     })
   )
-
+  
   ids.push(
     registry.register({
       key: '6',
       context: ShortcutContext.Tool,
-      action: () => handlers.onToolChange('youtube'),
-      description: 'YouTube video tool',
+      action: () => handlers.onToolChange('emoji'),
+      description: 'Emoji tool',
     })
   )
 
@@ -105,8 +106,8 @@ export function registerToolShortcuts(
     registry.register({
       key: '7',
       context: ShortcutContext.Tool,
-      action: () => handlers.onToolChange('file'),
-      description: 'File tool',
+      action: () => handlers.onToolChange('image'),
+      description: 'Image tool',
     })
   )
 
@@ -114,8 +115,18 @@ export function registerToolShortcuts(
     registry.register({
       key: '8',
       context: ShortcutContext.Tool,
-      action: () => handlers.onToolChange('emoji'),
-      description: 'Emoji tool',
+      action: () => handlers.onToolChange('file'),
+      description: 'File tool',
+    })
+  )
+
+
+  ids.push(
+    registry.register({
+      key: '9',
+      context: ShortcutContext.Tool,
+      action: () => handlers.onToolChange('spreadsheet'),
+      description: 'Spreadsheet tool',
     })
   )
 

@@ -74,11 +74,11 @@ export class ShortcutsRegistry {
     this.shortcuts.set(normalizedKey, [...existing, registration])
 
     // Log in dev mode
-    if (process.env.NODE_ENV === 'development') {
-      logger.info(
-        `[Shortcuts] Registered: ${config.key} (${ShortcutContext[config.context]}) - ${config.description}`
-      )
-    }
+    // if (process.env.NODE_ENV === 'development') {
+    //   logger.info(
+    //     `[Shortcuts] Registered: ${config.key} (${ShortcutContext[config.context]}) - ${config.description}`
+    //   )
+    // }
 
     return id
   }
@@ -101,11 +101,11 @@ export class ShortcutsRegistry {
     this.modifiers.set(normalizedKey, [...existing, registration])
 
     // Log in dev mode
-    if (process.env.NODE_ENV === 'development') {
-      logger.info(
-        `[Shortcuts] Registered Modifier: ${config.key} (${ShortcutContext[config.context]}) - ${config.description}`
-      )
-    }
+    // if (process.env.NODE_ENV === 'development') {
+    //   logger.info(
+    //     `[Shortcuts] Registered Modifier: ${config.key} (${ShortcutContext[config.context]}) - ${config.description}`
+    //   )
+    // }
 
     return id
   }

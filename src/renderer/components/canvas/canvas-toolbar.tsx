@@ -19,10 +19,11 @@ const tools: Tool[] = [
   { type: 'shape', label: 'Shape', icon: '⬜' },
   { type: 'freehand', label: 'Pen', icon: '✏️' },
   { type: 'arrow', label: 'Arrow', icon: '➡️' },
-  { type: 'image', label: 'Image', icon: '🖼️' },
-  { type: 'file', label: 'File', icon: '📎' },
   { type: 'youtube', label: 'YouTube', icon: '📺' },
   { type: 'emoji', label: 'Emoji', icon: '😀' },
+  { type: 'image', label: 'Image', icon: '🖼️' },
+  { type: 'file', label: 'File', icon: '📎' },
+  { type: 'spreadsheet', label: 'Spreadsheet', icon: '📊' },
 ]
 
 /**
@@ -44,6 +45,7 @@ function getToolShortcut(
     file: ['file tool'],
     youtube: ['youtube video tool'],
     emoji: ['emoji tool'],
+    spreadsheet: ['spreadsheet tool'],
   }
 
   const keywords = descriptionMap[toolType] || []
