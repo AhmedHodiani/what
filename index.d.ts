@@ -113,6 +113,10 @@ declare global {
         ) => () => void
       }
     }
+    // Internal function to close spreadsheet tabs when widget is deleted
+    __closeSpreadsheetTabs?: (objectId: string, parentTabId: string) => void
+    // Internal function to update tab names dynamically
+    __updateTabName?: (tabId: string, newName: string) => void
   }
 }
 

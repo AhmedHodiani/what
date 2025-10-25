@@ -53,6 +53,9 @@ export function SpreadsheetEditor({
   const isInitializedRef = useRef(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const currentAssetIdRef = useRef<string | undefined>(assetId)
+  const [isDirty, setIsDirty] = useState(false)
+  const [fileSize, setFileSize] = useState<number>(0)
+  const lastSaveTimeRef = useRef<number>(0)
 
   // Track container size with debouncing
   useEffect(() => {
@@ -191,6 +194,11 @@ export function SpreadsheetEditor({
         currentAssetIdRef.current = finalAssetId
       }
       
+      // Update file size and clear dirty flag
+      setFileSize(workbookJson.length)
+      setIsDirty(false)
+      lastSaveTimeRef.current = Date.now()
+      
       logger.debug('💾 Spreadsheet saved to asset:', {
         objectId,
         assetId: finalAssetId,
@@ -243,6 +251,8 @@ export function SpreadsheetEditor({
           if (assetContent) {
             try {
               initialWorkbook = JSON.parse(assetContent)
+              // Set initial file size when loading existing workbook
+              setFileSize(assetContent.length)
               logger.debug('✅ Workbook loaded from asset')
             } catch (parseError) {
               logger.error('❌ Failed to parse workbook JSON (corrupted file):', parseError)
@@ -284,6 +294,7 @@ export function SpreadsheetEditor({
       // Mark as dirty on any user interaction (keyboard/mouse in the container)
       const markDirty = () => {
         hasUnsavedChanges = true
+        setIsDirty(true)
       }
 
       const container = containerRef.current
@@ -411,6 +422,25 @@ export function SpreadsheetEditor({
       window.removeEventListener('keydown', handleKeyDown, { capture: true })
     }
   }, [])
+
+  // Update tab name with dirty indicator and file size
+  useEffect(() => {
+    const tabId = `spreadsheet-${parentTabId}-${objectId}`
+    const formatSize = (bytes: number) => {
+      if (bytes < 1024) return `${bytes}B`
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
+      return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+    }
+    
+    const dirtyIndicator = isDirty ? '● ' : ''
+    const sizeIndicator = fileSize > 0 ? ` (${formatSize(fileSize)})` : ''
+    const newName = `${dirtyIndicator}${title}${sizeIndicator}`
+    
+    // Notify main-with-tabs to update the tab name
+    if (window.__updateTabName) {
+      window.__updateTabName(tabId, newName)
+    }
+  }, [isDirty, fileSize, title, objectId, parentTabId])
 
   return (
     <div className="w-full h-full bg-white overflow-hidden" style={{ position: 'relative', zIndex: 50 }}>

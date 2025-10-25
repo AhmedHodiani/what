@@ -697,6 +697,56 @@ export function MainScreenWithTabs() {
     }
   }
 
+  // Close spreadsheet tabs by objectId (called when widget is deleted)
+  const closeSpreadsheetTabsByObjectId = useCallback((objectId: string, parentTabId: string) => {
+    const spreadsheetTabId = `spreadsheet-${parentTabId}-${objectId}`
+    const spreadsheetTab = tabs.find(t => t.id === spreadsheetTabId)
+    
+    if (spreadsheetTab) {
+      logger.debug('Closing spreadsheet tab (widget deleted):', {
+        objectId,
+        tabId: spreadsheetTabId,
+      })
+      
+      // Close in FlexLayout
+      const node = model.getNodeById(spreadsheetTabId)
+      if (node) {
+        model.doAction(Actions.deleteTab(spreadsheetTabId))
+      }
+      
+      // Remove from state
+      setTabs(prevTabs => prevTabs.filter(t => t.id !== spreadsheetTabId))
+    }
+  }, [tabs, model])
+
+  // Expose closeSpreadsheetTabsByObjectId globally for canvas to call
+  useEffect(() => {
+    if (!window.__closeSpreadsheetTabs) {
+      window.__closeSpreadsheetTabs = closeSpreadsheetTabsByObjectId
+    }
+    return () => {
+      delete window.__closeSpreadsheetTabs
+    }
+  }, [closeSpreadsheetTabsByObjectId])
+
+  // Update tab name dynamically (for dirty indicator and file size)
+  const updateTabName = useCallback((tabId: string, newName: string) => {
+    const node = model.getNodeById(tabId)
+    if (node) {
+      model.doAction(Actions.renameTab(tabId, newName))
+    }
+  }, [model])
+
+  // Expose updateTabName globally for SpreadsheetEditor to call
+  useEffect(() => {
+    if (!window.__updateTabName) {
+      window.__updateTabName = updateTabName
+    }
+    return () => {
+      delete window.__updateTabName
+    }
+  }, [updateTabName])
+
   // Handle tab close
   const onAction = (action: any) => {
     if (action.type === 'FlexLayout_DeleteTab') {

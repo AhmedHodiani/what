@@ -223,7 +223,7 @@ export function MenuBar({
             <div className="ml-4 text-xs text-gray-500">{currentFileName}</div>
 
             {/* Debug Button */}
-            <div className="app-no-drag ml-4">
+            {/* <div className="app-no-drag ml-4">
               <button
                 className="px-2 h-6 text-xs text-teal-400 bg-teal-900/30 hover:bg-teal-900/50 rounded border border-teal-700/50 transition-colors flex items-center gap-1"
                 onClick={onDebugClick}
@@ -232,7 +232,7 @@ export function MenuBar({
                 <Bug className="size-3" />
                 Debug DB
               </button>
-            </div>
+            </div> */}
           </>
         )}
       </div>
