@@ -23,10 +23,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
@@ -34,33 +34,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libarchive-tools rpm libfuse2 squashfs-tools
 
-      - name: Patch app-builder-lib to avoid pnpm list bug
-        # Use a cross-platform Node.js script to replace the problematic pnpm list invocation
-        # This patches node_modules/app-builder-lib/out/util/yarn.js if present
-        run: |
-          node -e "
-          const fs = require('fs');
-          const p = 'node_modules/app-builder-lib/out/util/yarn.js';
-          if (!fs.existsSync(p)) {
-            console.log('Patch skipped: file not found:', p);
-            process.exit(0);
-          }
-          let s = fs.readFileSync(p, 'utf8');
-          const orig = /pnpm list --prod --json --depth Infinity/g;
-          const replacement = 'pnpm list --prod --json --depth 2';
-          if (!orig.test(s)) {
-            console.log('Patch not required: pattern not found in', p);
-            process.exit(0);
-          }
-          s = s.replace(orig, replacement);
-          fs.writeFileSync(p, s, 'utf8');
-          console.log('Patched', p);
-          "
-
       - name: Release Electron app
         uses: daltonmenezes/action-electron-builder@v1.0.1
         with:
-          package_manager: "pnpm"
+          package_manager: "npm"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release: true
           skip_build: true
