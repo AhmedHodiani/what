@@ -115,7 +115,8 @@ export function useObjectDuplication({
       zIndex: number,
       objectData: Record<string, any>
     ): DrawingObject => {
-      const points = ((originalObject.object_data as any).points as Point[]) || []
+      // Use the already-cloned objectData instead of reading from originalObject
+      const points = (objectData.points as Point[]) || []
 
       // Calculate the center of the original points
       const xs = points.map(p => p.x)
@@ -158,7 +159,8 @@ export function useObjectDuplication({
       zIndex: number,
       objectData: Record<string, any>
     ): DrawingObject => {
-      const points = ((originalObject.object_data as any).controlPoints as Point[]) || []
+      // Use the already-cloned objectData instead of reading from originalObject
+      const points = (objectData.controlPoints as Point[]) || []
 
       // Calculate the center of the original points
       const xs = points.map(p => p.x)
@@ -218,11 +220,17 @@ export function useObjectDuplication({
       zIndex: number,
       objectData: Record<string, any>
     ): DrawingObject => {
+      // Center the object on the mouse cursor (like when creating new objects)
+      const width = 'width' in originalObject ? originalObject.width : 0
+      const height = 'height' in originalObject ? originalObject.height : 0
+      const centeredX = worldPos.x - (width / 2)
+      const centeredY = worldPos.y - (height / 2)
+      
       return {
         ...originalObject,
         id: newId,
-        x: worldPos.x + STANDARD_OBJECT_OFFSET,
-        y: worldPos.y + STANDARD_OBJECT_OFFSET,
+        x: centeredX,
+        y: centeredY,
         z_index: zIndex,
         object_data: objectData,
         created: new Date().toISOString(),
@@ -260,24 +268,27 @@ export function useObjectDuplication({
       if (!originalObject) continue
 
       try {
+        // CRITICAL: Deep clone the entire original object to prevent any mutations
+        const originalObjectClone = JSON.parse(JSON.stringify(originalObject))
+        
         // Generate new ID
-        const newId = `${originalObject.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        const newId = `${originalObjectClone.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-        // Deep clone object data
-        let newObjectData = { ...originalObject.object_data }
+        // Deep clone object data (JSON parse/stringify to avoid reference issues)
+        let newObjectData = JSON.parse(JSON.stringify(originalObjectClone.object_data))
 
         // Handle asset duplication for images, files, and spreadsheets
-        if (originalObject.type === 'image' || originalObject.type === 'file' || originalObject.type === 'spreadsheet') {
-          const assetId = originalObject.object_data.assetId as string
+        if (originalObjectClone.type === 'image' || originalObjectClone.type === 'file' || originalObjectClone.type === 'spreadsheet') {
+          const assetId = originalObjectClone.object_data.assetId as string
           
           if (assetId) {
             let fileName: string
             let mimeType: string
             
-            if (originalObject.type === 'file') {
-              fileName = (originalObject.object_data.fileName as string)
-              mimeType = (originalObject.object_data.mimeType as string)
-            } else if (originalObject.type === 'spreadsheet') {
+            if (originalObjectClone.type === 'file') {
+              fileName = (originalObjectClone.object_data.fileName as string)
+              mimeType = (originalObjectClone.object_data.mimeType as string)
+            } else if (originalObjectClone.type === 'spreadsheet') {
               fileName = `spreadsheet-${Date.now()}.json`
               mimeType = 'application/json'
             } else {
@@ -298,17 +309,17 @@ export function useObjectDuplication({
 
         const zIndex = currentObjects.length + newObjectIds.length
 
-        if (originalObject.type === 'freehand') {
+        if (originalObjectClone.type === 'freehand') {
           duplicatedObject = duplicateFreehandObject(
-            originalObject,
+            originalObjectClone,
             newId,
             worldPos,
             zIndex,
             newObjectData
           )
-        } else if (originalObject.type === 'arrow') {
+        } else if (originalObjectClone.type === 'arrow') {
           duplicatedObject = duplicateArrowObject(
-            originalObject,
+            originalObjectClone,
             newId,
             worldPos,
             zIndex,
@@ -316,7 +327,7 @@ export function useObjectDuplication({
           )
         } else {
           duplicatedObject = duplicateStandardObject(
-            originalObject,
+            originalObjectClone,
             newId,
             worldPos,
             zIndex,
@@ -325,7 +336,7 @@ export function useObjectDuplication({
         }
 
         // Add image URL for immediate display (images only)
-        if (originalObject.type === 'image' && '_imageUrl' in originalObject) {
+        if (originalObjectClone.type === 'image' && '_imageUrl' in originalObject) {
           const assetDataUrl = await window.App.file.getAssetDataUrl(
             (newObjectData as any).assetId,
             tabId || undefined

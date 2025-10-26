@@ -346,6 +346,7 @@ export function InfiniteCanvas({
       })
 
       const startWorldPos = screenToWorld(e.clientX, e.clientY)
+      let hasMoved = false // Track if any actual movement occurred
 
       const handleDragMove = (moveEvent: MouseEvent) => {
         const currentWorldPos = screenToWorld(
@@ -354,6 +355,11 @@ export function InfiniteCanvas({
         )
         const deltaX = currentWorldPos.x - startWorldPos.x
         const deltaY = currentWorldPos.y - startWorldPos.y
+
+        // Mark as moved if threshold exceeded (1 pixel in world coordinates)
+        if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+          hasMoved = true
+        }
 
         // Move all selected objects by the same delta
         objectsToMove.forEach(objId => {
@@ -373,6 +379,12 @@ export function InfiniteCanvas({
 
         // Clear from active handlers
         activeDragHandlersRef.current = {}
+
+        // Only save if the object actually moved
+        if (!hasMoved) {
+          // Just a click, not a drag - don't save position
+          return
+        }
 
         // Save final positions to database for all moved objects
         const currentWorldPos = screenToWorld(

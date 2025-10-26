@@ -3,6 +3,7 @@ import type { StickyNoteObject, DrawingObject } from 'lib/types/canvas'
 import { BasePanel, PanelSection, ColorGrid, ButtonGroup } from './base-panel'
 
 const PAPER_COLORS = [
+  // Light theme colors
   { name: 'Yellow', value: '#fffacd' },
   { name: 'Pink', value: '#fddde6' },
   { name: 'Blue', value: '#d0e7f9' },
@@ -11,13 +12,23 @@ const PAPER_COLORS = [
   { name: 'Purple', value: '#e8d5f9' },
   { name: 'Mint', value: '#d0fff0' },
   { name: 'Peach', value: '#ffcccb' },
-  { name: 'Lavender', value: '#f3e6ff' },   // new soft lavender
-  { name: 'Sky', value: '#e0f7ff' },        // pale sky blue
-  { name: 'Cream', value: '#fff8dc' },      // light cream
+  { name: 'Lavender', value: '#f3e6ff' },
+  { name: 'Sky', value: '#e0f7ff' },
+  { name: 'Cream', value: '#fff8dc' },
+  // Dark theme colors
+  { name: 'Dark Gray', value: '#2d2d2d' },
+  { name: 'Dark Blue', value: '#1a365d' },
+  { name: 'Dark Green', value: '#1a2e1a' },
+  { name: 'Dark Purple', value: '#2d1b3d' },
+  { name: 'Dark Red', value: '#3d1a1a' },
+  { name: 'Dark Brown', value: '#2c1810' },
+  { name: 'Charcoal', value: '#36454f' },
+  { name: 'Slate', value: '#2f4f4f' },
   { name: 'NoColor', value: '#00000000' },
 ];
 
 const FONT_COLORS = [
+  // Light theme colors
   { name: 'Dark Gray', value: '#333333' },
   { name: 'Black', value: '#000000' },
   { name: 'Blue', value: '#0066cc' },
@@ -25,18 +36,26 @@ const FONT_COLORS = [
   { name: 'Green', value: '#006600' },
   { name: 'Purple', value: '#6600cc' },
   { name: 'Brown', value: '#8b4513' },
+  // Dark theme colors
   { name: 'White', value: '#ffffff' },
+  { name: 'Light Gray', value: '#cccccc' },
+  { name: 'Light Blue', value: '#66b3ff' },
+  { name: 'Light Red', value: '#ff6666' },
+  { name: 'Light Green', value: '#66cc66' },
+  { name: 'Light Purple', value: '#cc66ff' },
+  { name: 'Light Orange', value: '#ffaa66' },
+  { name: 'Light Yellow', value: '#ffff99' },
 ]
 
 const FONT_SIZES = [
   { label: '16', value: 16 },
-  { label: '18', value: 18 },
   { label: '20', value: 20 },
-  { label: '24', value: 24 },
   { label: '28', value: 28 },
-  { label: '32', value: 32 },
   { label: '36', value: 36 },
-  { label: '40', value: 40 },
+  { label: '44', value: 44 },
+  { label: '48', value: 48 },
+  { label: '52', value: 52 },
+  { label: '56', value: 56 },
 ]
 
 interface StickyNotePanelProps {
