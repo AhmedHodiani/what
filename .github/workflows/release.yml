@@ -34,6 +34,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libarchive-tools rpm libfuse2 squashfs-tools
 
+      - name: Patch electron-builder to avoid pnpm list bug (Windows only)
+        if: matrix.os == 'windows-latest'
+        run: |
+          sed -i 's/pnpm list --prod --json --depth Infinity/pnpm list --prod --json --depth 2/' node_modules/app-builder-lib/out/util/yarn.js || true
+
       - name: Release Electron app
         uses: daltonmenezes/action-electron-builder@v1.0.1
         with:
