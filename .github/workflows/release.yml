@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Remove pnpm
+        run: corepack disable && npm uninstall -g pnpm || true
+
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
