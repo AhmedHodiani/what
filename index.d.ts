@@ -112,6 +112,13 @@ declare global {
           callback: (error: { message: string }) => void
         ) => () => void
       }
+      menu: {
+        onFileNew: (callback: () => void) => () => void
+        onFileOpen: (callback: () => void) => () => void
+        onFileSave: (callback: () => void) => () => void
+        onFileSaveAs: (callback: () => void) => () => void
+        onFileClose: (callback: () => void) => () => void
+      }
     }
     // Internal function to close spreadsheet tabs when widget is deleted
     __closeSpreadsheetTabs?: (objectId: string, parentTabId: string) => void
