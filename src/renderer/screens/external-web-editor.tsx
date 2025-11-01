@@ -148,7 +148,7 @@ export function ExternalWebEditor({
   }, [])
 
   return (
-    <div className="w-full h-full bg-gray-100 overflow-hidden" style={{ position: 'relative' }}>
+    <div className="w-full h-full bg-gray-100 overflow-hidden" style={{ position: 'relative', zIndex: 50 }}>
       <div
         ref={containerRef}
         className="w-full h-full"

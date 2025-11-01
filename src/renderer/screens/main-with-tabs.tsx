@@ -873,6 +873,28 @@ export function MainScreenWithTabs() {
     }
   }, [tabs, model])
 
+  // Close external web tabs by objectId (called when widget is deleted)
+  const closeExternalWebTabsByObjectId = useCallback((objectId: string, parentTabId: string) => {
+    const externalWebTabId = `external-web-${parentTabId}-${objectId}`
+    const externalWebTab = tabs.find(t => t.id === externalWebTabId)
+    
+    if (externalWebTab) {
+      logger.debug('Closing external web tab (widget deleted):', {
+        objectId,
+        tabId: externalWebTabId,
+      })
+      
+      // Close in FlexLayout
+      const node = model.getNodeById(externalWebTabId)
+      if (node) {
+        model.doAction(Actions.deleteTab(externalWebTabId))
+      }
+      
+      // Remove from state
+      setTabs(prevTabs => prevTabs.filter(t => t.id !== externalWebTabId))
+    }
+  }, [tabs, model])
+
   // Expose closeSpreadsheetTabsByObjectId globally for canvas to call
   useEffect(() => {
     if (!window.__closeSpreadsheetTabs) {
@@ -882,6 +904,16 @@ export function MainScreenWithTabs() {
       delete window.__closeSpreadsheetTabs
     }
   }, [closeSpreadsheetTabsByObjectId])
+
+  // Expose closeExternalWebTabsByObjectId globally for canvas to call
+  useEffect(() => {
+    if (!window.__closeExternalWebTabs) {
+      window.__closeExternalWebTabs = closeExternalWebTabsByObjectId
+    }
+    return () => {
+      delete window.__closeExternalWebTabs
+    }
+  }, [closeExternalWebTabsByObjectId])
 
   // Update tab name dynamically (for dirty indicator and file size)
   const updateTabName = useCallback((tabId: string, newName: string) => {
@@ -908,12 +940,31 @@ export function MainScreenWithTabs() {
       logger.debug('Closing tab:', tabId)
 
       const closingTab = tabs.find(t => t.id === tabId)
+      logger.debug('Closing tab details:', { 
+        closingTab, 
+        allTabs: tabs.map(t => ({ 
+          id: t.id, 
+          type: t.type, 
+          parentTabId: t.type === 'spreadsheet' || t.type === 'external-web' ? t.parentTabId : undefined 
+        })) 
+      })
       
-      // If closing a canvas tab (.what file), also close all its spreadsheet tabs
+      // If closing a canvas tab (.what file), also close all its spreadsheet and external web tabs
       if (closingTab?.type === 'canvas') {
         const spreadsheetTabsToClose = tabs.filter(
           t => t.type === 'spreadsheet' && t.parentTabId === tabId
         )
+        
+        const externalWebTabsToClose = tabs.filter(
+          t => t.type === 'external-web' && t.parentTabId === tabId
+        )
+        
+        logger.debug('Found tabs to close:', { 
+          spreadsheetCount: spreadsheetTabsToClose.length, 
+          spreadsheetTabs: spreadsheetTabsToClose.map(t => t.id),
+          externalWebCount: externalWebTabsToClose.length,
+          externalWebTabs: externalWebTabsToClose.map(t => t.id)
+        })
         
         if (spreadsheetTabsToClose.length > 0) {
           logger.debug('Closing spreadsheet tabs for parent file:', {
@@ -929,15 +980,32 @@ export function MainScreenWithTabs() {
             }
           }
         }
+        
+        if (externalWebTabsToClose.length > 0) {
+          logger.debug('Closing external web tabs for parent file:', {
+            parentTabId: tabId,
+            externalWebCount: externalWebTabsToClose.length,
+          })
+          
+          // Close each external web tab in FlexLayout
+          for (const externalWebTab of externalWebTabsToClose) {
+            const node = model.getNodeById(externalWebTab.id)
+            if (node) {
+              model.doAction(Actions.deleteTab(externalWebTab.id))
+            }
+          }
+        }
       }
 
       // Close the file
       window.App.file.close(tabId)
 
-      // Remove from state (also remove spreadsheet tabs if this was a canvas tab)
+      // Remove from state (also remove child tabs if this was a canvas tab)
       if (closingTab?.type === 'canvas') {
         setTabs(prevTabs => prevTabs.filter(
-          t => t.id !== tabId && !(t.type === 'spreadsheet' && t.parentTabId === tabId)
+          t => t.id !== tabId && 
+          !(t.type === 'spreadsheet' && t.parentTabId === tabId) &&
+          !(t.type === 'external-web' && t.parentTabId === tabId)
         ))
       } else {
         setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
@@ -975,6 +1043,14 @@ export function MainScreenWithTabs() {
         currentFileName = `${parentTab.fileName} - ${activeTab.fileName} sheet`
       } else {
         currentFileName = `${activeTab.fileName} sheet`
+      }
+    } else if (activeTab.type === 'external-web') {
+      // For external web tabs, show: "parentFile.what - website-title"
+      const parentTab = tabs.find(t => t.id === activeTab.parentTabId)
+      if (parentTab) {
+        currentFileName = `${parentTab.fileName} - ${activeTab.fileName}`
+      } else {
+        currentFileName = activeTab.fileName
       }
     } else {
       // For canvas tabs, show just the file name
