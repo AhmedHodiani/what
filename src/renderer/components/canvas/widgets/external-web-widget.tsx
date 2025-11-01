@@ -42,10 +42,11 @@ export function ExternalWebWidget({
       return
     }
     
-    // Reload the object from database to get latest URL
+    // Reload the object from database to get latest data
     const objects = await window.App.file.getObjects(tabId)
     const freshObject = objects.find((obj: any) => obj.id === object.id)
     const url = freshObject?.object_data?.url
+    const name = freshObject?.object_data?.name
     
     if (!url) {
       logger.error('❌ No URL found in object data')
@@ -58,7 +59,7 @@ export function ExternalWebWidget({
       await window.App.externalWeb.open({
         parentTabId: tabId,
         objectId: object.id,
-        title: object.object_data.title || new URL(url).hostname,
+        title: name || new URL(url).hostname,
         url: url,
         splitView,
       })
@@ -99,7 +100,7 @@ export function ExternalWebWidget({
           <Globe className="w-12 h-12 text-blue-600 mb-2" />
           <div className="text-center">
             <div className="text-sm font-semibold text-gray-800 line-clamp-2 mb-1">
-              {object.object_data.title || 'External Website'}
+              {object.object_data.name}
             </div>
             <div className="text-xs text-gray-600 line-clamp-1 mb-2 font-mono">
               {displayUrl}

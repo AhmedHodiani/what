@@ -241,7 +241,7 @@ export function useCanvasDialogs({
    * Handle external web URL confirmation - creates ExternalWebObject
    */
   const handleExternalWebConfirm = useCallback(
-    async (url: string) => {
+    async (name: string, url: string) => {
       const newExternalWeb: ExternalWebObject = {
         id: generateId(),
         type: 'external-web',
@@ -252,7 +252,7 @@ export function useCanvasDialogs({
         z_index: objectsLength,
         object_data: {
           url: url,
-          title: new URL(url).hostname,
+          name: name,
         },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),

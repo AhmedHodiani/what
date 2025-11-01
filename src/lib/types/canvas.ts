@@ -232,7 +232,7 @@ export interface ExternalWebObject {
   z_index: number
   object_data: {
     url: string // The external URL to display
-    title?: string // Display title
+    name: string // User-provided name for the website
   }
   created: string
   updated: string

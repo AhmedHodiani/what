@@ -2,39 +2,48 @@ import { useState, useRef, useEffect } from 'react'
 import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 
 interface ExternalWebDialogProps {
-  onConfirm: (url: string) => void
+  onConfirm: (name: string, url: string) => void
   onCancel: () => void
+  initialName?: string
   initialUrl?: string
 }
 
 /**
- * ExternalWebDialog - Modal dialog for entering external website URL
+ * ExternalWebDialog - Modal dialog for entering website name and URL
  *
  * Features:
+ * - Name and URL inputs
  * - URL validation (must start with http:// or https://)
  * - Keyboard shortcuts (Enter/Escape)
- * - Auto-focus and auto-select input field
+ * - Auto-focus name input field
  */
 export function ExternalWebDialog({
   onConfirm,
   onCancel,
+  initialName = '',
   initialUrl = 'https://',
 }: ExternalWebDialogProps) {
+  const [name, setName] = useState(initialName)
   const [url, setUrl] = useState(initialUrl)
   const [error, setError] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    // Focus and select all text for easy replacement
-    if (inputRef.current) {
-      inputRef.current.focus()
-      inputRef.current.select()
+    // Focus name input
+    if (nameInputRef.current) {
+      nameInputRef.current.focus()
     }
   }, [])
 
   const handleConfirm = () => {
+    const trimmedName = name.trim()
     const trimmedUrl = url.trim()
     
+    if (!trimmedName) {
+      setError('Please enter a website name')
+      return
+    }
+
     if (!trimmedUrl) {
       setError('Please enter a URL')
       return
@@ -54,7 +63,7 @@ export function ExternalWebDialog({
       return
     }
 
-    onConfirm(trimmedUrl)
+    onConfirm(trimmedName, trimmedUrl)
   }
 
   // Register dialog shortcuts
@@ -83,6 +92,11 @@ export function ExternalWebDialog({
     setError('') // Clear error when user types
   }
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value)
+    setError('') // Clear error when user types
+  }
+
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-9999"
@@ -100,12 +114,27 @@ export function ExternalWebDialog({
               Add External Website
             </h2>
             <p className="text-sm text-gray-400 mt-0.5">
-              Enter the URL of the website to embed
+              Enter the website name and URL
             </p>
           </div>
         </div>
 
-        {/* Input */}
+        {/* Name Input */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Website Name
+          </label>
+          <input
+            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all text-sm"
+            onChange={handleNameChange}
+            placeholder="e.g. Documentation, Dashboard, etc."
+            ref={nameInputRef}
+            type="text"
+            value={name}
+          />
+        </div>
+
+        {/* URL Input */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Website URL
@@ -114,7 +143,6 @@ export function ExternalWebDialog({
             className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all font-mono text-sm"
             onChange={handleChange}
             placeholder="https://example.com"
-            ref={inputRef}
             type="url"
             value={url}
           />
