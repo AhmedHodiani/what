@@ -21,6 +21,7 @@ export type ToolType =
   | 'youtube'
   | 'emoji'
   | 'spreadsheet'
+  | 'external-web'
 
 /**
  * Tool shortcut handlers interface
@@ -127,6 +128,15 @@ export function registerToolShortcuts(
       context: ShortcutContext.Tool,
       action: () => handlers.onToolChange('spreadsheet'),
       description: 'Spreadsheet tool',
+    })
+  )
+
+  ids.push(
+    registry.register({
+      key: 'w',
+      context: ShortcutContext.Tool,
+      action: () => handlers.onToolChange('external-web'),
+      description: 'External web tool',
     })
   )
 

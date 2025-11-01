@@ -24,6 +24,7 @@ import { ShapeWidget } from './shape-widget'
 import { EmojiWidget } from './emoji-widget'
 import { FileWidget } from './file-widget'
 import { SpreadsheetWidget } from './spreadsheet-widget'
+import { ExternalWebWidget } from './external-web-widget'
 
 /**
  * Register all widgets with the registry
@@ -82,6 +83,12 @@ export function registerAllWidgets(): void {
   widgetRegistry.register('spreadsheet', SpreadsheetWidget, {
     displayName: 'Spreadsheet',
     description: 'Full-featured spreadsheet with formulas (powered by Univer)',
+  })
+
+  // External Web widget
+  widgetRegistry.register('external-web', ExternalWebWidget, {
+    displayName: 'External Website',
+    description: 'Embed external websites with split view or full tab',
   })
 }
 

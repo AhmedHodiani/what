@@ -4,6 +4,7 @@ import type {
   StickyNoteObject,
   YouTubeVideoObject,
   ShapeObject,
+  ExternalWebObject,
   Point,
 } from 'lib/types/canvas'
 import type { ShapeType } from 'renderer/components/canvas/shape-picker-dialog'
@@ -61,6 +62,13 @@ export function useCanvasDialogs({
   // Spreadsheet name dialog state
   const [showSpreadsheetDialog, setShowSpreadsheetDialog] = useState(false)
   const [spreadsheetDialogPosition, setSpreadsheetDialogPosition] = useState<Point>({
+    x: 0,
+    y: 0,
+  })
+
+  // External web URL dialog state
+  const [showExternalWebDialog, setShowExternalWebDialog] = useState(false)
+  const [externalWebDialogPosition, setExternalWebDialogPosition] = useState<Point>({
     x: 0,
     y: 0,
   })
@@ -219,6 +227,52 @@ export function useCanvasDialogs({
     setTool('select')
   }, [setTool])
 
+  // ========== External Web Dialog Handlers ==========
+
+  /**
+   * Open external web URL dialog at a specific position
+   */
+  const openExternalWebDialog = useCallback((position: Point) => {
+    setExternalWebDialogPosition(position)
+    setShowExternalWebDialog(true)
+  }, [])
+
+  /**
+   * Handle external web URL confirmation - creates ExternalWebObject
+   */
+  const handleExternalWebConfirm = useCallback(
+    async (name: string, url: string) => {
+      const newExternalWeb: ExternalWebObject = {
+        id: generateId(),
+        type: 'external-web',
+        x: externalWebDialogPosition.x - 90, // Center horizontally (180px / 2)
+        y: externalWebDialogPosition.y - 60, // Center vertically (120px / 2)
+        width: 180,
+        height: 200,
+        z_index: objectsLength,
+        object_data: {
+          url: url,
+          name: name,
+        },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }
+      await addObject(newExternalWeb)
+      selectObject(newExternalWeb.id)
+      setShowExternalWebDialog(false)
+      setTool('select')
+    },
+    [externalWebDialogPosition, objectsLength, addObject, selectObject, setTool]
+  )
+
+  /**
+   * Handle external web dialog cancellation
+   */
+  const handleExternalWebCancel = useCallback(() => {
+    setShowExternalWebDialog(false)
+    setTool('select')
+  }, [setTool])
+
   // ========== Context Menu Handlers ==========
 
   /**
@@ -330,6 +384,13 @@ export function useCanvasDialogs({
     openSpreadsheetDialog,
     handleSpreadsheetConfirm,
     handleSpreadsheetCancel,
+
+    // External web URL dialog
+    showExternalWebDialog,
+    externalWebDialogPosition,
+    openExternalWebDialog,
+    handleExternalWebConfirm,
+    handleExternalWebCancel,
 
     // Context menu
     contextMenu,

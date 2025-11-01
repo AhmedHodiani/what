@@ -79,6 +79,16 @@ declare global {
         }) => Promise<string>
         onTabOpen: (callback: (tab: any) => void) => () => void
       }
+      externalWeb: {
+        open: (params: {
+          parentTabId: string
+          objectId: string
+          title: string
+          url: string
+          splitView?: boolean
+        }) => Promise<string>
+        onTabOpen: (callback: (tab: any) => void) => () => void
+      }
       shortcuts: {
         onShortcut: (callback: (action: string) => void) => () => void
       }
@@ -115,6 +125,8 @@ declare global {
     }
     // Internal function to close spreadsheet tabs when widget is deleted
     __closeSpreadsheetTabs?: (objectId: string, parentTabId: string) => void
+    // Internal function to close external web tabs when widget is deleted
+    __closeExternalWebTabs?: (objectId: string, parentTabId: string) => void
     // Internal function to update tab names dynamically
     __updateTabName?: (tabId: string, newName: string) => void
   }

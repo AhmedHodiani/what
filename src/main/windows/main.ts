@@ -35,6 +35,7 @@ export async function MainWindow() {
 
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
+      webviewTag: true, // Enable <webview> tag for external web content
     },
   })
 
@@ -54,6 +55,7 @@ export async function MainWindow() {
             preload: join(__dirname, '../preload/index.js'),
             nodeIntegration: false,
             contextIsolation: true,
+            webviewTag: true, // Enable <webview> tag for external web content in popout windows
           },
         },
       }
@@ -246,6 +248,37 @@ export async function MainWindow() {
     })
     
     return spreadsheetTabId
+  })
+
+  // External Web tab management
+  ipcMain.removeHandler('external-web-open')
+  ipcMain.handle('external-web-open', async (_event, { parentTabId, objectId, title, url, splitView = true }: { 
+    parentTabId: string
+    objectId: string
+    title: string
+    url: string
+    splitView?: boolean
+  }) => {
+    logger.debug('🌐 Opening external web tab:', { parentTabId, objectId, title, url, splitView })
+    
+    // Generate unique tab ID for external web
+    const externalWebTabId = `external-web-${parentTabId}-${objectId}`
+    
+    // Send event to renderer to create the tab
+    window.webContents.send('external-web-tab-open', {
+      id: externalWebTabId,
+      type: 'external-web',
+      parentTabId,
+      objectId,
+      fileName: title, // Use fileName for tab display name (matches BaseTab interface)
+      title, // Keep title for backward compatibility
+      url,
+      isModified: false,
+      isActive: true,
+      splitView,
+    })
+    
+    return externalWebTabId
   })
 
   ipcMain.removeHandler('file-get-canvas')

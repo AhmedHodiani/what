@@ -202,6 +202,11 @@ export function useCanvasObjects({
         window.__closeSpreadsheetTabs(id, tabId)
       }
 
+      // If it's an external web, close its tab
+      if (objectToDelete?.type === 'external-web' && tabId && window.__closeExternalWebTabs) {
+        window.__closeExternalWebTabs(id, tabId)
+      }
+
       // Delete from database
       try {
         await window.App.file.deleteObject(id, tabId)

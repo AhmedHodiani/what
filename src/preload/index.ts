@@ -140,6 +140,22 @@ const API = {
     },
   },
 
+  // External Web tab management
+  externalWeb: {
+    open: (params: {
+      parentTabId: string
+      objectId: string
+      title: string
+      url: string
+      splitView?: boolean
+    }) => ipcRenderer.invoke('external-web-open', params),
+    onTabOpen: (callback: (tab: any) => void) => {
+      const listener = (_event: any, tab: any) => callback(tab)
+      ipcRenderer.on('external-web-tab-open', listener)
+      return () => ipcRenderer.removeListener('external-web-tab-open', listener)
+    },
+  },
+
   // Keyboard shortcuts
   shortcuts: {
     onShortcut: (callback: (action: string) => void) => {

@@ -19,6 +19,7 @@ import { MenuBar } from 'renderer/components/layout/menu-bar'
 import { UpdateNotification } from 'renderer/components/layout/update-notification'
 import { WelcomeScreen } from 'renderer/components/welcome/welcome-screen'
 import { SpreadsheetEditor } from 'renderer/screens/spreadsheet-editor'
+import { ExternalWebEditor } from 'renderer/screens/external-web-editor'
 import {
   GlobalToolProvider,
   ActiveTabProvider,
@@ -27,7 +28,7 @@ import {
 import { GlobalPanelsLayout } from 'renderer/components/layout/global-panels-layout'
 import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 import type { Viewport } from 'lib/types/canvas'
-import type { FileTab, SpreadsheetTab } from 'shared/types/tabs'
+import type { FileTab, SpreadsheetTab, ExternalWebTab } from 'shared/types/tabs'
 
 // Default canvas ID (for now we only support one canvas per file)
 const DEFAULT_CANVAS_ID = 'canvas_default'
@@ -435,6 +436,144 @@ export function MainScreenWithTabs() {
     }
   }, [model])
 
+  // Listen for external web tabs being opened
+  useEffect(() => {
+    const cleanup = window.App.externalWeb.onTabOpen((externalWebTab: ExternalWebTab) => {
+      // Check if tab already exists - if so, focus it instead of creating duplicate
+      const existingTab = tabsRef.current.find(t => t.id === externalWebTab.id)
+      if (existingTab) {
+        // Focus existing tab in FlexLayout
+        const existingNode = model.getNodeById(externalWebTab.id)
+        if (existingNode) {
+          model.doAction(Actions.selectTab(externalWebTab.id))
+        }
+        
+        // Update active tab state
+        setActiveTabId(externalWebTab.id)
+        window.App.tabs.setActive(externalWebTab.id)
+        return
+      }
+
+      // Add to tabs state
+      setTabs(prevTabs => [...prevTabs, externalWebTab])
+
+      // Add to FlexLayout
+      const existingNode = model.getNodeById(externalWebTab.id)
+      if (!existingNode) {
+        if (externalWebTab.splitView) {
+          // Split view: Find parent canvas tab and split it 50/50
+          const parentNode = model.getNodeById(externalWebTab.parentTabId)
+          
+          if (parentNode) {
+            // Try to split the parent's tabset, not the tab itself
+            const parentTabSet = parentNode.getParent()
+            const targetId = parentTabSet?.getType() === 'tabset' ? parentTabSet.getId() : externalWebTab.parentTabId
+            
+            model.doAction(
+              Actions.addNode(
+                {
+                  type: 'tab',
+                  name: `🌐 ${externalWebTab.fileName}`,
+                  component: 'external-web',
+                  id: externalWebTab.id,
+                  config: { 
+                    type: 'external-web',
+                    tabId: externalWebTab.id,
+                    objectId: externalWebTab.objectId,
+                    parentTabId: externalWebTab.parentTabId,
+                    title: externalWebTab.fileName,
+                    url: externalWebTab.url,
+                  },
+                  enablePopout: true,
+                },
+                targetId,
+                DockLocation.RIGHT,
+                -1
+              )
+            )
+          } else {
+            logger.error('Parent tab not found for split view:', externalWebTab.parentTabId)
+            // Fallback to CENTER if parent not found
+            model.doAction(
+              Actions.addNode(
+                {
+                  type: 'tab',
+                  name: `🌐 ${externalWebTab.fileName}`,
+                  component: 'external-web',
+                  id: externalWebTab.id,
+                  config: { 
+                    type: 'external-web',
+                    tabId: externalWebTab.id,
+                    objectId: externalWebTab.objectId,
+                    parentTabId: externalWebTab.parentTabId,
+                    title: externalWebTab.fileName,
+                    url: externalWebTab.url,
+                  },
+                  enablePopout: true,
+                },
+                model.getRoot().getId(),
+                DockLocation.CENTER,
+                -1
+              )
+            )
+          }
+        } else {
+          // Full tab: Add to the main tabset (100% standalone tab in tab bar)
+          logger.debug('🌐 Creating full standalone external web tab with DockLocation.CENTER')
+          
+          // Find the main tabset (first child of root that's a tabset)
+          const root = model.getRoot()
+          let mainTabsetId = root.getId()
+          
+          // Try to find the first tabset in the layout
+          root.getChildren().forEach((child: any) => {
+            if (child.getType() === 'tabset') {
+              mainTabsetId = child.getId()
+            } else if (child.getType() === 'row') {
+              // Check children of row for tabset
+              child.getChildren().forEach((grandchild: any) => {
+                if (grandchild.getType() === 'tabset') {
+                  mainTabsetId = grandchild.getId()
+                }
+              })
+            }
+          })
+          
+          model.doAction(
+            Actions.addNode(
+              {
+                type: 'tab',
+                name: `🌐 ${externalWebTab.fileName}`,
+                component: 'external-web',
+                id: externalWebTab.id,
+                config: { 
+                  type: 'external-web',
+                  tabId: externalWebTab.id,
+                  objectId: externalWebTab.objectId,
+                  parentTabId: externalWebTab.parentTabId,
+                  title: externalWebTab.fileName,
+                  url: externalWebTab.url,
+                },
+                enablePopout: true,
+              },
+              mainTabsetId,
+              DockLocation.CENTER,
+              -1
+            )
+          )
+        }
+        
+        model.doAction(Actions.selectTab(externalWebTab.id))
+      }
+
+      setActiveTabId(externalWebTab.id)
+    })
+
+    return () => {
+      cleanup()
+    }
+  }, [model])
+
   // Handle viewport changes for a specific tab
   const handleViewportChange = useCallback(
     (tabId: string, newViewport: Viewport) => {
@@ -620,12 +759,13 @@ export function MainScreenWithTabs() {
   // FlexLayout factory function - renders content for each tab
   const factory = (node: TabNode) => {
     const config = node.getConfig() as { 
-      type?: 'canvas' | 'spreadsheet'
+      type?: 'canvas' | 'spreadsheet' | 'external-web'
       tabId: string
       objectId?: string
       parentTabId?: string
       title?: string
       assetId?: string
+      url?: string
     }
     
     const tabId = config.tabId
@@ -643,6 +783,20 @@ export function MainScreenWithTabs() {
     // Only render if the tab is selected to avoid event conflicts
     if (!isSelected) {
       return <div className="absolute inset-0 bg-[#0a0a0a]" />
+    }
+
+    // Render external web editor
+    if (tabType === 'external-web') {
+      return (
+        <CanvasErrorBoundary>
+          <ExternalWebEditor
+            objectId={config.objectId!}
+            parentTabId={config.parentTabId!}
+            title={config.title || 'External Website'}
+            url={config.url!}
+          />
+        </CanvasErrorBoundary>
+      )
     }
 
     // Render spreadsheet editor
@@ -719,6 +873,28 @@ export function MainScreenWithTabs() {
     }
   }, [tabs, model])
 
+  // Close external web tabs by objectId (called when widget is deleted)
+  const closeExternalWebTabsByObjectId = useCallback((objectId: string, parentTabId: string) => {
+    const externalWebTabId = `external-web-${parentTabId}-${objectId}`
+    const externalWebTab = tabs.find(t => t.id === externalWebTabId)
+    
+    if (externalWebTab) {
+      logger.debug('Closing external web tab (widget deleted):', {
+        objectId,
+        tabId: externalWebTabId,
+      })
+      
+      // Close in FlexLayout
+      const node = model.getNodeById(externalWebTabId)
+      if (node) {
+        model.doAction(Actions.deleteTab(externalWebTabId))
+      }
+      
+      // Remove from state
+      setTabs(prevTabs => prevTabs.filter(t => t.id !== externalWebTabId))
+    }
+  }, [tabs, model])
+
   // Expose closeSpreadsheetTabsByObjectId globally for canvas to call
   useEffect(() => {
     if (!window.__closeSpreadsheetTabs) {
@@ -728,6 +904,16 @@ export function MainScreenWithTabs() {
       delete window.__closeSpreadsheetTabs
     }
   }, [closeSpreadsheetTabsByObjectId])
+
+  // Expose closeExternalWebTabsByObjectId globally for canvas to call
+  useEffect(() => {
+    if (!window.__closeExternalWebTabs) {
+      window.__closeExternalWebTabs = closeExternalWebTabsByObjectId
+    }
+    return () => {
+      delete window.__closeExternalWebTabs
+    }
+  }, [closeExternalWebTabsByObjectId])
 
   // Update tab name dynamically (for dirty indicator and file size)
   const updateTabName = useCallback((tabId: string, newName: string) => {
@@ -754,12 +940,31 @@ export function MainScreenWithTabs() {
       logger.debug('Closing tab:', tabId)
 
       const closingTab = tabs.find(t => t.id === tabId)
+      logger.debug('Closing tab details:', { 
+        closingTab, 
+        allTabs: tabs.map(t => ({ 
+          id: t.id, 
+          type: t.type, 
+          parentTabId: t.type === 'spreadsheet' || t.type === 'external-web' ? t.parentTabId : undefined 
+        })) 
+      })
       
-      // If closing a canvas tab (.what file), also close all its spreadsheet tabs
+      // If closing a canvas tab (.what file), also close all its spreadsheet and external web tabs
       if (closingTab?.type === 'canvas') {
         const spreadsheetTabsToClose = tabs.filter(
           t => t.type === 'spreadsheet' && t.parentTabId === tabId
         )
+        
+        const externalWebTabsToClose = tabs.filter(
+          t => t.type === 'external-web' && t.parentTabId === tabId
+        )
+        
+        logger.debug('Found tabs to close:', { 
+          spreadsheetCount: spreadsheetTabsToClose.length, 
+          spreadsheetTabs: spreadsheetTabsToClose.map(t => t.id),
+          externalWebCount: externalWebTabsToClose.length,
+          externalWebTabs: externalWebTabsToClose.map(t => t.id)
+        })
         
         if (spreadsheetTabsToClose.length > 0) {
           logger.debug('Closing spreadsheet tabs for parent file:', {
@@ -775,15 +980,32 @@ export function MainScreenWithTabs() {
             }
           }
         }
+        
+        if (externalWebTabsToClose.length > 0) {
+          logger.debug('Closing external web tabs for parent file:', {
+            parentTabId: tabId,
+            externalWebCount: externalWebTabsToClose.length,
+          })
+          
+          // Close each external web tab in FlexLayout
+          for (const externalWebTab of externalWebTabsToClose) {
+            const node = model.getNodeById(externalWebTab.id)
+            if (node) {
+              model.doAction(Actions.deleteTab(externalWebTab.id))
+            }
+          }
+        }
       }
 
       // Close the file
       window.App.file.close(tabId)
 
-      // Remove from state (also remove spreadsheet tabs if this was a canvas tab)
+      // Remove from state (also remove child tabs if this was a canvas tab)
       if (closingTab?.type === 'canvas') {
         setTabs(prevTabs => prevTabs.filter(
-          t => t.id !== tabId && !(t.type === 'spreadsheet' && t.parentTabId === tabId)
+          t => t.id !== tabId && 
+          !(t.type === 'spreadsheet' && t.parentTabId === tabId) &&
+          !(t.type === 'external-web' && t.parentTabId === tabId)
         ))
       } else {
         setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
@@ -821,6 +1043,14 @@ export function MainScreenWithTabs() {
         currentFileName = `${parentTab.fileName} - ${activeTab.fileName} sheet`
       } else {
         currentFileName = `${activeTab.fileName} sheet`
+      }
+    } else if (activeTab.type === 'external-web') {
+      // For external web tabs, show: "parentFile.what - website-title"
+      const parentTab = tabs.find(t => t.id === activeTab.parentTabId)
+      if (parentTab) {
+        currentFileName = `${parentTab.fileName} - ${activeTab.fileName}`
+      } else {
+        currentFileName = activeTab.fileName
       }
     } else {
       // For canvas tabs, show just the file name
