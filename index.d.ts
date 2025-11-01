@@ -79,6 +79,16 @@ declare global {
         }) => Promise<string>
         onTabOpen: (callback: (tab: any) => void) => () => void
       }
+      externalWeb: {
+        open: (params: {
+          parentTabId: string
+          objectId: string
+          title: string
+          url: string
+          splitView?: boolean
+        }) => Promise<string>
+        onTabOpen: (callback: (tab: any) => void) => () => void
+      }
       shortcuts: {
         onShortcut: (callback: (action: string) => void) => () => void
       }

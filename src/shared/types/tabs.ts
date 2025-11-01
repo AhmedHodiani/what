@@ -1,6 +1,6 @@
 // Tab management types for multi-file support
 
-export type TabType = 'canvas' | 'spreadsheet'
+export type TabType = 'canvas' | 'spreadsheet' | 'external-web'
 
 export interface BaseTab {
   id: string // Unique tab identifier
@@ -28,7 +28,15 @@ export interface SpreadsheetTab extends BaseTab {
   splitView?: boolean // Whether to open in split view (50%) or full tab (100%)
 }
 
-export type FileTab = CanvasTab | SpreadsheetTab
+export interface ExternalWebTab extends BaseTab {
+  type: 'external-web'
+  parentTabId: string // The canvas file this external web belongs to
+  objectId: string // The external-web object ID
+  url: string // The URL to display
+  splitView?: boolean // Whether to open in split view (50%) or full tab (100%)
+}
+
+export type FileTab = CanvasTab | SpreadsheetTab | ExternalWebTab
 
 export interface TabState {
   tabs: FileTab[]

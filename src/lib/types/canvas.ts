@@ -29,6 +29,7 @@ export type DrawingObjectType =
   | 'emoji'
   | 'file'
   | 'spreadsheet'
+  | 'external-web'
 
 // Freehand drawing (pen/pencil stroke)
 export interface FreehandObject {
@@ -220,6 +221,23 @@ export interface SpreadsheetObject {
   updated: string
 }
 
+// External Web object (embeds external websites via webview)
+export interface ExternalWebObject {
+  id: string
+  type: 'external-web'
+  x: number
+  y: number
+  width: number
+  height: number
+  z_index: number
+  object_data: {
+    url: string // The external URL to display
+    title?: string // Display title
+  }
+  created: string
+  updated: string
+}
+
 // Union type for all drawing objects
 export type DrawingObject =
   | FreehandObject
@@ -231,3 +249,4 @@ export type DrawingObject =
   | EmojiObject
   | FileObject
   | SpreadsheetObject
+  | ExternalWebObject

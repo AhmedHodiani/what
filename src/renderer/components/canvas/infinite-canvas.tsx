@@ -37,6 +37,7 @@ import { ArrowPreview } from './arrow-preview'
 import { YouTubeUrlDialog } from './youtube-url-dialog'
 import { ShapePickerDialog } from './shape-picker-dialog'
 import { SpreadsheetNameDialog } from './spreadsheet-name-dialog'
+import { ExternalWebDialog } from './external-web-dialog'
 import { ContextMenu } from './context-menu'
 import { ConfirmationDialog } from './confirmation-dialog'
 import { Toast, useToast } from '../ui/toast'
@@ -250,6 +251,11 @@ export function InfiniteCanvas({
     openSpreadsheetDialog,
     handleSpreadsheetConfirm,
     handleSpreadsheetCancel,
+    showExternalWebDialog,
+    externalWebDialogPosition,
+    openExternalWebDialog,
+    handleExternalWebConfirm,
+    handleExternalWebCancel,
     contextMenu,
     handleContextMenu,
     closeContextMenu,
@@ -590,6 +596,12 @@ export function InfiniteCanvas({
             break
           }
 
+          case 'external-web': {
+            const worldPos = screenToWorld(e.clientX, e.clientY)
+            openExternalWebDialog(worldPos)
+            break
+          }
+
           // TODO: Add other object types
         }
         return
@@ -919,6 +931,14 @@ export function InfiniteCanvas({
         <SpreadsheetNameDialog
           onCancel={handleSpreadsheetCancel}
           onConfirm={handleSpreadsheetConfirm}
+        />
+      )}
+
+      {/* External web URL dialog */}
+      {showExternalWebDialog && (
+        <ExternalWebDialog
+          onCancel={handleExternalWebCancel}
+          onConfirm={handleExternalWebConfirm}
         />
       )}
 

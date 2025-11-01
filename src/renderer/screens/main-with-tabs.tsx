@@ -19,6 +19,7 @@ import { MenuBar } from 'renderer/components/layout/menu-bar'
 import { UpdateNotification } from 'renderer/components/layout/update-notification'
 import { WelcomeScreen } from 'renderer/components/welcome/welcome-screen'
 import { SpreadsheetEditor } from 'renderer/screens/spreadsheet-editor'
+import { ExternalWebEditor } from 'renderer/screens/external-web-editor'
 import {
   GlobalToolProvider,
   ActiveTabProvider,
@@ -27,7 +28,7 @@ import {
 import { GlobalPanelsLayout } from 'renderer/components/layout/global-panels-layout'
 import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 import type { Viewport } from 'lib/types/canvas'
-import type { FileTab, SpreadsheetTab } from 'shared/types/tabs'
+import type { FileTab, SpreadsheetTab, ExternalWebTab } from 'shared/types/tabs'
 
 // Default canvas ID (for now we only support one canvas per file)
 const DEFAULT_CANVAS_ID = 'canvas_default'
@@ -435,6 +436,144 @@ export function MainScreenWithTabs() {
     }
   }, [model])
 
+  // Listen for external web tabs being opened
+  useEffect(() => {
+    const cleanup = window.App.externalWeb.onTabOpen((externalWebTab: ExternalWebTab) => {
+      // Check if tab already exists - if so, focus it instead of creating duplicate
+      const existingTab = tabsRef.current.find(t => t.id === externalWebTab.id)
+      if (existingTab) {
+        // Focus existing tab in FlexLayout
+        const existingNode = model.getNodeById(externalWebTab.id)
+        if (existingNode) {
+          model.doAction(Actions.selectTab(externalWebTab.id))
+        }
+        
+        // Update active tab state
+        setActiveTabId(externalWebTab.id)
+        window.App.tabs.setActive(externalWebTab.id)
+        return
+      }
+
+      // Add to tabs state
+      setTabs(prevTabs => [...prevTabs, externalWebTab])
+
+      // Add to FlexLayout
+      const existingNode = model.getNodeById(externalWebTab.id)
+      if (!existingNode) {
+        if (externalWebTab.splitView) {
+          // Split view: Find parent canvas tab and split it 50/50
+          const parentNode = model.getNodeById(externalWebTab.parentTabId)
+          
+          if (parentNode) {
+            // Try to split the parent's tabset, not the tab itself
+            const parentTabSet = parentNode.getParent()
+            const targetId = parentTabSet?.getType() === 'tabset' ? parentTabSet.getId() : externalWebTab.parentTabId
+            
+            model.doAction(
+              Actions.addNode(
+                {
+                  type: 'tab',
+                  name: `🌐 ${externalWebTab.fileName}`,
+                  component: 'external-web',
+                  id: externalWebTab.id,
+                  config: { 
+                    type: 'external-web',
+                    tabId: externalWebTab.id,
+                    objectId: externalWebTab.objectId,
+                    parentTabId: externalWebTab.parentTabId,
+                    title: externalWebTab.fileName,
+                    url: externalWebTab.url,
+                  },
+                  enablePopout: true,
+                },
+                targetId,
+                DockLocation.RIGHT,
+                -1
+              )
+            )
+          } else {
+            logger.error('Parent tab not found for split view:', externalWebTab.parentTabId)
+            // Fallback to CENTER if parent not found
+            model.doAction(
+              Actions.addNode(
+                {
+                  type: 'tab',
+                  name: `🌐 ${externalWebTab.fileName}`,
+                  component: 'external-web',
+                  id: externalWebTab.id,
+                  config: { 
+                    type: 'external-web',
+                    tabId: externalWebTab.id,
+                    objectId: externalWebTab.objectId,
+                    parentTabId: externalWebTab.parentTabId,
+                    title: externalWebTab.fileName,
+                    url: externalWebTab.url,
+                  },
+                  enablePopout: true,
+                },
+                model.getRoot().getId(),
+                DockLocation.CENTER,
+                -1
+              )
+            )
+          }
+        } else {
+          // Full tab: Add to the main tabset (100% standalone tab in tab bar)
+          logger.debug('🌐 Creating full standalone external web tab with DockLocation.CENTER')
+          
+          // Find the main tabset (first child of root that's a tabset)
+          const root = model.getRoot()
+          let mainTabsetId = root.getId()
+          
+          // Try to find the first tabset in the layout
+          root.getChildren().forEach((child: any) => {
+            if (child.getType() === 'tabset') {
+              mainTabsetId = child.getId()
+            } else if (child.getType() === 'row') {
+              // Check children of row for tabset
+              child.getChildren().forEach((grandchild: any) => {
+                if (grandchild.getType() === 'tabset') {
+                  mainTabsetId = grandchild.getId()
+                }
+              })
+            }
+          })
+          
+          model.doAction(
+            Actions.addNode(
+              {
+                type: 'tab',
+                name: `🌐 ${externalWebTab.fileName}`,
+                component: 'external-web',
+                id: externalWebTab.id,
+                config: { 
+                  type: 'external-web',
+                  tabId: externalWebTab.id,
+                  objectId: externalWebTab.objectId,
+                  parentTabId: externalWebTab.parentTabId,
+                  title: externalWebTab.fileName,
+                  url: externalWebTab.url,
+                },
+                enablePopout: true,
+              },
+              mainTabsetId,
+              DockLocation.CENTER,
+              -1
+            )
+          )
+        }
+        
+        model.doAction(Actions.selectTab(externalWebTab.id))
+      }
+
+      setActiveTabId(externalWebTab.id)
+    })
+
+    return () => {
+      cleanup()
+    }
+  }, [model])
+
   // Handle viewport changes for a specific tab
   const handleViewportChange = useCallback(
     (tabId: string, newViewport: Viewport) => {
@@ -620,12 +759,13 @@ export function MainScreenWithTabs() {
   // FlexLayout factory function - renders content for each tab
   const factory = (node: TabNode) => {
     const config = node.getConfig() as { 
-      type?: 'canvas' | 'spreadsheet'
+      type?: 'canvas' | 'spreadsheet' | 'external-web'
       tabId: string
       objectId?: string
       parentTabId?: string
       title?: string
       assetId?: string
+      url?: string
     }
     
     const tabId = config.tabId
@@ -643,6 +783,20 @@ export function MainScreenWithTabs() {
     // Only render if the tab is selected to avoid event conflicts
     if (!isSelected) {
       return <div className="absolute inset-0 bg-[#0a0a0a]" />
+    }
+
+    // Render external web editor
+    if (tabType === 'external-web') {
+      return (
+        <CanvasErrorBoundary>
+          <ExternalWebEditor
+            objectId={config.objectId!}
+            parentTabId={config.parentTabId!}
+            title={config.title || 'External Website'}
+            url={config.url!}
+          />
+        </CanvasErrorBoundary>
+      )
     }
 
     // Render spreadsheet editor

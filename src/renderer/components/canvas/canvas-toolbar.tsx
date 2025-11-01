@@ -24,6 +24,7 @@ const tools: Tool[] = [
   { type: 'image', label: 'Image', icon: '🖼️' },
   { type: 'file', label: 'File', icon: '📎' },
   { type: 'spreadsheet', label: 'Spreadsheet', icon: '📊' },
+  { type: 'external-web', label: 'External Web', icon: '🌐' },
 ]
 
 /**
@@ -46,6 +47,7 @@ function getToolShortcut(
     youtube: ['youtube video tool'],
     emoji: ['emoji tool'],
     spreadsheet: ['spreadsheet tool'],
+    'external-web': ['external web tool', 'web tool'],
   }
 
   const keywords = descriptionMap[toolType] || []
