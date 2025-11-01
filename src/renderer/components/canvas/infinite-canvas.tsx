@@ -731,7 +731,7 @@ export function InfiniteCanvas({
 
   return (
     <div
-      className="absolute inset-0 overflow-hidden bg-[#0a0a0a] select-none"
+      className="absolute inset-0 overflow-hidden bg-[#181819] select-none"
       onMouseDown={handleMouseDown}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
