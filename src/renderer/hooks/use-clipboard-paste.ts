@@ -66,12 +66,12 @@ export function useClipboardPaste({
     const handlePaste = async (e: ClipboardEvent) => {
       // CRITICAL: Don't intercept paste events when user is typing in inputs/textareas
       const target = e.target as HTMLElement
-      const isTypingInInput = 
-        target.tagName === 'INPUT' || 
+      const isTypingInInput =
+        target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable ||
         target.closest('input, textarea, [contenteditable="true"]')
-      
+
       if (isTypingInInput) {
         return // Let the browser handle it naturally
       }
@@ -155,7 +155,7 @@ export function useClipboardPaste({
             return // Exit after handling
           }
           // Handle non-image files
-          else if (item.kind === 'file' && onFilePaste) {
+          if (item.kind === 'file' && onFilePaste) {
             e.preventDefault()
             handled = true
 
@@ -163,7 +163,7 @@ export function useClipboardPaste({
             if (!file) continue
 
             onFilePaste({ file }, mousePosition)
-            
+
             // Update debounce timestamp after successful paste
             lastPasteTimeRef.current = Date.now()
             return // Exit after handling
@@ -194,8 +194,7 @@ export function useClipboardPaste({
             height: number
           }>(resolve => {
             const img = new Image()
-            img.onload = () =>
-              resolve({ width: img.width, height: img.height })
+            img.onload = () => resolve({ width: img.width, height: img.height })
             img.src = dataUrl
           })
 
@@ -208,7 +207,7 @@ export function useClipboardPaste({
             },
             mousePosition
           )
-          
+
           // Update debounce timestamp after successful paste
           lastPasteTimeRef.current = Date.now()
         }
@@ -217,7 +216,7 @@ export function useClipboardPaste({
           e.preventDefault()
           handled = true
           onFilePaste({ file }, mousePosition)
-          
+
           // Update debounce timestamp after successful paste
           lastPasteTimeRef.current = Date.now()
         }
@@ -226,12 +225,12 @@ export function useClipboardPaste({
       // THIRD: Handle plain text paste (only if nothing else was handled)
       if (!handled && onTextPaste && e.clipboardData) {
         const text = e.clipboardData.getData('text/plain')
-        
+
         // Only process if there's actual text content
         if (text && text.trim().length > 0) {
           e.preventDefault()
           onTextPaste({ text: text.trim() }, mousePosition)
-          
+
           // Update debounce timestamp after successful paste
           lastPasteTimeRef.current = Date.now()
         }

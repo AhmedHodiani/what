@@ -18,7 +18,7 @@ const STANDARD_OBJECT_OFFSET = 20 // Offset for standard objects
 
 /**
  * Hook for duplicating canvas objects with Ctrl+D
- * 
+ *
  * Features:
  * - Duplicates all selected objects at mouse position
  * - Handles asset duplication for images and files (creates separate copies)
@@ -223,9 +223,9 @@ export function useObjectDuplication({
       // Center the object on the mouse cursor (like when creating new objects)
       const width = 'width' in originalObject ? originalObject.width : 0
       const height = 'height' in originalObject ? originalObject.height : 0
-      const centeredX = worldPos.x - (width / 2)
-      const centeredY = worldPos.y - (height / 2)
-      
+      const centeredX = worldPos.x - width / 2
+      const centeredY = worldPos.y - height / 2
+
       return {
         ...originalObject,
         id: newId,
@@ -270,24 +270,30 @@ export function useObjectDuplication({
       try {
         // CRITICAL: Deep clone the entire original object to prevent any mutations
         const originalObjectClone = JSON.parse(JSON.stringify(originalObject))
-        
+
         // Generate new ID
         const newId = `${originalObjectClone.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
         // Deep clone object data (JSON parse/stringify to avoid reference issues)
-        let newObjectData = JSON.parse(JSON.stringify(originalObjectClone.object_data))
+        let newObjectData = JSON.parse(
+          JSON.stringify(originalObjectClone.object_data)
+        )
 
         // Handle asset duplication for images, files, and spreadsheets
-        if (originalObjectClone.type === 'image' || originalObjectClone.type === 'file' || originalObjectClone.type === 'spreadsheet') {
+        if (
+          originalObjectClone.type === 'image' ||
+          originalObjectClone.type === 'file' ||
+          originalObjectClone.type === 'spreadsheet'
+        ) {
           const assetId = originalObjectClone.object_data.assetId as string
-          
+
           if (assetId) {
             let fileName: string
             let mimeType: string
-            
+
             if (originalObjectClone.type === 'file') {
-              fileName = (originalObjectClone.object_data.fileName as string)
-              mimeType = (originalObjectClone.object_data.mimeType as string)
+              fileName = originalObjectClone.object_data.fileName as string
+              mimeType = originalObjectClone.object_data.mimeType as string
             } else if (originalObjectClone.type === 'spreadsheet') {
               fileName = `spreadsheet-${Date.now()}.json`
               mimeType = 'application/json'
@@ -336,7 +342,10 @@ export function useObjectDuplication({
         }
 
         // Add image URL for immediate display (images only)
-        if (originalObjectClone.type === 'image' && '_imageUrl' in originalObject) {
+        if (
+          originalObjectClone.type === 'image' &&
+          '_imageUrl' in originalObject
+        ) {
           const assetDataUrl = await window.App.file.getAssetDataUrl(
             (newObjectData as any).assetId,
             tabId || undefined

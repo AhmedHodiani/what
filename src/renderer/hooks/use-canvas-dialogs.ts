@@ -33,7 +33,7 @@ export interface ContextMenuState {
  * - Shape picker dialog
  * - Delete confirmation dialog
  * - Context menu
- * 
+ *
  * Consolidates dialog state and handlers for cleaner separation of concerns.
  */
 export function useCanvasDialogs({
@@ -61,17 +61,19 @@ export function useCanvasDialogs({
 
   // Spreadsheet name dialog state
   const [showSpreadsheetDialog, setShowSpreadsheetDialog] = useState(false)
-  const [spreadsheetDialogPosition, setSpreadsheetDialogPosition] = useState<Point>({
-    x: 0,
-    y: 0,
-  })
+  const [spreadsheetDialogPosition, setSpreadsheetDialogPosition] =
+    useState<Point>({
+      x: 0,
+      y: 0,
+    })
 
   // External web URL dialog state
   const [showExternalWebDialog, setShowExternalWebDialog] = useState(false)
-  const [externalWebDialogPosition, setExternalWebDialogPosition] = useState<Point>({
-    x: 0,
-    y: 0,
-  })
+  const [externalWebDialogPosition, setExternalWebDialogPosition] =
+    useState<Point>({
+      x: 0,
+      y: 0,
+    })
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -359,7 +361,9 @@ export function useCanvasDialogs({
   const triggerDeleteConfirmation = useCallback(() => {
     if (selectedObjectIds.length === 0) return
 
-    setObjectToDelete(selectedObjectIds.length === 1 ? selectedObjectIds[0] : 'multiple')
+    setObjectToDelete(
+      selectedObjectIds.length === 1 ? selectedObjectIds[0] : 'multiple'
+    )
     setShowDeleteConfirmation(true)
   }, [selectedObjectIds])
 

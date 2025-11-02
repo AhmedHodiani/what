@@ -23,7 +23,7 @@ interface UseCanvasFileOperationsOptions {
  * - Image paste and drag-drop
  * - File paste and drag-drop
  * - Text paste (creates sticky note)
- * 
+ *
  * Separates all file I/O concerns from the main canvas component.
  */
 export function useCanvasFileOperations({

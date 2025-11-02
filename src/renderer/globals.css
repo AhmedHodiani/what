@@ -254,18 +254,18 @@ input[type="range"].slider::-moz-range-thumb:hover {
 
 /* Horizontal rule - inherits text color */
 .markdown-content hr {
+  margin: 0.8em 0;
   border: none;
   border-top: 2px solid currentColor;
   opacity: 0.3;
-  margin: 0.8em 0;
 }
 
 /* Lists */
 .markdown-content ul,
 .markdown-content ol {
-  list-style: square outside;
   padding-left: 1.1em;
   margin: 0.5em 0;
+  list-style: square outside;
 }
 
 .markdown-content li {
@@ -274,8 +274,8 @@ input[type="range"].slider::-moz-range-thumb:hover {
 
 /* Task lists - override default list styles */
 .markdown-content ul.task-list-container {
-  list-style: none;
   padding-left: 0;
+  list-style: none;
 }
 
 /* Nested task lists get indent */
@@ -285,25 +285,25 @@ input[type="range"].slider::-moz-range-thumb:hover {
 
 /* Task list items with custom checkboxes */
 .markdown-content .task-list-item {
-  list-style: none;
-  margin-left: 0;
   position: relative;
   margin-top: 5px;
+  margin-left: 0;
+  list-style: none;
 }
 
 .markdown-content .task-list-item-checkbox {
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
-  border: 2px solid currentColor;
-  border-radius: 0px;
-  background: transparent;
-  cursor: pointer;
   position: relative;
-  transition: all 0.01s ease;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
   margin: 0;
   vertical-align: middle;
+  appearance: none;
+  cursor: pointer;
+  background: transparent;
+  border: 2px solid currentColor;
+  border-radius: 0px;
+  transition: all 0.01s ease;
 }
 
 .markdown-content .task-list-item-label {
@@ -317,64 +317,64 @@ input[type="range"].slider::-moz-range-thumb:hover {
 }
 
 .markdown-content .task-list-item-checkbox:checked::after {
-  content: '×';
   position: absolute;
   top: 60%;
   left: 45%;
-  transform: translate(-50%, -50%);
-  color: white;
   font-size: 20px;
   font-weight: bold;
+  color: white;
+  content: '×';
+  transform: translate(-50%, -50%);
 }
 
 /* Code */
 .markdown-content code {
-  background-color: rgba(0, 0, 0, 0.1);
   padding: 0.1em 0.3em;
-  border-radius: 3px;
   font-family: monospace;
   font-size: 0.9em;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
 }
 
 .markdown-content pre {
-  background-color: rgba(0, 0, 0, 0.1);
   padding: 0.75em;
-  border-radius: 4px;
-  overflow-x: auto;
   margin: 0px -25px 0px 0px !important;
+  overflow-x: auto;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
 }
 
 .markdown-content pre code {
-  background: none;
   padding: 0;
+  background: none;
 }
 
 /* Blockquotes */
 .markdown-content blockquote {
-  border-left: 3px solid currentColor;
   padding-left: 1em;
   margin: 0.5em 0;
+  border-left: 3px solid currentColor;
   opacity: 0.8;
 }
 
 /* Tables */
 .markdown-content table {
-  border-collapse: collapse;
   margin: 0.75em -25px 0.75em 0 !important;
   font-size: 0.95em;
+  border-collapse: collapse;
   border: 2px solid currentColor;
   opacity: 0.9;
 }
 
 .markdown-content thead {
-  background-color: rgba(0, 0, 0, 0.115);
   color: currentColor;
+  background-color: rgba(0, 0, 0, 0.115);
 }
 
 .markdown-content th {
   padding: 0.5em 0.75em;
-  text-align: left;
   font-weight: 600;
+  text-align: left;
   border: 1px solid currentColor;
 }
 

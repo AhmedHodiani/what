@@ -583,9 +583,10 @@ export class WhatFileService {
 
     const now = new Date().toISOString()
     // Only stringify object_data if it's actually provided (not undefined)
-    const objectData = object.object_data !== undefined 
-      ? JSON.stringify(object.object_data) 
-      : undefined
+    const objectData =
+      object.object_data !== undefined
+        ? JSON.stringify(object.object_data)
+        : undefined
 
     logger.debug({
       id: object.id,
