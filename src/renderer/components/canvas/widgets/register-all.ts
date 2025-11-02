@@ -83,12 +83,66 @@ export function registerAllWidgets(): void {
   widgetRegistry.register('spreadsheet', SpreadsheetWidget, {
     displayName: 'Spreadsheet',
     description: 'Full-featured spreadsheet with formulas (powered by Univer)',
+    capabilities: {
+      externalTab: {
+        enabled: true,
+        componentName: 'SpreadsheetEditor',
+        getTabConfig: async (object, tabId) => {
+          // Reload from database to get latest assetId
+          const objects = await window.App.file.getObjects(tabId)
+          const freshObject = objects.find((obj: any) => obj.id === object.id)
+          const assetId = freshObject?.object_data?.assetId
+
+          return {
+            type: 'spreadsheet',
+            objectId: object.id,
+            parentTabId: tabId,
+            title: (object.object_data as any).title || 'Spreadsheet',
+            assetId,
+          }
+        },
+        tabTitle: object => (object.object_data as any).title || 'Spreadsheet',
+        tabIcon: 'sheet',
+      },
+    },
   })
 
   // External Web widget
   widgetRegistry.register('external-web', ExternalWebWidget, {
     displayName: 'External Website',
     description: 'Embed external websites with split view or full tab',
+    capabilities: {
+      externalTab: {
+        enabled: true,
+        componentName: 'ExternalWebEditor',
+        getTabConfig: async (object, tabId) => {
+          // Reload from database to get latest data
+          const objects = await window.App.file.getObjects(tabId)
+          const freshObject = objects.find((obj: any) => obj.id === object.id)
+          const url = (freshObject?.object_data as any)?.url
+          const name = (freshObject?.object_data as any)?.name
+
+          return {
+            type: 'external-web',
+            objectId: object.id,
+            parentTabId: tabId,
+            title: name || new URL(url).hostname,
+            url,
+          }
+        },
+        tabTitle: object => {
+          try {
+            return (
+              (object.object_data as any).name ||
+              new URL((object.object_data as any).url).hostname
+            )
+          } catch {
+            return 'External Website'
+          }
+        },
+        tabIcon: 'globe',
+      },
+    },
   })
 }
 

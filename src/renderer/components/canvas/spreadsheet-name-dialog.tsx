@@ -34,7 +34,7 @@ export function SpreadsheetNameDialog({
 
   const handleConfirm = () => {
     const trimmedName = name.trim()
-    
+
     if (!trimmedName) {
       setError('Please enter a name for the spreadsheet')
       return
@@ -103,12 +103,12 @@ export function SpreadsheetNameDialog({
           </label>
           <input
             className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-400/20 transition-all"
+            maxLength={50}
             onChange={handleChange}
             placeholder="My Spreadsheet"
             ref={inputRef}
             type="text"
             value={name}
-            maxLength={50}
           />
           {error && (
             <p className="text-red-400 text-sm mt-2 flex items-center gap-1.5">

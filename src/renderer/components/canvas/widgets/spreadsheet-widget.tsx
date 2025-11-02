@@ -1,8 +1,7 @@
-import { useCallback } from 'react'
 import type { DrawingObject, SpreadsheetObject } from 'lib/types/canvas'
 import { WidgetWrapper } from './widget-wrapper'
 import { Sheet } from 'lucide-react'
-import { logger } from 'shared/logger'
+import { useWidgetCapabilities } from 'renderer/hooks'
 
 interface SpreadsheetWidgetProps {
   object: SpreadsheetObject
@@ -18,7 +17,7 @@ interface SpreadsheetWidgetProps {
 
 /**
  * SpreadsheetWidget - Icon/Thumbnail for spreadsheet
- * 
+ *
  * Click to open the spreadsheet in a dedicated tab
  * Similar to FileWidget - just shows an icon and name
  */
@@ -33,34 +32,12 @@ export function SpreadsheetWidget({
   onContextMenu,
   onStartDrag,
 }: SpreadsheetWidgetProps) {
-  
-  const handleDoubleClick = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    
-    if (!tabId) {
-      logger.error('❌ Cannot open spreadsheet: no parent tabId available')
-      return
-    }
-    
-    // Reload the object from database to get latest assetId
-    const objects = await window.App.file.getObjects(tabId)
-    const freshObject = objects.find((obj: any) => obj.id === object.id)
-    const assetId = freshObject?.object_data?.assetId
-    
-    const splitView = !e.ctrlKey // Regular double-click = split (true), Ctrl+Double-click = full tab (false)
-    
-    try {
-      await window.App.spreadsheet.open({
-        parentTabId: tabId,
-        objectId: object.id,
-        title: object.object_data.title || 'Spreadsheet',
-        assetId: assetId,
-        splitView,
-      })
-    } catch (error) {
-      logger.error('Failed to open spreadsheet tab:', error)
-    }
-  }, [object.id, object.object_data, tabId])
+  // Use capability system for external tab behavior
+  const { handleExternalTabOpen } = useWidgetCapabilities(
+    object.type,
+    object,
+    tabId
+  )
 
   return (
     <WidgetWrapper
@@ -76,8 +53,8 @@ export function SpreadsheetWidget({
       zoom={zoom}
     >
       <div
-        className="relative w-full h-full bg-gradient-to-br from-green-50 to-teal-50 rounded-lg overflow-hidden shadow-lg cursor-pointer hover:shadow-xl transition-shadow border-2 border-green-200"
-        onDoubleClick={handleDoubleClick}
+        className="relative w-full h-full bg-linear-to-br from-green-50 to-teal-50 rounded-lg overflow-hidden shadow-lg cursor-pointer hover:shadow-xl transition-shadow border-2 border-green-200"
+        onDoubleClick={handleExternalTabOpen}
       >
         {/* Icon */}
         <div className="flex flex-col items-center justify-center h-full p-4">

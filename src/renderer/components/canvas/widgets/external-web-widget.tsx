@@ -1,8 +1,7 @@
-import { useCallback } from 'react'
 import type { DrawingObject, ExternalWebObject } from 'lib/types/canvas'
 import { WidgetWrapper } from './widget-wrapper'
 import { Globe } from 'lucide-react'
-import { logger } from 'shared/logger'
+import { useWidgetCapabilities } from 'renderer/hooks'
 
 interface ExternalWebWidgetProps {
   object: ExternalWebObject
@@ -18,7 +17,7 @@ interface ExternalWebWidgetProps {
 
 /**
  * ExternalWebWidget - Icon/Thumbnail for external website
- * 
+ *
  * Double-click to open the website in a split view (50%)
  * Ctrl+Double-click to open in a full tab
  */
@@ -33,40 +32,12 @@ export function ExternalWebWidget({
   onContextMenu,
   onStartDrag,
 }: ExternalWebWidgetProps) {
-  
-  const handleDoubleClick = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    
-    if (!tabId) {
-      logger.error('❌ Cannot open external web: no parent tabId available')
-      return
-    }
-    
-    // Reload the object from database to get latest data
-    const objects = await window.App.file.getObjects(tabId)
-    const freshObject = objects.find((obj: any) => obj.id === object.id)
-    const url = freshObject?.object_data?.url
-    const name = freshObject?.object_data?.name
-    
-    if (!url) {
-      logger.error('❌ No URL found in object data')
-      return
-    }
-    
-    const splitView = !e.ctrlKey // Regular double-click = split (true), Ctrl+Double-click = full tab (false)
-    
-    try {
-      await window.App.externalWeb.open({
-        parentTabId: tabId,
-        objectId: object.id,
-        title: name || new URL(url).hostname,
-        url: url,
-        splitView,
-      })
-    } catch (error) {
-      logger.error('Failed to open external web tab:', error)
-    }
-  }, [object.id, object.object_data, tabId])
+  // Use capability system for external tab behavior
+  const { handleExternalTabOpen } = useWidgetCapabilities(
+    object.type,
+    object,
+    tabId
+  )
 
   // Extract hostname for display
   const displayUrl = (() => {
@@ -93,7 +64,7 @@ export function ExternalWebWidget({
     >
       <div
         className="relative w-full h-full bg-linear-to-br from-blue-50 to-cyan-50 rounded-lg overflow-hidden shadow-lg cursor-pointer hover:shadow-xl transition-shadow border-2 border-blue-200"
-        onDoubleClick={handleDoubleClick}
+        onDoubleClick={handleExternalTabOpen}
       >
         {/* Icon */}
         <div className="flex flex-col items-center justify-center h-full p-4">
