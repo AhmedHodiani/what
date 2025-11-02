@@ -36,7 +36,7 @@ export function SpreadsheetWidget({
   const { handleExternalTabOpen } = useWidgetCapabilities(
     object.type,
     object,
-    tabId
+    tabId || undefined
   )
 
   return (

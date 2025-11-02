@@ -35,6 +35,22 @@ export function registerAllWidgets(): void {
   widgetRegistry.register('image', ImageWidget, {
     displayName: 'Image',
     description: 'Display images with resize, crop, and transform capabilities',
+    capabilities: {
+      externalTab: {
+        enabled: true,
+        componentName: 'image',
+        async getTabConfig(object, tabId) {
+          const imageObject = object as { id: string; object_data: { assetId: string } }
+          return {
+            title: 'Image Viewer',
+            objectId: imageObject.id,
+            parentTabId: tabId,
+            assetId: imageObject.object_data.assetId,
+          }
+        },
+        tabTitle: () => 'Image',
+      },
+    },
   })
 
   // Sticky note widget

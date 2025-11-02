@@ -61,6 +61,7 @@ export function CanvasObject({
         onStartDrag={onStartDrag}
         onUpdate={onUpdate}
         zoom={zoom}
+        tabId={tabId}
       />
     )
   }

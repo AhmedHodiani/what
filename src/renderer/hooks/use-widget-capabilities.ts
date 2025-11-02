@@ -23,7 +23,7 @@ import { logger } from 'shared/logger'
 export function useWidgetCapabilities(
   widgetType: DrawingObjectType,
   object: DrawingObject,
-  tabId: string | null
+  tabId?: string | null
 ) {
   const capabilities = widgetRegistry.getCapabilities(widgetType)
 

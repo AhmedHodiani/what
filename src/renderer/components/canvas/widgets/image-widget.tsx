@@ -1,5 +1,6 @@
 import type { ImageObject, DrawingObject } from 'lib/types/canvas'
 import { WidgetWrapper } from './widget-wrapper'
+import { useWidgetCapabilities } from 'renderer/hooks'
 
 interface ImageWidgetProps {
   object: ImageObject & { _imageUrl?: string }
@@ -10,18 +11,27 @@ interface ImageWidgetProps {
   onContextMenu: (event: React.MouseEvent, id: string) => void
   onStartDrag: (e: React.MouseEvent, id: string) => void
   getImageUrl: (assetId: string) => string
+  tabId?: string | null // Parent canvas tab ID for opening external editor
 }
 
 /**
  * ImageWidget - Simplified using WidgetWrapper
- * Now only 20 lines instead of 200! 🎉
+ * Now with external-tab capability for full-screen viewing!
  */
 export function ImageWidget({
   object: image,
   getImageUrl,
+  tabId,
   ...wrapperProps
 }: ImageWidgetProps) {
   const imageUrl = getImageUrl(image.object_data.assetId)
+  
+  // Get external-tab capability (for double-click to open full viewer)
+  const { handleExternalTabOpen } = useWidgetCapabilities(
+    'image',
+    image,
+    tabId || undefined
+  )
 
   return (
     <WidgetWrapper
@@ -32,10 +42,11 @@ export function ImageWidget({
       minWidth={100}
     >
       <div
-        className="w-full h-full bg-cover bg-center bg-no-repeat rounded"
+        className="w-full h-full bg-cover bg-center bg-no-repeat rounded cursor-pointer"
         style={{
           backgroundImage: imageUrl ? `url(${imageUrl})` : 'none',
         }}
+        onDoubleClick={handleExternalTabOpen}
       />
     </WidgetWrapper>
   )

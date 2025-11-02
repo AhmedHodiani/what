@@ -337,7 +337,7 @@ export function MainScreenWithTabs() {
         const iconMap: Record<string, string> = {
           spreadsheet: '📊',
           'external-web': '🌐',
-          image: '�️',
+          image: '', // No icon for image viewer
         }
         const icon = iconMap[tab.type] || '📄'
 
@@ -357,7 +357,7 @@ export function MainScreenWithTabs() {
               Actions.addNode(
                 {
                   type: 'tab',
-                  name: `${icon} ${tab.fileName}`,
+                  name: `${icon} ${tab.fileName}`.trim(),
                   component: tab.type,
                   id: tab.id,
                   config: {
@@ -378,7 +378,7 @@ export function MainScreenWithTabs() {
               Actions.addNode(
                 {
                   type: 'tab',
-                  name: `${icon} ${tab.fileName}`,
+                  name: `${icon} ${tab.fileName}`.trim(),
                   component: tab.type,
                   id: tab.id,
                   config: {
@@ -419,7 +419,7 @@ export function MainScreenWithTabs() {
             Actions.addNode(
               {
                 type: 'tab',
-                name: `${icon} ${tab.fileName}`,
+                name: `${icon} ${tab.fileName}`.trim(),
                 component: tab.type,
                 id: tab.id,
                 config: {
