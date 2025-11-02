@@ -744,70 +744,20 @@ export function MainScreenWithTabs() {
         })),
       })
 
-      // If closing a canvas tab (.what file), also close all its spreadsheet and external web tabs
+      // If closing a canvas tab (.what file), close all its child tabs (spreadsheet, external-web, etc.)
       if (closingTab?.type === 'canvas') {
-        const spreadsheetTabsToClose = tabs.filter(
-          t => t.type === 'spreadsheet' && t.parentTabId === tabId
-        )
-
-        const externalWebTabsToClose = tabs.filter(
-          t => t.type === 'external-web' && t.parentTabId === tabId
-        )
-
-        logger.debug('Found tabs to close:', {
-          spreadsheetCount: spreadsheetTabsToClose.length,
-          spreadsheetTabs: spreadsheetTabsToClose.map(t => t.id),
-          externalWebCount: externalWebTabsToClose.length,
-          externalWebTabs: externalWebTabsToClose.map(t => t.id),
+        logger.debug('🗑️ Closing parent canvas tab, checking for child tabs...', {
+          parentTabId: tabId,
+          allTabs: tabs.map(t => ({ id: t.id, type: t.type, parentTabId: (t as any).parentTabId })),
         })
-
-        if (spreadsheetTabsToClose.length > 0) {
-          logger.debug('Closing spreadsheet tabs for parent file:', {
-            parentTabId: tabId,
-            spreadsheetCount: spreadsheetTabsToClose.length,
-          })
-
-          // Close each spreadsheet tab in FlexLayout
-          for (const spreadsheetTab of spreadsheetTabsToClose) {
-            const node = model.getNodeById(spreadsheetTab.id)
-            if (node) {
-              model.doAction(Actions.deleteTab(spreadsheetTab.id))
-            }
-          }
-        }
-
-        if (externalWebTabsToClose.length > 0) {
-          logger.debug('Closing external web tabs for parent file:', {
-            parentTabId: tabId,
-            externalWebCount: externalWebTabsToClose.length,
-          })
-
-          // Close each external web tab in FlexLayout
-          for (const externalWebTab of externalWebTabsToClose) {
-            const node = model.getNodeById(externalWebTab.id)
-            if (node) {
-              model.doAction(Actions.deleteTab(externalWebTab.id))
-            }
-          }
-        }
+        handleParentClose(tabId)
       }
 
       // Close the file
       window.App.file.close(tabId)
 
-      // Remove from state (also remove child tabs if this was a canvas tab)
-      if (closingTab?.type === 'canvas') {
-        setTabs(prevTabs =>
-          prevTabs.filter(
-            t =>
-              t.id !== tabId &&
-              !(t.type === 'spreadsheet' && t.parentTabId === tabId) &&
-              !(t.type === 'external-web' && t.parentTabId === tabId)
-          )
-        )
-      } else {
-        setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
-      }
+      // Remove from state
+      setTabs(prevTabs => prevTabs.filter(t => t.id !== tabId))
 
       // Clean up viewport cache and timeout
       viewportsRef.current.delete(tabId)

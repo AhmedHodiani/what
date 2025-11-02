@@ -28,6 +28,7 @@ function createDefaultWorkbook(name: string) {
 }
 
 interface SpreadsheetEditorProps {
+  tabId: string // FlexLayout tab ID (passed from factory)
   objectId: string
   parentTabId: string
   title: string
@@ -41,6 +42,7 @@ interface SpreadsheetEditorProps {
  * Data is stored as a JSON asset file in the .what archive
  */
 export function SpreadsheetEditor({
+  tabId,
   objectId,
   parentTabId,
   title,
@@ -425,7 +427,6 @@ export function SpreadsheetEditor({
 
   // Update tab name with dirty indicator and file size
   useEffect(() => {
-    const tabId = `spreadsheet-${parentTabId}-${objectId}`
     const formatSize = (bytes: number) => {
       if (bytes < 1024) return `${bytes}B`
       if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
@@ -440,7 +441,7 @@ export function SpreadsheetEditor({
     if (window.__updateTabName) {
       window.__updateTabName(tabId, newName)
     }
-  }, [isDirty, fileSize, title, objectId, parentTabId])
+  }, [isDirty, fileSize, title, tabId])
 
   return (
     <div className="w-full h-full bg-white overflow-hidden" style={{ position: 'relative', zIndex: 50 }}>
