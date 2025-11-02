@@ -33,8 +33,7 @@ export function FilePanel({ object }: FilePanelProps) {
     if (mimeType.startsWith('audio/')) return '🎵'
     if (mimeType.startsWith('text/')) return '📝'
     if (mimeType.includes('pdf')) return '📕'
-    if (mimeType.includes('zip') || mimeType.includes('compressed'))
-      return '📦'
+    if (mimeType.includes('zip') || mimeType.includes('compressed')) return '📦'
     if (
       mimeType.includes('word') ||
       mimeType.includes('document') ||
@@ -47,10 +46,7 @@ export function FilePanel({ object }: FilePanelProps) {
       mimeType.includes('spreadsheet')
     )
       return '📊'
-    if (
-      mimeType.includes('presentation') ||
-      mimeType.includes('powerpoint')
-    )
+    if (mimeType.includes('presentation') || mimeType.includes('powerpoint'))
       return '📽️'
     if (mimeType.includes('json') || mimeType.includes('javascript'))
       return '📜'
@@ -69,7 +65,7 @@ export function FilePanel({ object }: FilePanelProps) {
 
       // Extract base64 data from data URL
       const base64Data = dataUrl.split(',')[1]
-      
+
       // Convert base64 to binary
       const binaryString = atob(base64Data)
       const bytes = new Uint8Array(binaryString.length)

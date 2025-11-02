@@ -7,10 +7,10 @@ import parse from 'html-react-parser'
 
 /**
  * useMarkdown - Hook for rendering markdown text to React elements
- * 
+ *
  * Initializes markdown-it with plugins and provides a render function
  * that safely converts markdown strings to React elements
- * 
+ *
  * Features:
  * - Bold, italic, strikethrough, highlighting
  * - Task lists (GitHub-style checkboxes)
@@ -19,11 +19,11 @@ import parse from 'html-react-parser'
  * - HTML disabled for security
  * - Line breaks enabled
  * - Auto-linking URLs
- * 
+ *
  * @example
  * ```tsx
  * const { renderMarkdown } = useMarkdown()
- * 
+ *
  * return (
  *   <div>
  *     {renderMarkdown('**Bold** and *italic* text')}
@@ -65,7 +65,7 @@ export function useMarkdown() {
     try {
       // Render markdown to HTML
       const html = md.render(text)
-      
+
       // Parse HTML to React elements (safe, no dangerouslySetInnerHTML)
       return parse(html)
     } catch (error) {

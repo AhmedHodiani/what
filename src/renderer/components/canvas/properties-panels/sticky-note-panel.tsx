@@ -25,7 +25,7 @@ const PAPER_COLORS = [
   { name: 'Charcoal', value: '#36454f' },
   { name: 'Slate', value: '#2f4f4f' },
   { name: 'NoColor', value: '#00000000' },
-];
+]
 
 const FONT_COLORS = [
   // Light theme colors

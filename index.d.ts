@@ -69,25 +69,18 @@ declare global {
         setActive: (tabId: string) => Promise<boolean>
         getActiveId: () => Promise<string | null>
       }
-      spreadsheet: {
+      externalTab: {
         open: (params: {
+          widgetType: string
+          componentName: string
           parentTabId: string
           objectId: string
           title: string
-          assetId?: string
           splitView?: boolean
+          icon?: string
+          config?: Record<string, any>
         }) => Promise<string>
-        onTabOpen: (callback: (tab: any) => void) => () => void
-      }
-      externalWeb: {
-        open: (params: {
-          parentTabId: string
-          objectId: string
-          title: string
-          url: string
-          splitView?: boolean
-        }) => Promise<string>
-        onTabOpen: (callback: (tab: any) => void) => () => void
+        onTabOpened: (callback: (tab: any) => void) => () => void
       }
       shortcuts: {
         onShortcut: (callback: (action: string) => void) => () => void
@@ -123,12 +116,10 @@ declare global {
         ) => () => void
       }
     }
-    // Internal function to close spreadsheet tabs when widget is deleted
-    __closeSpreadsheetTabs?: (objectId: string, parentTabId: string) => void
-    // Internal function to close external web tabs when widget is deleted
-    __closeExternalWebTabs?: (objectId: string, parentTabId: string) => void
     // Internal function to update tab names dynamically
     __updateTabName?: (tabId: string, newName: string) => void
+    // Internal function to close external tabs when widget is deleted
+    __handleWidgetDelete?: (objectId: string, parentTabId: string) => void
   }
 }
 

@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react'
 import { logger } from 'shared/logger'
 
 interface ExternalWebEditorProps {
+  tabId: string // FlexLayout tab ID (passed from factory)
   objectId: string
   parentTabId: string
   title: string
@@ -15,6 +16,7 @@ interface ExternalWebEditorProps {
  * Displays the external URL in an embedded webview
  */
 export function ExternalWebEditor({
+  tabId: _tabId,
   objectId,
   parentTabId: _parentTabId,
   title,

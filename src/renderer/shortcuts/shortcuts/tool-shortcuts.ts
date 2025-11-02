@@ -93,7 +93,7 @@ export function registerToolShortcuts(
       description: 'YouTube video tool',
     })
   )
-  
+
   ids.push(
     registry.register({
       key: '6',
@@ -120,7 +120,6 @@ export function registerToolShortcuts(
       description: 'File tool',
     })
   )
-
 
   ids.push(
     registry.register({

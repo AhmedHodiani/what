@@ -14,6 +14,9 @@ import './globals.css'
 // Register system-wide shortcuts (Ctrl+S, Ctrl+Z, etc.)
 registerAllShortcuts()
 
+// Register tab editor components (must be before routes)
+import './screens/register-tab-editors'
+
 /**
  * App wrapper with shortcuts help panel
  */

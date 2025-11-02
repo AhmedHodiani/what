@@ -187,9 +187,9 @@ export function useCanvasObjects({
   // Delete an object
   const deleteObject = useCallback(
     async (id: string) => {
-      // Get the object before deleting to check if it's a spreadsheet
+      // Get the object before deleting to check its type
       const objectToDelete = objectsRef.current.find(obj => obj.id === id)
-      
+
       setObjects(prev => {
         const newObjects = prev.filter(obj => obj.id !== id)
         // CRITICAL: Update ref synchronously
@@ -197,14 +197,9 @@ export function useCanvasObjects({
         return newObjects
       })
 
-      // If it's a spreadsheet, close its tab
-      if (objectToDelete?.type === 'spreadsheet' && tabId && window.__closeSpreadsheetTabs) {
-        window.__closeSpreadsheetTabs(id, tabId)
-      }
-
-      // If it's an external web, close its tab
-      if (objectToDelete?.type === 'external-web' && tabId && window.__closeExternalWebTabs) {
-        window.__closeExternalWebTabs(id, tabId)
+      // If it's an external-tab widget (spreadsheet, external-web, etc.), close its tab
+      if (objectToDelete && tabId && window.__handleWidgetDelete) {
+        window.__handleWidgetDelete(id, tabId)
       }
 
       // Delete from database

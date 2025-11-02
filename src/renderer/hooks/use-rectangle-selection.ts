@@ -63,7 +63,10 @@ export function useRectangleSelection({
         e.preventDefault()
         e.stopPropagation()
         const point = screenToWorld(e.clientX, e.clientY)
-        logger.debug('Right-click on canvas - starting rectangle selection', point)
+        logger.debug(
+          'Right-click on canvas - starting rectangle selection',
+          point
+        )
         setIsRectangleSelecting(true)
         setRectangleStart(point)
         setRectangleEnd(point)

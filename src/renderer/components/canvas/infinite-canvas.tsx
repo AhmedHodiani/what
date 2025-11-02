@@ -42,7 +42,6 @@ import { ContextMenu } from './context-menu'
 import { ConfirmationDialog } from './confirmation-dialog'
 import { Toast, useToast } from '../ui/toast'
 
-
 interface InfiniteCanvasProps {
   initialViewport?: Viewport
   minZoom?: number
@@ -142,7 +141,15 @@ export function InfiniteCanvas({
         updateObject, // Pass the updateObject function so properties panels can trigger saves
       })
     }
-  }, [isActive, tabId, viewport, selectedObjectIds, objects, updateObject, updateActiveTab])
+  }, [
+    isActive,
+    tabId,
+    viewport,
+    selectedObjectIds,
+    objects,
+    updateObject,
+    updateActiveTab,
+  ])
 
   // Convert screen coordinates to world coordinates
   const screenToWorld = useCallback(
@@ -453,11 +460,20 @@ export function InfiniteCanvas({
           case 'sticky-note': {
             // Random color from palette (excluding transparent)
             const colors = [
-              '#fffacd', '#fddde6', '#d0e7f9', '#d8f4d8',
-              '#ffe5b4', '#e8d5f9', '#d0fff0', '#ffcccb',
-              '#f3e6ff', '#e0f7ff', '#fff8dc'
+              '#fffacd',
+              '#fddde6',
+              '#d0e7f9',
+              '#d8f4d8',
+              '#ffe5b4',
+              '#e8d5f9',
+              '#d0fff0',
+              '#ffcccb',
+              '#f3e6ff',
+              '#e0f7ff',
+              '#fff8dc',
             ]
-            const randomColor = colors[Math.floor(Math.random() * colors.length)]
+            const randomColor =
+              colors[Math.floor(Math.random() * colors.length)]
 
             const stickyNote: StickyNoteObject = {
               id: generateId(),
@@ -732,9 +748,9 @@ export function InfiniteCanvas({
   return (
     <div
       className="absolute inset-0 overflow-hidden bg-[#181819] select-none"
-      onMouseDown={handleMouseDown}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onMouseDown={handleMouseDown}
       ref={containerRef}
       style={{
         cursor:
@@ -831,11 +847,11 @@ export function InfiniteCanvas({
                 <CanvasObject
                   isSelected={selectedObjectIds.includes(obj.id)}
                   object={obj}
-                  tabId={tabId}
                   onContextMenu={handleContextMenu}
                   onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}
                   onUpdate={handleUpdateObject}
+                  tabId={tabId}
                   zoom={viewport.zoom}
                 />
               </ErrorBoundary>
@@ -860,11 +876,11 @@ export function InfiniteCanvas({
                   currentTool={currentTool}
                   isSelected={selectedObjectIds.includes(obj.id)}
                   object={obj}
-                  tabId={tabId}
                   onContextMenu={handleContextMenu}
                   onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}
                   onUpdate={handleUpdateObject}
+                  tabId={tabId}
                   zoom={viewport.zoom}
                 />
               </foreignObject>
@@ -875,20 +891,20 @@ export function InfiniteCanvas({
         {/* Freehand/Arrow drawing preview */}
         {isFreehandDrawing && freehandPath.length > 0 && (
           <FreehandPreview
+            opacity={brushSettings.opacity}
             path={freehandPath}
             strokeColor={brushSettings.strokeColor}
             strokeWidth={brushSettings.strokeWidth}
-            opacity={brushSettings.opacity}
           />
         )}
 
         {/* Arrow drawing preview (with arrowhead) */}
         {isArrowDrawing && arrowPath.length > 0 && (
           <ArrowPreview
+            opacity={brushSettings.opacity}
             path={arrowPath}
             strokeColor={brushSettings.strokeColor}
             strokeWidth={brushSettings.strokeWidth}
-            opacity={brushSettings.opacity}
           />
         )}
 

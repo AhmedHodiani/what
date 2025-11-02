@@ -124,35 +124,22 @@ const API = {
     getActiveId: () => ipcRenderer.invoke('tabs-get-active-id'),
   },
 
-  // Spreadsheet tab management
-  spreadsheet: {
+  // Unified External Tab API (for capability system)
+  externalTab: {
     open: (params: {
+      widgetType: string
+      componentName: string
       parentTabId: string
       objectId: string
       title: string
-      assetId?: string
       splitView?: boolean
-    }) => ipcRenderer.invoke('spreadsheet-open', params),
-    onTabOpen: (callback: (tab: any) => void) => {
+      icon?: string
+      config?: Record<string, any>
+    }) => ipcRenderer.invoke('external-tab-open', params),
+    onTabOpened: (callback: (tab: any) => void) => {
       const listener = (_event: any, tab: any) => callback(tab)
-      ipcRenderer.on('spreadsheet-tab-open', listener)
-      return () => ipcRenderer.removeListener('spreadsheet-tab-open', listener)
-    },
-  },
-
-  // External Web tab management
-  externalWeb: {
-    open: (params: {
-      parentTabId: string
-      objectId: string
-      title: string
-      url: string
-      splitView?: boolean
-    }) => ipcRenderer.invoke('external-web-open', params),
-    onTabOpen: (callback: (tab: any) => void) => {
-      const listener = (_event: any, tab: any) => callback(tab)
-      ipcRenderer.on('external-web-tab-open', listener)
-      return () => ipcRenderer.removeListener('external-web-tab-open', listener)
+      ipcRenderer.on('external-tab-opened', listener)
+      return () => ipcRenderer.removeListener('external-tab-opened', listener)
     },
   },
 

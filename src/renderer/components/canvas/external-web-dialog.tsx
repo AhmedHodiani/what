@@ -38,7 +38,7 @@ export function ExternalWebDialog({
   const handleConfirm = () => {
     const trimmedName = name.trim()
     const trimmedUrl = url.trim()
-    
+
     if (!trimmedName) {
       setError('Please enter a website name')
       return
@@ -50,7 +50,10 @@ export function ExternalWebDialog({
     }
 
     // Validate URL format
-    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+    if (
+      !trimmedUrl.startsWith('http://') &&
+      !trimmedUrl.startsWith('https://')
+    ) {
       setError('URL must start with http:// or https://')
       return
     }

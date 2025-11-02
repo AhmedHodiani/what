@@ -219,67 +219,66 @@ export async function MainWindow() {
     return multiFileManager.getActiveTabId()
   })
 
-  // Spreadsheet tab management
-  ipcMain.removeHandler('spreadsheet-open')
-  ipcMain.handle('spreadsheet-open', async (_event, { parentTabId, objectId, title, assetId, splitView = true }: { 
-    parentTabId: string
-    objectId: string
-    title: string
-    assetId?: string
-    splitView?: boolean
-  }) => {
-    logger.debug('📊 Opening spreadsheet tab:', { parentTabId, objectId, title, assetId, splitView })
-    
-    // Generate unique tab ID for spreadsheet
-    const spreadsheetTabId = `spreadsheet-${parentTabId}-${objectId}`
-    
-    // Send event to renderer to create the tab
-    window.webContents.send('spreadsheet-tab-open', {
-      id: spreadsheetTabId,
-      type: 'spreadsheet',
-      parentTabId,
-      objectId,
-      fileName: title, // Use fileName for tab display name (matches BaseTab interface)
-      title, // Keep title for backward compatibility
-      assetId,
-      isModified: false,
-      isActive: true,
-      splitView,
-    })
-    
-    return spreadsheetTabId
-  })
+  // Unified External Tab API (for capability system)
+  ipcMain.removeHandler('external-tab-open')
+  ipcMain.handle(
+    'external-tab-open',
+    async (
+      _event,
+      params: {
+        widgetType: string
+        componentName: string
+        parentTabId: string
+        objectId: string
+        title: string
+        splitView?: boolean
+        icon?: string
+        config?: Record<string, any>
+      }
+    ) => {
+      const {
+        widgetType,
+        componentName,
+        parentTabId,
+        objectId,
+        title,
+        splitView = true,
+        icon,
+        config,
+      } = params
 
-  // External Web tab management
-  ipcMain.removeHandler('external-web-open')
-  ipcMain.handle('external-web-open', async (_event, { parentTabId, objectId, title, url, splitView = true }: { 
-    parentTabId: string
-    objectId: string
-    title: string
-    url: string
-    splitView?: boolean
-  }) => {
-    logger.debug('🌐 Opening external web tab:', { parentTabId, objectId, title, url, splitView })
-    
-    // Generate unique tab ID for external web
-    const externalWebTabId = `external-web-${parentTabId}-${objectId}`
-    
-    // Send event to renderer to create the tab
-    window.webContents.send('external-web-tab-open', {
-      id: externalWebTabId,
-      type: 'external-web',
-      parentTabId,
-      objectId,
-      fileName: title, // Use fileName for tab display name (matches BaseTab interface)
-      title, // Keep title for backward compatibility
-      url,
-      isModified: false,
-      isActive: true,
-      splitView,
-    })
-    
-    return externalWebTabId
-  })
+      logger.debug('🎯 Opening external tab (unified API):', {
+        widgetType,
+        componentName,
+        parentTabId,
+        objectId,
+        title,
+        splitView,
+      })
+
+      // Generate unique tab ID
+      const tabId = `${widgetType}-tab-${parentTabId}-${objectId}`
+
+      // Send event to renderer
+      window.webContents.send('external-tab-opened', {
+        id: tabId,
+        type: widgetType, // Use widgetType as the 'type' field for FlexLayout
+        widgetType,
+        componentName,
+        parentTabId,
+        objectId,
+        fileName: title,
+        title,
+        icon: icon || '📄',
+        isModified: false,
+        isActive: true,
+        splitView,
+        ...config, // Spread config to include assetId, url, etc.
+      })
+
+      return tabId
+    }
+  )
 
   ipcMain.removeHandler('file-get-canvas')
   ipcMain.handle(

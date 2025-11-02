@@ -61,6 +61,7 @@ export function CanvasObject({
         onStartDrag={onStartDrag}
         onUpdate={onUpdate}
         zoom={zoom}
+        tabId={tabId}
       />
     )
   }
@@ -70,17 +71,17 @@ export function CanvasObject({
 
   if (!WidgetComponent) {
     return (
-      <div 
+      <div
         className="text-red-400 p-4 bg-red-900/20 rounded border border-red-600 cursor-pointer select-none"
-        onClick={(e) => {
+        onClick={e => {
           e.stopPropagation()
           onSelect(object.id)
         }}
-        onContextMenu={(e) => {
+        onContextMenu={e => {
           e.stopPropagation()
           onContextMenu(e, object.id)
         }}
-        onMouseDown={(e) => {
+        onMouseDown={e => {
           e.stopPropagation()
           onStartDrag(e, object.id)
         }}
@@ -106,11 +107,11 @@ export function CanvasObject({
       currentTool={currentTool}
       isSelected={isSelected}
       object={object}
-      tabId={tabId}
       onContextMenu={onContextMenu}
       onSelect={onSelect}
       onStartDrag={onStartDrag}
       onUpdate={onUpdate}
+      tabId={tabId}
       zoom={zoom}
     />
   )

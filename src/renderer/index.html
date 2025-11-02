@@ -8,7 +8,7 @@
 
       CSP configured for Electron app with local assets and images
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' *; script-src 'self' *; style-src 'self' 'unsafe-inline' *; img-src 'self' data: file: blob: *;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' *; script-src 'self' *; style-src 'self' 'unsafe-inline' *; img-src 'self' data: file: blob: *; object-src 'self' blob:; media-src 'self' data: blob:; frame-src 'self' blob:; connect-src 'self' blob: ws: wss: *;" />
   </head>
 
   <body>

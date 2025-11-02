@@ -38,8 +38,13 @@ interface GlobalPanelsLayoutProps {
  */
 export function GlobalPanelsLayout({ children }: GlobalPanelsLayoutProps) {
   const { currentTool, setTool } = useGlobalTool()
-  const { selectedObjectIds, objects, brushSettings, updateActiveTab, updateObject } =
-    useActiveTab()
+  const {
+    selectedObjectIds,
+    objects,
+    brushSettings,
+    updateActiveTab,
+    updateObject,
+  } = useActiveTab()
 
   // Register tool shortcuts using the centralized registry
   useEffect(() => {
