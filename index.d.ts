@@ -118,6 +118,8 @@ declare global {
     }
     // Internal function to update tab names dynamically
     __updateTabName?: (tabId: string, newName: string) => void
+    // Internal function to close external tabs when widget is deleted
+    __handleWidgetDelete?: (objectId: string, parentTabId: string) => void
   }
 }
 

@@ -725,6 +725,14 @@ export function MainScreenWithTabs() {
     }
   }, [updateTabName])
 
+  // Expose handleWidgetDelete globally for canvas to call when widgets are deleted
+  useEffect(() => {
+    window.__handleWidgetDelete = handleWidgetDelete
+    return () => {
+      delete window.__handleWidgetDelete
+    }
+  }, [handleWidgetDelete])
+
   // Handle tab close
   const onAction = (action: any) => {
     if (action.type === 'FlexLayout_DeleteTab') {
