@@ -338,6 +338,7 @@ export function MainScreenWithTabs() {
           spreadsheet: '📊',
           'external-web': '🌐',
           image: '', // No icon for image viewer
+          file: '', // No icon for file viewer
         }
         const icon = iconMap[tab.type] || '📄'
 

@@ -9,6 +9,7 @@ import { tabEditorRegistry } from './tab-editor-registry'
 import { SpreadsheetEditor } from './spreadsheet-editor'
 import { ExternalWebEditor } from './external-web-editor'
 import { ImageViewerEditor } from './image-viewer-editor'
+import { FileViewerEditor } from './file-viewer-editor'
 
 export function registerAllTabEditors(): void {
   // Register spreadsheet editor
@@ -24,6 +25,11 @@ export function registerAllTabEditors(): void {
   // Register image viewer editor
   tabEditorRegistry.register('image', ImageViewerEditor, {
     description: 'Full-screen image viewer with zoom controls',
+  })
+
+  // Register file viewer editor
+  tabEditorRegistry.register('file', FileViewerEditor, {
+    description: 'File viewer for videos, PDFs, and other documents',
   })
 
   // Future editors can be registered here:

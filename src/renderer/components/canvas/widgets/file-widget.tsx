@@ -1,12 +1,14 @@
 import type { FileObject, DrawingObject } from 'lib/types/canvas'
 import { WidgetWrapper } from './widget-wrapper'
 import { useCallback } from 'react'
+import { useWidgetCapabilities } from 'renderer/hooks'
 
 interface FileWidgetProps {
   object: FileObject
   isSelected: boolean
   zoom: number
   currentTool?: string
+  tabId?: string | null // Parent canvas tab ID for opening external editor
   onUpdate: (id: string, updates: Partial<DrawingObject>) => void
   onSelect: (id: string) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
@@ -19,7 +21,7 @@ interface FileWidgetProps {
  * Features:
  * - Shows file icon based on MIME type
  * - Displays filename below icon
- * - Click to download file
+ * - Double-click to open viewer (for videos, PDFs, audio)
  * - Supports all file types
  */
 export function FileWidget({
@@ -27,12 +29,20 @@ export function FileWidget({
   isSelected,
   zoom,
   currentTool,
+  tabId,
   onUpdate,
   onSelect,
   onContextMenu,
   onStartDrag,
 }: FileWidgetProps) {
   const { fileName, fileSize, mimeType, assetId } = object.object_data
+
+  // Get external-tab capability (for double-click to open viewer)
+  const { handleExternalTabOpen } = useWidgetCapabilities(
+    'file',
+    object,
+    tabId || undefined
+  )
 
   // Format file size for display
   const formatFileSize = (bytes: number): string => {
@@ -104,7 +114,8 @@ export function FileWidget({
     >
       <div
         className="flex flex-col items-center justify-center w-full h-full p-2 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg border-2 border-gray-700 hover:border-blue-500 transition-colors cursor-pointer group"
-        title={`Click to download ${fileName}`}
+        title={`Double-click to view ${fileName}`}
+        onDoubleClick={handleExternalTabOpen}
       >
         {/* File Icon */}
         <div

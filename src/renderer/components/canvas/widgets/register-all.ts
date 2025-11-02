@@ -93,6 +93,46 @@ export function registerAllWidgets(): void {
   widgetRegistry.register('file', FileWidget, {
     displayName: 'File',
     description: 'Generic file attachment with download capability',
+    capabilities: {
+      externalTab: {
+        enabled: true,
+        componentName: 'file',
+        async getTabConfig(object, tabId) {
+          const fileObject = object as {
+            id: string
+            object_data: {
+              assetId: string
+              fileName: string
+              mimeType: string
+              fileSize: number
+            }
+          }
+
+          const { assetId, fileName, mimeType } = fileObject.object_data
+
+          // Only open external tab for viewable file types
+          const isViewable =
+            mimeType.startsWith('video/') ||
+            mimeType.startsWith('audio/') ||
+            mimeType.startsWith('text/') ||
+            mimeType.includes('pdf')
+
+          if (!isViewable) {
+            return null // Will prevent tab from opening
+          }
+
+          return {
+            title: fileName,
+            objectId: fileObject.id,
+            parentTabId: tabId,
+            assetId,
+            fileName,
+            mimeType,
+          }
+        },
+        tabTitle: () => 'File',
+      },
+    },
   })
 
   // Spreadsheet widget
