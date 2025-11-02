@@ -3,6 +3,7 @@ import { logger } from 'shared/logger'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
+import { Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward } from 'lucide-react'
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
@@ -47,7 +48,17 @@ export function FileViewerEditor({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [isPanMode, setIsPanMode] = useState(false) // Space key held
   
+  // Video player state
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [volume, setVolume] = useState(1)
+  const [isMuted, setIsMuted] = useState(false)
+  const [showControls, setShowControls] = useState(true)
+  
   const pdfContainerRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const zoomRef = useRef(zoom)
   const panRef = useRef(pan)
 
@@ -157,6 +168,99 @@ export function FileViewerEditor({
     setPan({ x: 0, y: 0 })
   }
 
+  // Video controls
+  const togglePlayPause = () => {
+    const video = videoRef.current
+    if (!video) return
+
+    if (isPlaying) {
+      video.pause()
+    } else {
+      video.play()
+    }
+    setIsPlaying(!isPlaying)
+  }
+
+  const handleTimeUpdate = () => {
+    const video = videoRef.current
+    if (video) {
+      setCurrentTime(video.currentTime)
+    }
+  }
+
+  const handleLoadedMetadata = () => {
+    const video = videoRef.current
+    if (video) {
+      setDuration(video.duration)
+    }
+  }
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const video = videoRef.current
+    const time = Number.parseFloat(e.target.value)
+    if (video) {
+      video.currentTime = time
+      setCurrentTime(time)
+    }
+  }
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const video = videoRef.current
+    const newVolume = Number.parseFloat(e.target.value)
+    if (video) {
+      video.volume = newVolume
+      setVolume(newVolume)
+      setIsMuted(newVolume === 0)
+    }
+  }
+
+  const toggleMute = () => {
+    const video = videoRef.current
+    if (video) {
+      const newMuted = !isMuted
+      video.muted = newMuted
+      setIsMuted(newMuted)
+    }
+  }
+
+  const skip = (seconds: number) => {
+    const video = videoRef.current
+    if (video) {
+      const newTime = Math.max(0, Math.min(duration, video.currentTime + seconds))
+      video.currentTime = newTime
+      setCurrentTime(newTime)
+    }
+  }
+
+  const toggleFullscreen = () => {
+    const container = document.querySelector('.video-player-container')
+    if (!container) return
+
+    if (!document.fullscreenElement) {
+      container.requestFullscreen()
+    } else {
+      document.exitFullscreen()
+    }
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const handleMouseMoveVideo = () => {
+    setShowControls(true)
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current)
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false)
+      }
+    }, 3000)
+  }
+
   // Debug: Log all props
   useEffect(() => {
     logger.objects.debug('[FileViewer] Component mounted with props:', {
@@ -241,15 +345,127 @@ export function FileViewerEditor({
     // Video files
     if (mimeType.startsWith('video/')) {
       return (
-        <div className="flex items-center justify-center w-full h-full p-8 bg-black z-50">
+        <div 
+          className="video-player-container relative w-full h-full bg-black z-50"
+          onMouseMove={handleMouseMoveVideo}
+          onMouseEnter={() => setShowControls(true)}
+        >
           <video
+            ref={videoRef}
             src={fileUrl}
-            controls
-            className="max-w-full max-h-full"
-            style={{ maxHeight: '100%', maxWidth: '100%' }}
+            className="absolute inset-0 w-full h-full"
+            style={{ 
+              objectFit: 'contain',
+            }}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onClick={togglePlayPause}
           >
             Your browser does not support the video tag.
           </video>
+
+          {/* Custom Video Controls */}
+          <div 
+            className={`absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-black/60 to-transparent p-4 transition-opacity duration-300 ${
+              showControls ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {/* Progress Bar */}
+            <div className="mb-3" onClick={(e) => e.stopPropagation()}>
+              <input
+                type="range"
+                min="0"
+                max={duration || 0}
+                value={currentTime}
+                onChange={handleSeek}
+                className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(currentTime / duration) * 100}%, #4b5563 ${(currentTime / duration) * 100}%, #4b5563 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-300 mt-1">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+
+            {/* Control Buttons */}
+            <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+              {/* Play/Pause */}
+              <button
+                type="button"
+                onClick={togglePlayPause}
+                className="p-2 hover:bg-white/10 rounded transition-colors"
+              >
+                {isPlaying ? (
+                  <Pause className="w-5 h-5 text-white" fill="white" />
+                ) : (
+                  <Play className="w-5 h-5 text-white" fill="white" />
+                )}
+              </button>
+
+              {/* Skip Back */}
+              <button
+                type="button"
+                onClick={() => skip(-10)}
+                className="p-2 hover:bg-white/10 rounded transition-colors"
+                title="Skip back 10s"
+              >
+                <SkipBack className="w-4 h-4 text-white" />
+              </button>
+
+              {/* Skip Forward */}
+              <button
+                type="button"
+                onClick={() => skip(10)}
+                className="p-2 hover:bg-white/10 rounded transition-colors"
+                title="Skip forward 10s"
+              >
+                <SkipForward className="w-4 h-4 text-white" />
+              </button>
+
+              {/* Volume */}
+              <div className="flex items-center gap-2 ml-2">
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  className="p-2 hover:bg-white/10 rounded transition-colors"
+                >
+                  {isMuted || volume === 0 ? (
+                    <VolumeX className="w-4 h-4 text-white" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-white" />
+                  )}
+                </button>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={isMuted ? 0 : volume}
+                  onChange={handleVolumeChange}
+                  className="w-20 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${volume * 100}%, #4b5563 ${volume * 100}%, #4b5563 100%)`
+                  }}
+                />
+              </div>
+
+              {/* Spacer */}
+              <div className="flex-1" />
+
+              {/* Fullscreen */}
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                className="p-2 hover:bg-white/10 rounded transition-colors"
+              >
+                <Maximize className="w-4 h-4 text-white" />
+              </button>
+            </div>
+          </div>
         </div>
       )
     }
