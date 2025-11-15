@@ -37,6 +37,7 @@ import { ArrowPreview } from './arrow-preview'
 import { YouTubeUrlDialog } from './youtube-url-dialog'
 import { ShapePickerDialog } from './shape-picker-dialog'
 import { SpreadsheetNameDialog } from './spreadsheet-name-dialog'
+import { DeckNameDialog } from './deck-name-dialog'
 import { ExternalWebDialog } from './external-web-dialog'
 import { ContextMenu } from './context-menu'
 import { ConfirmationDialog } from './confirmation-dialog'
@@ -263,6 +264,11 @@ export function InfiniteCanvas({
     openExternalWebDialog,
     handleExternalWebConfirm,
     handleExternalWebCancel,
+    showDeckDialog,
+    deckDialogPosition,
+    openDeckDialog,
+    handleDeckConfirm,
+    handleDeckCancel,
     contextMenu,
     handleContextMenu,
     closeContextMenu,
@@ -612,6 +618,12 @@ export function InfiniteCanvas({
             break
           }
 
+          case 'deck': {
+            const worldPos = screenToWorld(e.clientX, e.clientY)
+            openDeckDialog(worldPos)
+            break
+          }
+
           case 'external-web': {
             const worldPos = screenToWorld(e.clientX, e.clientY)
             openExternalWebDialog(worldPos)
@@ -947,6 +959,14 @@ export function InfiniteCanvas({
         <SpreadsheetNameDialog
           onCancel={handleSpreadsheetCancel}
           onConfirm={handleSpreadsheetConfirm}
+        />
+      )}
+
+      {/* Deck name dialog */}
+      {showDeckDialog && (
+        <DeckNameDialog
+          onCancel={handleDeckCancel}
+          onConfirm={handleDeckConfirm}
         />
       )}
 

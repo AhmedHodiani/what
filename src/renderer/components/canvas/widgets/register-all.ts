@@ -25,6 +25,7 @@ import { EmojiWidget } from './emoji-widget'
 import { FileWidget } from './file-widget'
 import { SpreadsheetWidget } from './spreadsheet-widget'
 import { ExternalWebWidget } from './external-web-widget'
+import { DeckWidget } from './deck-widget'
 
 /**
  * Register all widgets with the registry
@@ -197,6 +198,34 @@ export function registerAllWidgets(): void {
           }
         },
         tabIcon: 'globe',
+      },
+    },
+  })
+
+  // Deck widget (flashcard system)
+  widgetRegistry.register('deck', DeckWidget, {
+    displayName: 'Deck',
+    description: 'Flashcard deck for spaced repetition learning',
+    capabilities: {
+      externalTab: {
+        enabled: true,
+        componentName: 'deck',
+        getTabConfig: async (object, tabId) => {
+          // Reload from database to get latest assetId
+          const objects = await window.App.file.getObjects(tabId)
+          const freshObject = objects.find((obj: any) => obj.id === object.id)
+          const assetId = freshObject?.object_data?.assetId
+
+          return {
+            type: 'deck',
+            objectId: object.id,
+            parentTabId: tabId,
+            title: (object.object_data as any).title || 'Deck',
+            assetId,
+          }
+        },
+        tabTitle: object => (object.object_data as any).title || 'Deck',
+        tabIcon: 'layers',
       },
     },
   })

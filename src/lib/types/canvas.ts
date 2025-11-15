@@ -30,6 +30,7 @@ export type DrawingObjectType =
   | 'file'
   | 'spreadsheet'
   | 'external-web'
+  | 'deck'
 
 // Freehand drawing (pen/pencil stroke)
 export interface FreehandObject {
@@ -238,6 +239,23 @@ export interface ExternalWebObject {
   updated: string
 }
 
+// Deck object (flashcard system for spaced repetition learning)
+export interface DeckObject {
+  id: string
+  type: 'deck'
+  x: number
+  y: number
+  width: number
+  height: number
+  z_index: number
+  object_data: {
+    assetId?: string // Reference to JSON file in assets/
+    title?: string // Deck title
+  }
+  created: string
+  updated: string
+}
+
 // Union type for all drawing objects
 export type DrawingObject =
   | FreehandObject
@@ -250,3 +268,4 @@ export type DrawingObject =
   | FileObject
   | SpreadsheetObject
   | ExternalWebObject
+  | DeckObject

@@ -10,6 +10,7 @@ import { SpreadsheetEditor } from './spreadsheet-editor'
 import { ExternalWebEditor } from './external-web-editor'
 import { ImageViewerEditor } from './image-viewer-editor'
 import { FileViewerEditor } from './file-viewer-editor'
+import { DeckEditor } from './deck-editor'
 
 export function registerAllTabEditors(): void {
   // Register spreadsheet editor
@@ -30,6 +31,11 @@ export function registerAllTabEditors(): void {
   // Register file viewer editor
   tabEditorRegistry.register('file', FileViewerEditor, {
     description: 'File viewer for videos, PDFs, and other documents',
+  })
+
+  // Register deck editor
+  tabEditorRegistry.register('deck', DeckEditor, {
+    description: 'Flashcard deck editor for spaced repetition learning',
   })
 
   // Future editors can be registered here:

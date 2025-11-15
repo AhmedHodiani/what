@@ -28,7 +28,7 @@ import {
 import { GlobalPanelsLayout } from 'renderer/components/layout/global-panels-layout'
 import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 import type { Viewport } from 'lib/types/canvas'
-import type { FileTab, SpreadsheetTab, ExternalWebTab } from 'shared/types/tabs'
+import type { FileTab, SpreadsheetTab, ExternalWebTab, DeckTab } from 'shared/types/tabs'
 
 // Default canvas ID (for now we only support one canvas per file)
 const DEFAULT_CANVAS_ID = 'canvas_default'

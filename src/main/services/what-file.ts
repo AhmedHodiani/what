@@ -430,9 +430,37 @@ export class WhatFileService {
       )
     `)
 
+    // Flashcards table (for spaced repetition decks)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS flashcards (
+        id TEXT PRIMARY KEY,
+        deck_id TEXT NOT NULL,
+        front TEXT NOT NULL,
+        back TEXT NOT NULL,
+        card_type INTEGER NOT NULL DEFAULT 0,
+        queue INTEGER NOT NULL DEFAULT 0,
+        due INTEGER NOT NULL DEFAULT 0,
+        interval REAL NOT NULL DEFAULT 0,
+        ease_factor REAL NOT NULL DEFAULT 2.5,
+        reps INTEGER NOT NULL DEFAULT 0,
+        lapses INTEGER NOT NULL DEFAULT 0,
+        remaining_steps INTEGER NOT NULL DEFAULT 0,
+        stability REAL,
+        difficulty REAL,
+        desired_retention REAL,
+        custom_data TEXT DEFAULT '',
+        created TEXT NOT NULL,
+        updated TEXT NOT NULL,
+        FOREIGN KEY (deck_id) REFERENCES objects(id) ON DELETE CASCADE
+      )
+    `)
+
     // Create indexes
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_objects_zindex ON objects(z_index);
+      CREATE INDEX IF NOT EXISTS idx_flashcards_deck ON flashcards(deck_id);
+      CREATE INDEX IF NOT EXISTS idx_flashcards_due ON flashcards(due);
+      CREATE INDEX IF NOT EXISTS idx_flashcards_queue ON flashcards(queue);
     `)
   }
 
@@ -444,11 +472,11 @@ export class WhatFileService {
 
     const tables = this.db
       .prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('metadata', 'objects', 'assets')"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('metadata', 'objects', 'assets', 'flashcards')"
       )
       .all()
 
-    if (tables.length < 3) {
+    if (tables.length < 4) {
       throw new Error('Invalid .what file: missing required tables')
     }
   }
