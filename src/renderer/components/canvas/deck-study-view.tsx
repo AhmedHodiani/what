@@ -89,38 +89,34 @@ export function StudyView({
             </div>
             <div className="grid grid-cols-4 gap-3">
               <button
-                className="py-4 px-3 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold transition-colors"
+                className="py-10 px-3 rounded-lg bg-red-600/20 hover:bg-red-500/20 text-white font-semibold transition-colors"
                 onClick={() => onAnswer(1)}
               >
-                <div className="text-2xl mb-1">❌</div>
-                <div className="text-xs">Again</div>
+                <div className="text-sm">Again</div>
                 <div className="text-xs opacity-70 mt-1">{intervals.again}</div>
               </button>
               
               <button
-                className="py-4 px-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold transition-colors"
+                className="py-10 px-3 rounded-lg bg-orange-600/20 hover:bg-orange-500/20 text-white font-semibold transition-colors"
                 onClick={() => onAnswer(2)}
               >
-                <div className="text-2xl mb-1">🤔</div>
-                <div className="text-xs">Hard</div>
+                <div className="text-sm">Hard</div>
                 <div className="text-xs opacity-70 mt-1">{intervals.hard}</div>
               </button>
               
               <button
-                className="py-4 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors"
+                className="py-10 px-3 rounded-lg bg-blue-600/20 hover:bg-blue-500/20 text-white font-semibold transition-colors"
                 onClick={() => onAnswer(3)}
               >
-                <div className="text-2xl mb-1">✓</div>
-                <div className="text-xs">Good</div>
+                <div className="text-sm">Good</div>
                 <div className="text-xs opacity-70 mt-1">{intervals.good}</div>
               </button>
               
               <button
-                className="py-4 px-3 rounded-lg bg-green-600 hover:bg-green-500 text-white font-semibold transition-colors"
+                className="py-10 px-3 rounded-lg bg-green-600/20 hover:bg-green-500/20 text-white font-semibold transition-colors"
                 onClick={() => onAnswer(4)}
               >
-                <div className="text-2xl mb-1">⭐</div>
-                <div className="text-xs">Easy</div>
+                <div className="text-sm">Easy</div>
                 <div className="text-xs opacity-70 mt-1">{intervals.easy}</div>
               </button>
             </div>
