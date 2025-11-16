@@ -1,11 +1,9 @@
 import { useEffect, useState, useRef } from 'react'
 import { logger } from 'shared/logger'
 import { BookOpen, Plus, Settings, Trash2, Edit3, GraduationCap, X } from 'lucide-react'
-import type { Deck, Card, DeckConfig } from 'shared/fsrs/types'
+import type { Deck, DeckConfig } from 'shared/fsrs/types'
 import { DeckSettingsDialog } from 'renderer/components/canvas/deck-settings-dialog'
-import { FsrsScheduler } from 'shared/fsrs/scheduler'
-import { formatInterval } from 'shared/fsrs/cardUtils'
-import { CardQueueBuilder } from 'shared/fsrs/queue'
+import { useStudySession } from 'renderer/hooks/use-study-session'
 
 interface DeckEditorProps {
   tabId: string // FlexLayout tab ID (passed from factory)
@@ -15,15 +13,7 @@ interface DeckEditorProps {
   assetId?: string // Ignored - kept for compatibility with external tab interface
 }
 
-type View = 'overview' | 'cards' | 'study' | 'add-card'
-
-interface DeckStats {
-  total: number
-  new: number
-  learning: number
-  review: number
-  due: number
-}
+type View = 'overview' | 'cards' | 'study' | 'add-card' | 'study-summary'
 
 /**
  * DeckEditor - Full-screen deck editor in a dedicated tab
@@ -45,13 +35,6 @@ export function DeckEditor({
   const [view, setView] = useState<View>('overview')
   const [isDirty, setIsDirty] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [stats, setStats] = useState<DeckStats>({ total: 0, new: 0, learning: 0, review: 0, due: 0 })
-  
-  // Study session state
-  const [studyQueue, setStudyQueue] = useState<Card[]>([])
-  const [currentCardIndex, setCurrentCardIndex] = useState(0)
-  const [showAnswer, setShowAnswer] = useState(false)
-  const [reviewedCount, setReviewedCount] = useState(0)
   
   // Add card form state
   const [newCardFront, setNewCardFront] = useState('')
@@ -59,6 +42,18 @@ export function DeckEditor({
   const [addCardError, setAddCardError] = useState('')
   
   const frontInputRef = useRef<HTMLTextAreaElement>(null)
+  
+  // Study session hook
+  const studySession = useStudySession(deck, objectId, parentTabId)
+  
+  // Stats data - will be loaded from database
+  const [stats, setStats] = useState({
+    total: 0,
+    new: 0,
+    learning: 0,
+    review: 0,
+    due: 0,
+  })
 
   // Load deck from database
   useEffect(() => {
@@ -74,7 +69,16 @@ export function DeckEditor({
         }
         
         setDeck(loadedDeck)
-        updateStats(loadedDeck)
+        
+        // Load stats
+        const deckStats = await window.App.deck.getStats(objectId, parentTabId)
+        setStats({
+          total: deckStats.totalCards,
+          new: deckStats.newCards,
+          learning: deckStats.learningCards,
+          review: deckStats.reviewCards,
+          due: deckStats.dueCards,
+        })
       } catch (error) {
         logger.error('Failed to load deck:', error)
       }
@@ -82,24 +86,6 @@ export function DeckEditor({
     
     loadDeck()
   }, [objectId, parentTabId])
-
-  // Calculate deck statistics
-  const updateStats = (deck: Deck) => {
-    const queueBuilder = new CardQueueBuilder(deck)
-    const { mainQueue, intradayLearning } = queueBuilder.build()
-    
-    const newCards = mainQueue.filter(e => e.kind === 'new').length
-    const learningCards = mainQueue.filter(e => e.kind === 'day-learning').length + intradayLearning.length
-    const reviewCards = mainQueue.filter(e => e.kind === 'review').length
-    
-    setStats({
-      total: deck.cards.length,
-      new: newCards,
-      learning: learningCards,
-      review: reviewCards,
-      due: mainQueue.length + intradayLearning.length,
-    })
-  }
 
   // Update tab name with dirty indicator
   useEffect(() => {
@@ -153,7 +139,6 @@ export function DeckEditor({
     try {
       await window.App.deck.saveConfig(objectId, updatedDeck.config, parentTabId)
       setDeck(updatedDeck)
-      updateStats(updatedDeck)
       setIsDirty(false)
     } catch (error) {
       logger.error('Failed to save deck:', error)
@@ -206,18 +191,21 @@ export function DeckEditor({
       // Reload deck to get updated cards
       const updatedDeck = await window.App.deck.load(objectId, parentTabId)
       setDeck(updatedDeck)
-      updateStats(updatedDeck)
+      
+      // Reload stats
+      const deckStats = await window.App.deck.getStats(objectId, parentTabId)
+      setStats({
+        total: deckStats.totalCards,
+        new: deckStats.newCards,
+        learning: deckStats.learningCards,
+        review: deckStats.reviewCards,
+        due: deckStats.dueCards,
+      })
       
       // Clear form
       setNewCardFront('')
       setNewCardBack('')
       setAddCardError('')
-      
-      // Show success feedback
-      logger.debug('Card added successfully')
-      
-      // Switch to cards view to show the new card
-      setView('cards')
     } catch (error) {
       logger.error('Failed to add card:', error)
       setAddCardError('Failed to add card. Please try again.')
@@ -234,67 +222,30 @@ export function DeckEditor({
       // Reload deck
       const updatedDeck = await window.App.deck.load(objectId, parentTabId)
       setDeck(updatedDeck)
-      updateStats(updatedDeck)
+      
+      // Reload stats
+      const deckStats = await window.App.deck.getStats(objectId, parentTabId)
+      setStats({
+        total: deckStats.totalCards,
+        new: deckStats.newCards,
+        learning: deckStats.learningCards,
+        review: deckStats.reviewCards,
+        due: deckStats.dueCards,
+      })
     } catch (error) {
       logger.error('Failed to delete card:', error)
     }
   }
 
-  // Start study session
+  // Start study session (using FSRS logic)
   const handleStartStudy = () => {
-    if (!deck) return
-    
-    const queueBuilder = new CardQueueBuilder(deck)
-    const { mainQueue, intradayLearning } = queueBuilder.build()
-    
-    // Combine main queue and intraday learning cards
-    const allDueCards = [
-      ...intradayLearning.map(e => e.card),
-      ...mainQueue.map(e => e.card),
-    ]
-    
-    if (allDueCards.length === 0) {
-      logger.debug('No cards due for review')
+    if (!deck || deck.cards.length === 0) {
+      logger.debug('No cards to study')
       return
     }
     
-    setStudyQueue(allDueCards)
-    setCurrentCardIndex(0)
-    setShowAnswer(false)
-    setReviewedCount(0)
+    studySession.startSession()
     setView('study')
-  }
-
-  // Rate card during study
-  const handleRateCard = async (rating: 1 | 2 | 3 | 4) => {
-    if (!deck) return
-    
-    const currentCard = studyQueue[currentCardIndex]
-    if (!currentCard) return
-    
-    try {
-      const scheduler = new FsrsScheduler(deck.config)
-      const { card: updatedCard } = scheduler.scheduleCard(currentCard, rating)
-      
-      // Update card in database
-      await window.App.deck.updateCard({ ...currentCard, ...updatedCard }, parentTabId)
-      
-      // Move to next card
-      setReviewedCount(prev => prev + 1)
-      
-      if (currentCardIndex < studyQueue.length - 1) {
-        setCurrentCardIndex(prev => prev + 1)
-        setShowAnswer(false)
-      } else {
-        // Study session complete
-        const updatedDeck = await window.App.deck.load(objectId, parentTabId)
-        setDeck(updatedDeck)
-        updateStats(updatedDeck)
-        setView('overview')
-      }
-    } catch (error) {
-      logger.error('Failed to rate card:', error)
-    }
   }
 
   // Handle settings save
@@ -463,13 +414,13 @@ export function DeckEditor({
             </div>
 
             {/* Study Button */}
-            {stats.due > 0 ? (
+            {studySession.hasCardsToReview ? (
               <button
                 className="w-full py-4 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-lg transition-colors flex items-center justify-center gap-3"
                 onClick={handleStartStudy}
               >
                 <GraduationCap size={24} />
-                Study {stats.due} Due Card{stats.due !== 1 ? 's' : ''}
+                Study Due Cards
               </button>
             ) : (
               <div className="text-center py-12">
@@ -521,7 +472,7 @@ export function DeckEditor({
                         
                         {card.interval > 0 && (
                           <div className="text-xs text-gray-500 mt-3 flex items-center gap-4">
-                            <span>Interval: {formatInterval(card.interval)}</span>
+                            <span>Interval: {card.interval}d</span>
                             <span>Reviews: {card.reps}</span>
                             <span>Lapses: {card.lapses}</span>
                           </div>
@@ -620,20 +571,16 @@ export function DeckEditor({
           </div>
         )}
 
-        {/* Study Session View */}
-        {view === 'study' && studyQueue.length > 0 && (
+        {/* Study Session View (FSRS-powered) */}
+        {view === 'study' && deck && studySession.sessionActive && studySession.currentCard && (
           <div className="max-w-3xl mx-auto p-8 flex flex-col h-full">
             {/* Progress Header */}
             <div className="mb-8">
               <div className="flex items-center justify-between text-sm text-gray-400 mb-2">
-                <span>Card {currentCardIndex + 1} of {studyQueue.length}</span>
-                <span>Reviewed: {reviewedCount}</span>
-              </div>
-              <div className="w-full bg-gray-800 rounded-full h-2">
-                <div
-                  className="bg-purple-500 h-2 rounded-full transition-all"
-                  style={{ width: `${((currentCardIndex + 1) / studyQueue.length) * 100}%` }}
-                />
+                <span>
+                  Remaining: {studySession.remainingCounts.new} + {studySession.remainingCounts.learning} + {studySession.remainingCounts.review}
+                </span>
+                <span>Reviewed: {studySession.reviewedCount}</span>
               </div>
             </div>
 
@@ -644,16 +591,21 @@ export function DeckEditor({
                 <div className="bg-black/60 border-2 border-purple-400/30 rounded-2xl p-12 mb-8">
                   <div className="text-sm text-purple-400 mb-4 font-medium">QUESTION</div>
                   <div className="text-3xl text-white text-center leading-relaxed">
-                    {studyQueue[currentCardIndex].front}
+                    {studySession.currentCard.front}
                   </div>
+                  {studySession.currentCard.interval > 0 && (
+                    <div className="text-sm text-gray-500 mt-4 text-center">
+                      Last interval: {studySession.currentCard.interval}d
+                    </div>
+                  )}
                 </div>
 
                 {/* Answer (shown after reveal) */}
-                {showAnswer && (
+                {studySession.showingAnswer && (
                   <div className="bg-black/60 border-2 border-green-400/30 rounded-2xl p-12 mb-8 animate-in fade-in duration-300">
                     <div className="text-sm text-green-400 mb-4 font-medium">ANSWER</div>
                     <div className="text-2xl text-white text-center leading-relaxed">
-                      {studyQueue[currentCardIndex].back}
+                      {studySession.currentCard.back}
                     </div>
                   </div>
                 )}
@@ -662,10 +614,10 @@ export function DeckEditor({
 
             {/* Actions */}
             <div className="mt-8">
-              {!showAnswer ? (
+              {!studySession.showingAnswer ? (
                 <button
                   className="w-full py-4 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-lg transition-colors"
-                  onClick={() => setShowAnswer(true)}
+                  onClick={studySession.showAnswer}
                 >
                   Show Answer
                 </button>
@@ -677,46 +629,38 @@ export function DeckEditor({
                   <div className="grid grid-cols-4 gap-3">
                     <button
                       className="py-4 px-3 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold transition-colors"
-                      onClick={() => handleRateCard(1)}
+                      onClick={() => studySession.answerCard(1)}
                     >
                       <div className="text-2xl mb-1">❌</div>
                       <div className="text-xs">Again</div>
-                      <div className="text-xs opacity-70 mt-1">
-                        {new FsrsScheduler(deck.config).getButtonIntervals(studyQueue[currentCardIndex]).again}
-                      </div>
+                      <div className="text-xs opacity-70 mt-1">{studySession.intervals.again}</div>
                     </button>
                     
                     <button
                       className="py-4 px-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-semibold transition-colors"
-                      onClick={() => handleRateCard(2)}
+                      onClick={() => studySession.answerCard(2)}
                     >
                       <div className="text-2xl mb-1">🤔</div>
                       <div className="text-xs">Hard</div>
-                      <div className="text-xs opacity-70 mt-1">
-                        {new FsrsScheduler(deck.config).getButtonIntervals(studyQueue[currentCardIndex]).hard}
-                      </div>
-                    </button>
-                    
-                    <button
-                      className="py-4 px-3 rounded-lg bg-green-600 hover:bg-green-500 text-white font-semibold transition-colors"
-                      onClick={() => handleRateCard(3)}
-                    >
-                      <div className="text-2xl mb-1">✓</div>
-                      <div className="text-xs">Good</div>
-                      <div className="text-xs opacity-70 mt-1">
-                        {new FsrsScheduler(deck.config).getButtonIntervals(studyQueue[currentCardIndex]).good}
-                      </div>
+                      <div className="text-xs opacity-70 mt-1">{studySession.intervals.hard}</div>
                     </button>
                     
                     <button
                       className="py-4 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors"
-                      onClick={() => handleRateCard(4)}
+                      onClick={() => studySession.answerCard(3)}
+                    >
+                      <div className="text-2xl mb-1">✓</div>
+                      <div className="text-xs">Good</div>
+                      <div className="text-xs opacity-70 mt-1">{studySession.intervals.good}</div>
+                    </button>
+                    
+                    <button
+                      className="py-4 px-3 rounded-lg bg-green-600 hover:bg-green-500 text-white font-semibold transition-colors"
+                      onClick={() => studySession.answerCard(4)}
                     >
                       <div className="text-2xl mb-1">⭐</div>
                       <div className="text-xs">Easy</div>
-                      <div className="text-xs opacity-70 mt-1">
-                        {new FsrsScheduler(deck.config).getButtonIntervals(studyQueue[currentCardIndex]).easy}
-                      </div>
+                      <div className="text-xs opacity-70 mt-1">{studySession.intervals.easy}</div>
                     </button>
                   </div>
                 </div>
@@ -724,10 +668,36 @@ export function DeckEditor({
               
               <button
                 className="w-full mt-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 transition-colors flex items-center justify-center gap-2"
-                onClick={() => setView('overview')}
+                onClick={() => {
+                  studySession.endSession()
+                  setView('overview')
+                }}
               >
                 <X size={16} />
                 End Study Session
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Study Session Complete / No Cards */}
+        {view === 'study' && deck && !studySession.sessionActive && (
+          <div className="max-w-3xl mx-auto p-8 flex flex-col items-center justify-center h-full">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🎉</div>
+              <h3 className="text-2xl font-bold text-purple-400 mb-2">
+                {studySession.reviewedCount > 0 ? 'Great Job!' : 'No Cards Available'}
+              </h3>
+              <p className="text-gray-400 mb-6">
+                {studySession.reviewedCount > 0
+                  ? `You reviewed ${studySession.reviewedCount} card${studySession.reviewedCount === 1 ? '' : 's'}!`
+                  : 'No cards are due for review right now.'}
+              </p>
+              <button
+                className="px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium transition-colors"
+                onClick={() => setView('overview')}
+              >
+                Back to Overview
               </button>
             </div>
           </div>

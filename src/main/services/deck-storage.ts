@@ -321,20 +321,26 @@ export class DeckStorageService {
       )
       .get(deckObjectId, CardType.Review) as any
 
-    // Count due cards (more complex - depends on queue type)
+    // Count due cards using proper queue logic (matching CLI's getDueCards)
+    // - New cards in CardQueue.New (always due)
+    // - Learning cards (Learn, PreviewRepeat) with due <= now (timestamp)
+    // - Day learning cards with due <= now (timestamp)
+    // - Review cards with due <= daysElapsed (days since epoch)
     const dueCardsQuery = `
       SELECT COUNT(*) as count FROM cards 
       WHERE deck_id = ? 
+      AND queue NOT IN (${CardQueue.Suspended}, ${CardQueue.SchedBuried}, ${CardQueue.UserBuried})
       AND (
         (queue = ${CardQueue.New}) OR
         (queue = ${CardQueue.Learn} AND due <= ?) OR
-        (queue = ${CardQueue.Review} AND due <= ?) OR
-        (queue = ${CardQueue.DayLearn} AND due <= ?)
+        (queue = ${CardQueue.PreviewRepeat} AND due <= ?) OR
+        (queue = ${CardQueue.DayLearn} AND due <= ?) OR
+        (queue = ${CardQueue.Review} AND due <= ?)
       )
     `
     const dueCards = this.db
       .prepare(dueCardsQuery)
-      .get(deckObjectId, now, daysElapsed, now) as any
+      .get(deckObjectId, now, now, now, daysElapsed) as any
 
     return {
       totalCards: totalCards.count,
