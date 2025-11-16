@@ -423,6 +423,113 @@ export class MultiFileManager {
     this.markTabModified(tabId)
   }
 
+  // ============================================================================
+  // Deck Operations (FSRS Flashcards)
+  // ============================================================================
+
+  /**
+   * Create a new deck
+   */
+  createDeck(tabId: string, deckObjectId: string, name: string): any {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    const deck = service.getDeckStorage().createDeck(deckObjectId, name)
+    this.markTabModified(tabId)
+    return deck
+  }
+
+  /**
+   * Load a deck with all its cards
+   */
+  loadDeck(tabId: string, deckObjectId: string): any {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    return service.getDeckStorage().loadDeck(deckObjectId)
+  }
+
+  /**
+   * Save deck configuration
+   */
+  saveDeckConfig(tabId: string, deckObjectId: string, config: any): void {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    service.getDeckStorage().saveDeckConfig(deckObjectId, config)
+    this.markTabModified(tabId)
+  }
+
+  /**
+   * Add a new card to a deck
+   */
+  addCard(tabId: string, card: any, deckObjectId: string): void {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    service.getDeckStorage().addCard(card, deckObjectId)
+    this.markTabModified(tabId)
+  }
+
+  /**
+   * Update an existing card
+   */
+  updateCard(tabId: string, card: any): void {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    service.getDeckStorage().updateCard(card)
+    this.markTabModified(tabId)
+  }
+
+  /**
+   * Delete a card
+   */
+  deleteCard(tabId: string, cardId: number): void {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    service.getDeckStorage().deleteCard(cardId)
+    this.markTabModified(tabId)
+  }
+
+  /**
+   * Add a review log entry
+   */
+  addReviewLog(tabId: string, log: any): void {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    service.getDeckStorage().addReviewLog(log)
+    this.markTabModified(tabId)
+  }
+
+  /**
+   * Get deck statistics
+   */
+  getDeckStats(tabId: string, deckObjectId: string): any {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    return service.getDeckStorage().getDeckStats(deckObjectId)
+  }
+
   /**
    * Close all tabs
    */

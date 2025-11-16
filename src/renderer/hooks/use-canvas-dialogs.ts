@@ -5,6 +5,7 @@ import type {
   YouTubeVideoObject,
   ShapeObject,
   ExternalWebObject,
+  DeckObject,
   Point,
 } from 'lib/types/canvas'
 import type { ShapeType } from 'renderer/components/canvas/shape-picker-dialog'
@@ -19,6 +20,7 @@ interface UseCanvasDialogsOptions {
   selectObject: (id: string) => void
   clearSelection: () => void
   setTool: (tool: CanvasTool) => void
+  tabId: string // Needed for deck creation IPC call
 }
 
 export interface ContextMenuState {
@@ -44,6 +46,7 @@ export function useCanvasDialogs({
   selectObject,
   clearSelection,
   setTool,
+  tabId,
 }: UseCanvasDialogsOptions) {
   // YouTube dialog state
   const [showYouTubeDialog, setShowYouTubeDialog] = useState(false)
@@ -74,6 +77,13 @@ export function useCanvasDialogs({
       x: 0,
       y: 0,
     })
+
+  // Deck name dialog state
+  const [showDeckDialog, setShowDeckDialog] = useState(false)
+  const [deckDialogPosition, setDeckDialogPosition] = useState<Point>({
+    x: 0,
+    y: 0,
+  })
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -275,6 +285,58 @@ export function useCanvasDialogs({
     setTool('select')
   }, [setTool])
 
+  // ========== Deck Name Dialog Handlers ==========
+
+  /**
+   * Open deck name dialog at a specific position
+   */
+  const openDeckDialog = useCallback((position: Point) => {
+    setDeckDialogPosition(position)
+    setShowDeckDialog(true)
+  }, [])
+
+  /**
+   * Handle deck name confirmation - creates DeckObject
+   */
+  const handleDeckConfirm = useCallback(
+    async (name: string) => {
+      const newDeck: DeckObject = {
+        id: generateId(),
+        type: 'deck',
+        x: deckDialogPosition.x - 90, // Center horizontally (180px / 2)
+        y: deckDialogPosition.y - 60, // Center vertically (120px / 2)
+        width: 180,
+        height: 200,
+        z_index: objectsLength,
+        object_data: {
+          title: name,
+        },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      }
+      
+      // IMPORTANT: Add the deck object to canvas FIRST (creates objects table entry)
+      // This must happen before deck.create() because deck_config has FK to objects(id)
+      await addObject(newDeck)
+      
+      // Now create the deck in the database (deck_config entry)
+      await window.App.deck.create(newDeck.id, name, tabId)
+      
+      selectObject(newDeck.id)
+      setShowDeckDialog(false)
+      setTool('select')
+    },
+    [deckDialogPosition, objectsLength, addObject, selectObject, setTool, tabId]
+  )
+
+  /**
+   * Handle deck dialog cancellation
+   */
+  const handleDeckCancel = useCallback(() => {
+    setShowDeckDialog(false)
+    setTool('select')
+  }, [setTool])
+
   // ========== Context Menu Handlers ==========
 
   /**
@@ -395,6 +457,13 @@ export function useCanvasDialogs({
     openExternalWebDialog,
     handleExternalWebConfirm,
     handleExternalWebCancel,
+
+    // Deck name dialog
+    showDeckDialog,
+    deckDialogPosition,
+    openDeckDialog,
+    handleDeckConfirm,
+    handleDeckCancel,
 
     // Context menu
     contextMenu,

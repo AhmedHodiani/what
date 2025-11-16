@@ -17,6 +17,7 @@ import type {
   WhatFileObject,
 } from 'shared/types/what-file'
 import { logger } from 'shared/logger'
+import { DeckStorageService } from './deck-storage'
 
 const WHAT_FILE_VERSION = '1.0.0'
 
@@ -430,9 +431,72 @@ export class WhatFileService {
       )
     `)
 
+    // Deck metadata table (stores deck configuration)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS deck_config (
+        deck_id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        config TEXT NOT NULL,
+        mtime INTEGER NOT NULL,
+        usn INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (deck_id) REFERENCES objects(id) ON DELETE CASCADE
+      )
+    `)
+
+    // Cards table (FSRS flashcards - 1:1 with Anki)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS cards (
+        id INTEGER PRIMARY KEY,
+        note_id INTEGER NOT NULL,
+        deck_id TEXT NOT NULL,
+        front TEXT NOT NULL,
+        back TEXT NOT NULL,
+        ctype INTEGER NOT NULL DEFAULT 0,
+        queue INTEGER NOT NULL DEFAULT 0,
+        due INTEGER NOT NULL DEFAULT 0,
+        interval INTEGER NOT NULL DEFAULT 0,
+        ease_factor INTEGER NOT NULL DEFAULT 2500,
+        reps INTEGER NOT NULL DEFAULT 0,
+        lapses INTEGER NOT NULL DEFAULT 0,
+        remaining_steps INTEGER NOT NULL DEFAULT 0,
+        stability REAL,
+        difficulty REAL,
+        desired_retention REAL,
+        mtime INTEGER NOT NULL,
+        last_review INTEGER,
+        flags INTEGER NOT NULL DEFAULT 0,
+        custom_data TEXT DEFAULT '',
+        FOREIGN KEY (deck_id) REFERENCES objects(id) ON DELETE CASCADE
+      )
+    `)
+
+    // Review log table (tracks all card reviews)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS revlog (
+        id INTEGER PRIMARY KEY,
+        card_id INTEGER NOT NULL,
+        usn INTEGER NOT NULL DEFAULT 0,
+        button_chosen INTEGER NOT NULL,
+        interval INTEGER NOT NULL,
+        last_interval INTEGER NOT NULL,
+        ease_factor INTEGER NOT NULL,
+        time_taken INTEGER NOT NULL DEFAULT 0,
+        review_kind INTEGER NOT NULL,
+        stability REAL,
+        difficulty REAL,
+        FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
+      )
+    `)
+
     // Create indexes
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_objects_zindex ON objects(z_index);
+      CREATE INDEX IF NOT EXISTS idx_cards_deck ON cards(deck_id);
+      CREATE INDEX IF NOT EXISTS idx_cards_due ON cards(due);
+      CREATE INDEX IF NOT EXISTS idx_cards_queue ON cards(queue);
+      CREATE INDEX IF NOT EXISTS idx_cards_note ON cards(note_id);
+      CREATE INDEX IF NOT EXISTS idx_revlog_card ON revlog(card_id);
     `)
   }
 
@@ -444,12 +508,115 @@ export class WhatFileService {
 
     const tables = this.db
       .prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('metadata', 'objects', 'assets')"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('metadata', 'objects', 'assets', 'deck_config', 'cards', 'revlog')"
       )
-      .all()
+      .all() as { name: string }[]
 
-    if (tables.length < 3) {
-      throw new Error('Invalid .what file: missing required tables')
+    const tableNames = tables.map(t => t.name)
+    const requiredTables = ['metadata', 'objects', 'assets']
+    const deckTables = ['deck_config', 'cards', 'revlog']
+
+    // Check if we have core tables
+    const missingCoreTables = requiredTables.filter(
+      name => !tableNames.includes(name)
+    )
+
+    if (missingCoreTables.length > 0) {
+      throw new Error(
+        `Database missing required tables: ${missingCoreTables.join(', ')}`
+      )
+    }
+
+    // Check if we need to add deck tables (migration from old version)
+    const missingDeckTables = deckTables.filter(
+      name => !tableNames.includes(name)
+    )
+
+    if (missingDeckTables.length > 0) {
+      logger.objects.debug('Migrating database to add deck tables...')
+      this.migrateDeckTables()
+    }
+  }
+
+  /**
+   * Migrate database to add deck tables (for backward compatibility)
+   */
+  private migrateDeckTables(): void {
+    if (!this.db) throw new Error('No database connection')
+
+    try {
+      // Drop old flashcards table if it exists
+      this.db.exec('DROP TABLE IF EXISTS flashcards')
+
+      // Create new deck tables
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS deck_config (
+          deck_id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT DEFAULT '',
+          config TEXT NOT NULL,
+          mtime INTEGER NOT NULL,
+          usn INTEGER NOT NULL DEFAULT 0,
+          FOREIGN KEY (deck_id) REFERENCES objects(id) ON DELETE CASCADE
+        )
+      `)
+
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS cards (
+          id INTEGER PRIMARY KEY,
+          note_id INTEGER NOT NULL,
+          deck_id TEXT NOT NULL,
+          front TEXT NOT NULL,
+          back TEXT NOT NULL,
+          ctype INTEGER NOT NULL DEFAULT 0,
+          queue INTEGER NOT NULL DEFAULT 0,
+          due INTEGER NOT NULL DEFAULT 0,
+          interval INTEGER NOT NULL DEFAULT 0,
+          ease_factor INTEGER NOT NULL DEFAULT 2500,
+          reps INTEGER NOT NULL DEFAULT 0,
+          lapses INTEGER NOT NULL DEFAULT 0,
+          remaining_steps INTEGER NOT NULL DEFAULT 0,
+          stability REAL,
+          difficulty REAL,
+          desired_retention REAL,
+          mtime INTEGER NOT NULL,
+          last_review INTEGER,
+          flags INTEGER NOT NULL DEFAULT 0,
+          custom_data TEXT DEFAULT '',
+          FOREIGN KEY (deck_id) REFERENCES objects(id) ON DELETE CASCADE
+        )
+      `)
+
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS revlog (
+          id INTEGER PRIMARY KEY,
+          card_id INTEGER NOT NULL,
+          usn INTEGER NOT NULL DEFAULT 0,
+          button_chosen INTEGER NOT NULL,
+          interval INTEGER NOT NULL,
+          last_interval INTEGER NOT NULL,
+          ease_factor INTEGER NOT NULL,
+          time_taken INTEGER NOT NULL DEFAULT 0,
+          review_kind INTEGER NOT NULL,
+          stability REAL,
+          difficulty REAL,
+          FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
+        )
+      `)
+
+      // Create indexes
+      this.db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_cards_deck ON cards(deck_id);
+        CREATE INDEX IF NOT EXISTS idx_cards_due ON cards(due);
+        CREATE INDEX IF NOT EXISTS idx_cards_queue ON cards(queue);
+        CREATE INDEX IF NOT EXISTS idx_cards_note ON cards(note_id);
+        CREATE INDEX IF NOT EXISTS idx_revlog_card ON revlog(card_id);
+      `)
+
+      logger.objects.debug('Successfully migrated database to add deck tables')
+    } catch (error) {
+      logger.error('Failed to migrate deck tables:', error)
+      throw new Error('Database migration failed')
     }
   }
 
@@ -666,12 +833,64 @@ export class WhatFileService {
 
     // First, check if this object has any associated assets (e.g., image objects)
     const object = this.db
-      .prepare('SELECT object_data FROM objects WHERE id = ?')
-      .get(id) as { object_data: string } | undefined
+      .prepare('SELECT type, object_data FROM objects WHERE id = ?')
+      .get(id) as { type: string; object_data: string } | undefined
 
     if (object) {
       try {
         const objectData = JSON.parse(object.object_data)
+
+        // Special handling for deck objects - delete all cards and their assets
+        if (object.type === 'deck') {
+          logger.debug(`Deleting deck ${id} with all its cards and assets`)
+          
+          // Get all cards for this deck
+          const cards = this.db
+            .prepare('SELECT id, front, back FROM cards WHERE deck_id = ?')
+            .all(id) as Array<{ id: number; front: string; back: string }>
+          
+          // Extract asset IDs from card content using regex
+          const assetRegex = /asset:\/\/([a-zA-Z0-9_-]+)/g
+          const assetsToDelete = new Set<string>()
+          
+          for (const card of cards) {
+            // Check front for assets
+            let match: RegExpExecArray | null
+            while ((match = assetRegex.exec(card.front)) !== null) {
+              assetsToDelete.add(match[1])
+            }
+            // Check back for assets
+            assetRegex.lastIndex = 0 // Reset regex
+            while ((match = assetRegex.exec(card.back)) !== null) {
+              assetsToDelete.add(match[1])
+            }
+          }
+          
+          // Delete all found assets
+          for (const assetId of assetsToDelete) {
+            try {
+              logger.debug(`Deleting asset ${assetId} from deck ${id}`)
+              this.deleteAsset(assetId)
+            } catch (error) {
+              logger.error(`Failed to delete asset ${assetId}:`, error)
+            }
+          }
+          
+          // Delete all cards
+          this.db.prepare('DELETE FROM cards WHERE deck_id = ?').run(id)
+          
+          // Delete deck config
+          this.db.prepare('DELETE FROM deck_config WHERE deck_id = ?').run(id)
+          
+          // Delete all review logs
+          const cardIds = cards.map(c => c.id)
+          if (cardIds.length > 0) {
+            const placeholders = cardIds.map(() => '?').join(',')
+            this.db.prepare(`DELETE FROM review_log WHERE card_id IN (${placeholders})`).run(...cardIds)
+          }
+          
+          logger.debug(`Deleted deck ${id} with ${cards.length} cards and ${assetsToDelete.size} assets`)
+        }
 
         // If the object has an assetId (like image objects), delete the asset too
         if (objectData.assetId) {
@@ -863,6 +1082,20 @@ export class WhatFileService {
       this.db.prepare('DELETE FROM assets WHERE id = ?').run(assetId)
       this.markAsModified()
     }
+  }
+
+  // ============================================================================
+  // Deck Operations
+  // ============================================================================
+
+  /**
+   * Get deck storage service instance
+   */
+  getDeckStorage(): DeckStorageService {
+    if (!this.db) {
+      throw new Error('No database connection')
+    }
+    return new DeckStorageService(this.db)
   }
 
   /**

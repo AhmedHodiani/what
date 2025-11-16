@@ -64,6 +64,28 @@ declare global {
         saveObject: (object: any, tabId?: string) => Promise<boolean>
         deleteObject: (objectId: string, tabId?: string) => Promise<boolean>
       }
+      deck: {
+        create: (
+          deckObjectId: string,
+          name: string,
+          tabId?: string
+        ) => Promise<any>
+        load: (deckObjectId: string, tabId?: string) => Promise<any>
+        saveConfig: (
+          deckObjectId: string,
+          config: any,
+          tabId?: string
+        ) => Promise<boolean>
+        addCard: (
+          card: any,
+          deckObjectId: string,
+          tabId?: string
+        ) => Promise<boolean>
+        updateCard: (card: any, tabId?: string) => Promise<boolean>
+        deleteCard: (cardId: number, tabId?: string) => Promise<boolean>
+        addReviewLog: (log: any, tabId?: string) => Promise<boolean>
+        getStats: (deckObjectId: string, tabId?: string) => Promise<any>
+      }
       tabs: {
         getAll: () => Promise<any[]>
         setActive: (tabId: string) => Promise<boolean>

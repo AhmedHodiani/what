@@ -1,0 +1,1068 @@
+{
+    "contentLinks": [
+        {
+            "id": 37250531,
+            "additionalInformation": null,
+            "groupName": "0. Welcome to A1!",
+            "target": {
+                "id": 37250531,
+                "shortTitle": "Hallo!",
+                "learningTargetHeadline": "Greetings",
+                "grammarDescription": "Informal and formal",
+                "namedUrl": "/en/hallo/l-37250531",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37251054,
+            "additionalInformation": null,
+            "groupName": "0. Welcome to A1!",
+            "target": {
+                "id": 37251054,
+                "shortTitle": "Kein Problem!",
+                "learningTargetHeadline": "Basic words in German",
+                "grammarDescription": null,
+                "namedUrl": "/en/kein-problem/l-37251054",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37251033,
+            "additionalInformation": null,
+            "groupName": "0. Welcome to A1!",
+            "target": {
+                "id": 37251033,
+                "shortTitle": "Tschüss!",
+                "learningTargetHeadline": "Saying goodbye",
+                "grammarDescription": "Informal and formal",
+                "namedUrl": "/en/tschüss/l-37251033",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37256418,
+            "additionalInformation": null,
+            "groupName": "0. Welcome to A1!",
+            "target": {
+                "id": 37256418,
+                "shortTitle": "Von A bis Z",
+                "learningTargetHeadline": "Spelling",
+                "grammarDescription": null,
+                "namedUrl": "/en/von-a-bis-z/l-37256418",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37262882,
+            "additionalInformation": null,
+            "groupName": "1. Meeting people",
+            "target": {
+                "id": 37262882,
+                "shortTitle": "Ich heiße Emma",
+                "learningTargetHeadline": "Introducing yourself",
+                "grammarDescription": "Personal pronouns: ich, du",
+                "namedUrl": "/en/ich-heiße-emma/l-37262882",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37262923,
+            "additionalInformation": null,
+            "groupName": "1. Meeting people",
+            "target": {
+                "id": 37262923,
+                "shortTitle": "Das ist Nico",
+                "learningTargetHeadline": "Introducing others",
+                "grammarDescription": null,
+                "namedUrl": "/en/das-ist-nico/l-37262923",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37263828,
+            "additionalInformation": null,
+            "groupName": "1. Meeting people",
+            "target": {
+                "id": 37263828,
+                "shortTitle": "Woher kommst du?",
+                "learningTargetHeadline": "Name and background",
+                "grammarDescription": "Conjugation: present tense",
+                "namedUrl": "/en/woher-kommst-du/l-37263828",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37265543,
+            "additionalInformation": null,
+            "groupName": "1. Meeting people",
+            "target": {
+                "id": 37265543,
+                "shortTitle": "Nico hat ein Problem",
+                "learningTargetHeadline": "Finding out about other people",
+                "grammarDescription": "Personal pronouns: er, sie",
+                "namedUrl": "/en/nico-hat-ein-problem/l-37265543",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37265621,
+            "additionalInformation": null,
+            "groupName": "2. Contact details",
+            "target": {
+                "id": 37265621,
+                "shortTitle": "Zahlen von 1 bis 100",
+                "learningTargetHeadline": "Numbers from 1 to 100",
+                "grammarDescription": "Numbers from 11 to 19",
+                "namedUrl": "/en/zahlen-von-1-bis-100/l-37265621",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37269501,
+            "additionalInformation": null,
+            "groupName": "2. Contact details",
+            "target": {
+                "id": 37269501,
+                "shortTitle": "Wichtige Nummern",
+                "learningTargetHeadline": "Important numbers",
+                "grammarDescription": null,
+                "namedUrl": "/en/wichtige-nummern/l-37269501",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37269671,
+            "additionalInformation": null,
+            "groupName": "2. Contact details",
+            "target": {
+                "id": 37269671,
+                "shortTitle": "Adressen",
+                "learningTargetHeadline": "Providing personal information",
+                "grammarDescription": "W-questions",
+                "namedUrl": "/en/adressen/l-37269671",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37269629,
+            "additionalInformation": null,
+            "groupName": "2. Contact details",
+            "target": {
+                "id": 37269629,
+                "shortTitle": "Auf dem Amt",
+                "learningTargetHeadline": "Formal address",
+                "grammarDescription": "Numbers over 100",
+                "namedUrl": "/en/auf-dem-amt/l-37269629",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37278679,
+            "additionalInformation": null,
+            "groupName": "3. In company",
+            "target": {
+                "id": 37278679,
+                "shortTitle": "Was machst du hier?",
+                "learningTargetHeadline": "Social situations",
+                "grammarDescription": null,
+                "namedUrl": "/en/was-machst-du-hier/l-37278679",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37279418,
+            "additionalInformation": null,
+            "groupName": "3. In company",
+            "target": {
+                "id": 37279418,
+                "shortTitle": "Was trinkst du?",
+                "learningTargetHeadline": "Offering drinks",
+                "grammarDescription": "Nouns: gender",
+                "namedUrl": "/en/was-trinkst-du/l-37279418",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37279261,
+            "additionalInformation": null,
+            "groupName": "3. In company",
+            "target": {
+                "id": 37279261,
+                "shortTitle": "Eine Pizza bitte!",
+                "learningTargetHeadline": "Placing an order",
+                "grammarDescription": "Vowel change: e to i",
+                "namedUrl": "/en/eine-pizza-bitte/l-37279261",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37280348,
+            "additionalInformation": null,
+            "groupName": "3. In company",
+            "target": {
+                "id": 37280348,
+                "shortTitle": "Zahlen bitte! ",
+                "learningTargetHeadline": "Paying the bill",
+                "grammarDescription": null,
+                "namedUrl": "/en/zahlen-bitte/l-37280348",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37325550,
+            "additionalInformation": null,
+            "groupName": "4. Around the world",
+            "target": {
+                "id": 37325550,
+                "shortTitle": "Ich war schon in Berlin",
+                "learningTargetHeadline": "Sightseeing attractions",
+                "grammarDescription": "Simple past: sein",
+                "namedUrl": "/en/ich-war-schon-in-berlin/l-37325550",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37337877,
+            "additionalInformation": null,
+            "groupName": "4. Around the world",
+            "target": {
+                "id": 37337877,
+                "shortTitle": "Wo liegt das?",
+                "learningTargetHeadline": "Geographic info",
+                "grammarDescription": "Questions and statements",
+                "namedUrl": "/en/wo-liegt-das/l-37337877",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37328492,
+            "additionalInformation": null,
+            "groupName": "4. Around the world",
+            "target": {
+                "id": 37328492,
+                "shortTitle": "In Europa",
+                "learningTargetHeadline": "Speaking about countries",
+                "grammarDescription": "Indefinite pronouns: man",
+                "namedUrl": "/en/in-europa/l-37328492",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37337244,
+            "additionalInformation": null,
+            "groupName": "4. Around the world",
+            "target": {
+                "id": 37337244,
+                "shortTitle": "Andere Länder",
+                "learningTargetHeadline": "Languages",
+                "grammarDescription": "Conjugation: sprechen",
+                "namedUrl": "/en/andere-länder/l-37337244",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37368285,
+            "additionalInformation": null,
+            "groupName": "5. Things",
+            "target": {
+                "id": 37368285,
+                "shortTitle": "Was ist das?",
+                "learningTargetHeadline": "Naming objects",
+                "grammarDescription": "Articles: definite",
+                "namedUrl": "/en/was-ist-das/l-37368285",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37372077,
+            "additionalInformation": null,
+            "groupName": "5. Things",
+            "target": {
+                "id": 37372077,
+                "shortTitle": "Wem gehört das?",
+                "learningTargetHeadline": "Asking about objects",
+                "grammarDescription": "Articles: indefinite",
+                "namedUrl": "/en/wem-gehört-das/l-37372077",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37382992,
+            "additionalInformation": null,
+            "groupName": "5. Things",
+            "target": {
+                "id": 37382992,
+                "shortTitle": "Ich habe kein …",
+                "learningTargetHeadline": "What you (do not) have",
+                "grammarDescription": "Sentence construction: subject",
+                "namedUrl": "/en/ich-habe-kein/l-37382992",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37401537,
+            "additionalInformation": null,
+            "groupName": "5. Things",
+            "target": {
+                "id": 37401537,
+                "shortTitle": "Das Auto ist rot",
+                "learningTargetHeadline": "Naming objects",
+                "grammarDescription": "Adjectives following \"sein\"",
+                "namedUrl": "/en/das-auto-ist-rot/l-37401537",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37425145,
+            "additionalInformation": null,
+            "groupName": "6. Living",
+            "target": {
+                "id": 37425145,
+                "shortTitle": "So wohne ich",
+                "learningTargetHeadline": "Living arrangements",
+                "grammarDescription": "Articles",
+                "namedUrl": "/en/so-wohne-ich/l-37425145",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37425763,
+            "additionalInformation": null,
+            "groupName": "6. Living",
+            "target": {
+                "id": 37425763,
+                "shortTitle": "Meine Wohnung",
+                "learningTargetHeadline": "The rooms in an apartment",
+                "grammarDescription": "Negatives: nicht",
+                "namedUrl": "/en/meine-wohnung/l-37425763",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37438475,
+            "additionalInformation": null,
+            "groupName": "6. Living",
+            "target": {
+                "id": 37438475,
+                "shortTitle": "Sofa, Sessel und Tisch",
+                "learningTargetHeadline": "Describing interiors",
+                "grammarDescription": "zu + adjective",
+                "namedUrl": "/en/sofa-sessel-und-tisch/l-37438475",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37439097,
+            "additionalInformation": null,
+            "groupName": "6. Living",
+            "target": {
+                "id": 37439097,
+                "shortTitle": "Unser Haus",
+                "learningTargetHeadline": "Saying what is whose",
+                "grammarDescription": "Possessive determiners",
+                "namedUrl": "/en/unser-haus/l-37439097",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37442425,
+            "additionalInformation": null,
+            "groupName": "7. Days and times",
+            "target": {
+                "id": 37442425,
+                "shortTitle": "Emmas Tag",
+                "learningTargetHeadline": "Talking about the day",
+                "grammarDescription": "Time: 12-hour clock",
+                "namedUrl": "/en/emmas-tag/l-37442425",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37445884,
+            "additionalInformation": null,
+            "groupName": "7. Days and times",
+            "target": {
+                "id": 37445884,
+                "shortTitle": "Tageszeiten",
+                "learningTargetHeadline": "Describing the day",
+                "grammarDescription": "Separable verbs",
+                "namedUrl": "/en/tageszeiten/l-37445884",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37452061,
+            "additionalInformation": null,
+            "groupName": "7. Days and times",
+            "target": {
+                "id": 37452061,
+                "shortTitle": "Am Sonntag koche ich",
+                "learningTargetHeadline": "Free time activities",
+                "grammarDescription": "Prepositions of time: an",
+                "namedUrl": "/en/am-sonntag-koche-ich/l-37452061",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37452629,
+            "additionalInformation": null,
+            "groupName": "7. Days and times",
+            "target": {
+                "id": 37452629,
+                "shortTitle": "Emmas Wochenende",
+                "learningTargetHeadline": "The weekend",
+                "grammarDescription": "Adverbs: sequence",
+                "namedUrl": "/en/emmas-wochenende/l-37452629",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37453621,
+            "additionalInformation": null,
+            "groupName": "8. Appointments",
+            "target": {
+                "id": 37453621,
+                "shortTitle": "Wie spät ist es?",
+                "learningTargetHeadline": "Understanding time and date",
+                "grammarDescription": "Time specification: 24-hour clock",
+                "namedUrl": "/en/wie-spät-ist-es/l-37453621",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37461035,
+            "additionalInformation": null,
+            "groupName": "8. Appointments",
+            "target": {
+                "id": 37461035,
+                "shortTitle": "Hast du morgen Zeit?",
+                "learningTargetHeadline": "Planning dates",
+                "grammarDescription": "Ordinal numbers",
+                "namedUrl": "/en/hast-du-morgen-zeit/l-37461035",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37468614,
+            "additionalInformation": null,
+            "groupName": "8. Appointments",
+            "target": {
+                "id": 37468614,
+                "shortTitle": "Wann spielen wir?",
+                "learningTargetHeadline": "Making arrangements",
+                "grammarDescription": "Conjugation: können",
+                "namedUrl": "/en/wann-spielen-wir/l-37468614",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37460778,
+            "additionalInformation": null,
+            "groupName": "8. Appointments",
+            "target": {
+                "id": 37460778,
+                "shortTitle": "Zu spät!?",
+                "learningTargetHeadline": "Delays",
+                "grammarDescription": "Simple past: haben",
+                "namedUrl": "/en/zu-spät/l-37460778",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37469204,
+            "additionalInformation": null,
+            "groupName": "9. Working life",
+            "target": {
+                "id": 37469204,
+                "shortTitle": "Ich bin Lehrerin",
+                "learningTargetHeadline": "Talking about professions",
+                "grammarDescription": "Word formation: professions",
+                "namedUrl": "/en/ich-bin-lehrerin/l-37469204",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37475138,
+            "additionalInformation": null,
+            "groupName": "9. Working life",
+            "target": {
+                "id": 37475138,
+                "shortTitle": "Mein Beruf",
+                "learningTargetHeadline": "Describing activities",
+                "grammarDescription": "Modal verbs",
+                "namedUrl": "/en/mein-beruf/l-37475138",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37476734,
+            "additionalInformation": null,
+            "groupName": "9. Working life",
+            "target": {
+                "id": 37476734,
+                "shortTitle": "Wo ist der Aufzug?",
+                "learningTargetHeadline": "Finding your way around a building",
+                "grammarDescription": "The dative",
+                "namedUrl": "/en/wo-ist-der-aufzug/l-37476734",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37477568,
+            "additionalInformation": null,
+            "groupName": "9. Working life",
+            "target": {
+                "id": 37477568,
+                "shortTitle": "Traumberufe",
+                "learningTargetHeadline": "Career hopes",
+                "grammarDescription": "Modal verbs: wollen",
+                "namedUrl": "/en/traumberufe/l-37477568",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37594551,
+            "additionalInformation": null,
+            "groupName": "10. Orientation",
+            "target": {
+                "id": 37594551,
+                "shortTitle": "Wo ist der Bahnhof?",
+                "learningTargetHeadline": "Living and working",
+                "grammarDescription": "Prepositions: bei, von",
+                "namedUrl": "/en/wo-ist-der-bahnhof/l-37594551",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37595076,
+            "additionalInformation": null,
+            "groupName": "10. Orientation",
+            "target": {
+                "id": 37595076,
+                "shortTitle": "An der Ampel links",
+                "learningTargetHeadline": "Giving directions",
+                "grammarDescription": "Prepositions of place",
+                "namedUrl": "/en/an-der-ampel-links/l-37595076",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37595395,
+            "additionalInformation": null,
+            "groupName": "10. Orientation",
+            "target": {
+                "id": 37595395,
+                "shortTitle": "Mit Bus und Bahn",
+                "learningTargetHeadline": "Commuting to work",
+                "grammarDescription": "Prepositions: mit",
+                "namedUrl": "/en/mit-bus-und-bahn/l-37595395",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37595501,
+            "additionalInformation": null,
+            "groupName": "10. Orientation",
+            "target": {
+                "id": 37595501,
+                "shortTitle": "Im Büro",
+                "learningTargetHeadline": "Objects in the office",
+                "grammarDescription": "Two-case prepositions ",
+                "namedUrl": "/en/im-büro/l-37595501",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37597045,
+            "additionalInformation": null,
+            "groupName": "11. Eating and leisure",
+            "target": {
+                "id": 37597045,
+                "shortTitle": "Lebensmittel",
+                "learningTargetHeadline": "Talking about food",
+                "grammarDescription": "Negation: nicht/kein",
+                "namedUrl": "/en/lebensmittel/l-37597045",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37599970,
+            "additionalInformation": null,
+            "groupName": "11. Eating and leisure",
+            "target": {
+                "id": 37599970,
+                "shortTitle": "Ich mag (nicht)!",
+                "learningTargetHeadline": "Eating preferences",
+                "grammarDescription": "Comparative",
+                "namedUrl": "/en/ich-mag-nicht/l-37599970",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37631238,
+            "additionalInformation": null,
+            "groupName": "11. Eating and leisure",
+            "target": {
+                "id": 37631238,
+                "shortTitle": "Haushaltsarbeit",
+                "learningTargetHeadline": "Preferences at home",
+                "grammarDescription": "Comparison: wie/als",
+                "namedUrl": "/en/haushaltsarbeit/l-37631238",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37630630,
+            "additionalInformation": null,
+            "groupName": "11. Eating and leisure",
+            "target": {
+                "id": 37630630,
+                "shortTitle": "Was macht dir Spaß?",
+                "learningTargetHeadline": "Leisure activities",
+                "grammarDescription": "gehen + infinitive",
+                "namedUrl": "/en/was-macht-dir-spaß/l-37630630",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37628421,
+            "additionalInformation": null,
+            "groupName": "12. Food",
+            "target": {
+                "id": 37628421,
+                "shortTitle": "Mengen und Preise",
+                "learningTargetHeadline": "Buying groceries",
+                "grammarDescription": "Prepositions: in, auf",
+                "namedUrl": "/en/mengen-und-preise/l-37628421",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37635620,
+            "additionalInformation": null,
+            "groupName": "12. Food",
+            "target": {
+                "id": 37635620,
+                "shortTitle": "Was darf es sein?",
+                "learningTargetHeadline": "Shopping conversations",
+                "grammarDescription": null,
+                "namedUrl": "/en/was-darf-es-sein/l-37635620",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37646611,
+            "additionalInformation": null,
+            "groupName": "12. Food",
+            "target": {
+                "id": 37646611,
+                "shortTitle": "Sonst noch etwas?",
+                "learningTargetHeadline": "Shopping at the market",
+                "grammarDescription": "Question words: wie viel",
+                "namedUrl": "/en/sonst-noch-etwas/l-37646611",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37647289,
+            "additionalInformation": null,
+            "groupName": "12. Food",
+            "target": {
+                "id": 37647289,
+                "shortTitle": "Wie viel Mehl?",
+                "learningTargetHeadline": "Following a recipe",
+                "grammarDescription": "Instructions",
+                "namedUrl": "/en/wie-viel-mehl/l-37647289",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37648534,
+            "additionalInformation": null,
+            "groupName": "13. Weather and holiday",
+            "target": {
+                "id": 37648534,
+                "shortTitle": "Wie war dein Urlaub?",
+                "learningTargetHeadline": "Talking about vacations",
+                "grammarDescription": "Present perfect with \"haben\"",
+                "namedUrl": "/en/wie-war-dein-urlaub/l-37648534",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37651758,
+            "additionalInformation": null,
+            "groupName": "13. Weather and holiday",
+            "target": {
+                "id": 37651758,
+                "shortTitle": "Jahreszeiten",
+                "learningTargetHeadline": "Comparing the seasons",
+                "grammarDescription": "Comparison",
+                "namedUrl": "/en/jahreszeiten/l-37651758",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37651657,
+            "additionalInformation": null,
+            "groupName": "13. Weather and holiday",
+            "target": {
+                "id": 37651657,
+                "shortTitle": "Der Ausflug",
+                "learningTargetHeadline": "Talking about the past",
+                "grammarDescription": "Present perfect with \"sein\"",
+                "namedUrl": "/en/der-ausflug/l-37651657",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37653197,
+            "additionalInformation": null,
+            "groupName": "13. Weather and holiday",
+            "target": {
+                "id": 37653197,
+                "shortTitle": "Wie wird das Wetter?",
+                "learningTargetHeadline": "Talking about the weather",
+                "grammarDescription": "Pronouns: es",
+                "namedUrl": "/en/wie-wird-das-wetter/l-37653197",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37655848,
+            "additionalInformation": null,
+            "groupName": "14. Clothing",
+            "target": {
+                "id": 37655848,
+                "shortTitle": "Das ist jetzt modern",
+                "learningTargetHeadline": "Talking about clothing",
+                "grammarDescription": "Adjective declension",
+                "namedUrl": "/en/das-ist-jetzt-modern/l-37655848",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37656274,
+            "additionalInformation": null,
+            "groupName": "14. Clothing",
+            "target": {
+                "id": 37656274,
+                "shortTitle": "Mein Lieblingspulli",
+                "learningTargetHeadline": "Describing clothing",
+                "grammarDescription": "Question words: welch-",
+                "namedUrl": "/en/mein-lieblingspulli/l-37656274",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37661740,
+            "additionalInformation": null,
+            "groupName": "14. Clothing",
+            "target": {
+                "id": 37661740,
+                "shortTitle": "Das passt gut!",
+                "learningTargetHeadline": "Shopping for clothes",
+                "grammarDescription": "Verbs with a dative object",
+                "namedUrl": "/en/das-passt-gut/l-37661740",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37661765,
+            "additionalInformation": null,
+            "groupName": "14. Clothing",
+            "target": {
+                "id": 37661765,
+                "shortTitle": "Schick!",
+                "learningTargetHeadline": "Casual wear",
+                "grammarDescription": null,
+                "namedUrl": "/en/schick/l-37661765",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37661741,
+            "additionalInformation": null,
+            "groupName": "15. Family",
+            "target": {
+                "id": 37661741,
+                "shortTitle": "Meine Familie",
+                "learningTargetHeadline": "Talking about family",
+                "grammarDescription": "Adjective declension",
+                "namedUrl": "/en/meine-familie/l-37661741",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37664246,
+            "additionalInformation": null,
+            "groupName": "15. Family",
+            "target": {
+                "id": 37664246,
+                "shortTitle": "Meine Eltern",
+                "learningTargetHeadline": "Introducing parents",
+                "grammarDescription": "Personal pronouns: accusative",
+                "namedUrl": "/en/meine-eltern/l-37664246",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37664498,
+            "additionalInformation": null,
+            "groupName": "15. Family",
+            "target": {
+                "id": 37664498,
+                "shortTitle": "Meine Tante",
+                "learningTargetHeadline": "Career choices",
+                "grammarDescription": "The possessive determiner",
+                "namedUrl": "/en/meine-tante/l-37664498",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37664164,
+            "additionalInformation": null,
+            "groupName": "15. Family",
+            "target": {
+                "id": 37664164,
+                "shortTitle": "Mein Bruder",
+                "learningTargetHeadline": "Talking about siblings",
+                "grammarDescription": "Modal verbs: sollen",
+                "namedUrl": "/en/mein-bruder/l-37664164",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37664951,
+            "additionalInformation": null,
+            "groupName": "16. Sports and exercise",
+            "target": {
+                "id": 37664951,
+                "shortTitle": "Von Kopf bis Fuß",
+                "learningTargetHeadline": "Sports",
+                "grammarDescription": "Comparison",
+                "namedUrl": "/en/von-kopf-bis-fuß/l-37664951",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37668333,
+            "additionalInformation": null,
+            "groupName": "16. Sports and exercise",
+            "target": {
+                "id": 37668333,
+                "shortTitle": "Bist du fit?",
+                "learningTargetHeadline": "Sports and training",
+                "grammarDescription": "Time specification: Wann ...?",
+                "namedUrl": "/en/bist-du-fit/l-37668333",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37668815,
+            "additionalInformation": null,
+            "groupName": "16. Sports and exercise",
+            "target": {
+                "id": 37668815,
+                "shortTitle": "Fitness",
+                "learningTargetHeadline": "Fitness tips",
+                "grammarDescription": "Comparison",
+                "namedUrl": "/en/fitness/l-37668815",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37670365,
+            "additionalInformation": null,
+            "groupName": "16. Sports and exercise",
+            "target": {
+                "id": 37670365,
+                "shortTitle": "Ist das gesund?",
+                "learningTargetHeadline": "Talking about nutrition",
+                "grammarDescription": "Imperative: informal",
+                "namedUrl": "/en/ist-das-gesund/l-37670365",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37778457,
+            "additionalInformation": null,
+            "groupName": "17. Health",
+            "target": {
+                "id": 37778457,
+                "shortTitle": "Geht es dir gut?",
+                "learningTargetHeadline": "Talking about illnesses",
+                "grammarDescription": "Müssen or sollen?",
+                "namedUrl": "/en/geht-es-dir-gut/l-37778457",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37778169,
+            "additionalInformation": null,
+            "groupName": "17. Health",
+            "target": {
+                "id": 37778169,
+                "shortTitle": "Beim Arzt",
+                "learningTargetHeadline": "Checking in at the doctor's office",
+                "grammarDescription": "Modal verbs: dürfen",
+                "namedUrl": "/en/beim-arzt/l-37778169",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37780308,
+            "additionalInformation": null,
+            "groupName": "17. Health",
+            "target": {
+                "id": 37780308,
+                "shortTitle": "Gute Besserung!",
+                "learningTargetHeadline": "Inquiring about patients",
+                "grammarDescription": "Present perfect",
+                "namedUrl": "/en/gute-besserung/l-37780308",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37782214,
+            "additionalInformation": null,
+            "groupName": "17. Health",
+            "target": {
+                "id": 37782214,
+                "shortTitle": "Nehmen Sie …",
+                "learningTargetHeadline": "A visit to the doctor",
+                "grammarDescription": "Prepositions: vor, nach",
+                "namedUrl": "/en/nehmen-sie/l-37782214",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37776166,
+            "additionalInformation": null,
+            "groupName": "18. Home",
+            "target": {
+                "id": 37776166,
+                "shortTitle": "Meine Heimat",
+                "learningTargetHeadline": "Talking about home",
+                "grammarDescription": "Adjective declension",
+                "namedUrl": "/en/meine-heimat/l-37776166",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37777069,
+            "additionalInformation": null,
+            "groupName": "18. Home",
+            "target": {
+                "id": 37777069,
+                "shortTitle": "Leben in Deutschland",
+                "learningTargetHeadline": "To miss something",
+                "grammarDescription": "Personal pronouns: dative",
+                "namedUrl": "/en/leben-in-deutschland/l-37777069",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37779968,
+            "additionalInformation": null,
+            "groupName": "18. Home",
+            "target": {
+                "id": 37779968,
+                "shortTitle": "Anders als zu Hause",
+                "learningTargetHeadline": "Comparisons",
+                "grammarDescription": null,
+                "namedUrl": "/en/anders-als-zu-hause/l-37779968",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        },
+        {
+            "id": 37783730,
+            "additionalInformation": null,
+            "groupName": "18. Home",
+            "target": {
+                "id": 37783730,
+                "shortTitle": "Ich träume von …",
+                "learningTargetHeadline": "Hopes and dreams",
+                "grammarDescription": "Subjunctive: Wishes",
+                "namedUrl": "/en/ich-träume-von/l-37783730",
+                "__typename": "Lesson"
+            },
+            "__typename": "ContentLink"
+        }
+    ]
+}
