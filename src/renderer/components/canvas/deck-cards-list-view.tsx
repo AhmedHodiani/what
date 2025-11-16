@@ -69,13 +69,13 @@ export function CardsListView({
               </div>
               
               <div className="flex gap-2">
-                <button
+                {/* <button
                   className="p-2 rounded-lg text-purple-400 hover:bg-purple-400/10 transition-colors"
                   onClick={() => onEditCard(card)}
                   title="Edit card"
                 >
                   <Edit3 size={18} />
-                </button>
+                </button> */}
                 <button
                   className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
                   onClick={() => onDeleteCard(card.id)}
