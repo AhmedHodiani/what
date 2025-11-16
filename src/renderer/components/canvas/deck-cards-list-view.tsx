@@ -48,12 +48,12 @@ export function CardsListView({
                   <span className="text-gray-400 font-mono text-sm mt-1">#{index + 1}</span>
                   <div className="flex-1">
                     <div className="text-sm text-gray-400 mb-1">Question</div>
-                    <div className="text-white mb-4 markdown-content">
+                    <div className="text-white mb-4 markdown-content flex flex-col items-center w-full">
                       {renderMarkdown(card.front)}
                     </div>
                     
                     <div className="text-sm text-gray-400 mb-1">Answer</div>
-                    <div className="text-gray-300 markdown-content">
+                    <div className="text-gray-300 markdown-content flex flex-col items-center w-full">
                       {renderMarkdown(card.back)}
                     </div>
                   </div>

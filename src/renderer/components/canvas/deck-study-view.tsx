@@ -47,11 +47,11 @@ export function StudyView({
 
       {/* Card Display */}
       <div className="flex-1 flex items-center justify-center">
-        <div className="w-full">
+        <div className="w-full" key={currentCard.id}>
           {/* Question */}
           <div className="bg-black/60 border-2 border-purple-400/30 rounded-2xl p-12 mb-8">
             <div className="text-sm text-purple-400 mb-4 font-medium">QUESTION</div>
-            <div className="text-3xl text-white text-center leading-relaxed markdown-content">
+            <div className="text-3xl text-white leading-relaxed markdown-content flex flex-col items-center w-full">
               {renderMarkdown(currentCard.front)}
             </div>
             {currentCard.interval > 0 && (
@@ -65,7 +65,7 @@ export function StudyView({
           {showingAnswer && (
             <div className="bg-black/60 border-2 border-green-400/30 rounded-2xl p-12 mb-8 animate-in fade-in duration-300">
               <div className="text-sm text-green-400 mb-4 font-medium">ANSWER</div>
-              <div className="text-2xl text-white text-center leading-relaxed markdown-content">
+              <div className="text-2xl text-white leading-relaxed markdown-content flex flex-col items-center">
                 {renderMarkdown(currentCard.back)}
               </div>
             </div>

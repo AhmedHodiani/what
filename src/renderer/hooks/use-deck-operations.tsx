@@ -142,9 +142,54 @@ export function useDeckOperations(
     }
   }
 
+  const bulkAddCards = async (
+    cardsToAdd: Array<{ front: string; back: string }>
+  ) => {
+    try {
+      logger.debug('[bulkAddCards] Starting bulk import:', cardsToAdd.length, 'cards')
+      
+      for (const cardData of cardsToAdd) {
+        const newCard = {
+          id: 0,
+          noteId: generateNoteId(),
+          deckId: 0,
+          front: cardData.front.trim(),
+          back: cardData.back.trim(),
+          ctype: 0,
+          queue: 0,
+          due: 0,
+          interval: 0,
+          easeFactor: 2500,
+          reps: 0,
+          lapses: 0,
+          remainingSteps: 0,
+          memoryState: null,
+          desiredRetention: null,
+          mtime: Math.floor(Date.now() / 1000),
+          lastReview: null,
+          flags: 0,
+          customData: '',
+        }
+        
+        await window.App.deck.addCard(newCard, objectId, parentTabId)
+      }
+      
+      const updatedDeck = await window.App.deck.load(objectId, parentTabId)
+      onDeckUpdate(updatedDeck!)
+      
+      logger.debug('[bulkAddCards] Completed, total cards:', updatedDeck?.cards.length)
+      
+      onStatsReload()
+    } catch (error) {
+      logger.error('Failed to bulk add cards:', error)
+      throw new Error('Failed to add cards. Please try again.')
+    }
+  }
+
   return {
     addCard,
     updateCard,
     deleteCard,
+    bulkAddCards,
   }
 }

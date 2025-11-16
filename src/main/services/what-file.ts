@@ -833,12 +833,64 @@ export class WhatFileService {
 
     // First, check if this object has any associated assets (e.g., image objects)
     const object = this.db
-      .prepare('SELECT object_data FROM objects WHERE id = ?')
-      .get(id) as { object_data: string } | undefined
+      .prepare('SELECT type, object_data FROM objects WHERE id = ?')
+      .get(id) as { type: string; object_data: string } | undefined
 
     if (object) {
       try {
         const objectData = JSON.parse(object.object_data)
+
+        // Special handling for deck objects - delete all cards and their assets
+        if (object.type === 'deck') {
+          logger.debug(`Deleting deck ${id} with all its cards and assets`)
+          
+          // Get all cards for this deck
+          const cards = this.db
+            .prepare('SELECT id, front, back FROM cards WHERE deck_id = ?')
+            .all(id) as Array<{ id: number; front: string; back: string }>
+          
+          // Extract asset IDs from card content using regex
+          const assetRegex = /asset:\/\/([a-zA-Z0-9_-]+)/g
+          const assetsToDelete = new Set<string>()
+          
+          for (const card of cards) {
+            // Check front for assets
+            let match: RegExpExecArray | null
+            while ((match = assetRegex.exec(card.front)) !== null) {
+              assetsToDelete.add(match[1])
+            }
+            // Check back for assets
+            assetRegex.lastIndex = 0 // Reset regex
+            while ((match = assetRegex.exec(card.back)) !== null) {
+              assetsToDelete.add(match[1])
+            }
+          }
+          
+          // Delete all found assets
+          for (const assetId of assetsToDelete) {
+            try {
+              logger.debug(`Deleting asset ${assetId} from deck ${id}`)
+              this.deleteAsset(assetId)
+            } catch (error) {
+              logger.error(`Failed to delete asset ${assetId}:`, error)
+            }
+          }
+          
+          // Delete all cards
+          this.db.prepare('DELETE FROM cards WHERE deck_id = ?').run(id)
+          
+          // Delete deck config
+          this.db.prepare('DELETE FROM deck_config WHERE deck_id = ?').run(id)
+          
+          // Delete all review logs
+          const cardIds = cards.map(c => c.id)
+          if (cardIds.length > 0) {
+            const placeholders = cardIds.map(() => '?').join(',')
+            this.db.prepare(`DELETE FROM review_log WHERE card_id IN (${placeholders})`).run(...cardIds)
+          }
+          
+          logger.debug(`Deleted deck ${id} with ${cards.length} cards and ${assetsToDelete.size} assets`)
+        }
 
         // If the object has an assetId (like image objects), delete the asset too
         if (objectData.assetId) {

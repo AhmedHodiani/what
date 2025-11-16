@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { logger } from 'shared/logger'
-import { BookOpen, Plus, Settings, Edit3 } from 'lucide-react'
+import { BookOpen, Plus, Settings, Edit3, Upload } from 'lucide-react'
 import type { Deck, DeckConfig } from 'shared/fsrs/types'
 import { DeckSettingsDialog } from 'renderer/components/canvas/deck-settings-dialog'
 import { DeleteConfirmDialog } from 'renderer/components/canvas/delete-confirm-dialog'
 import { ExternalUrlDialog } from 'renderer/components/canvas/external-url-dialog'
+import { BulkAddDialog } from 'renderer/components/canvas/bulk-add-dialog'
 import { OverviewView } from 'renderer/components/canvas/deck-overview-view'
 import { CardsListView } from 'renderer/components/canvas/deck-cards-list-view'
 import { AddCardView } from 'renderer/components/canvas/deck-add-card-view'
@@ -54,7 +55,8 @@ export function DeckEditor({
   const cardForm = useCardForm()
   const cardEditor = useCardEditor()
   const dialogs = useDeckDialogs()
-  const { renderMarkdown } = useDeckMarkdown(parentTabId)
+  const { renderMarkdown } = useDeckMarkdown(parentTabId, false)
+  const { renderMarkdown: renderMarkdownWithAutoPlay } = useDeckMarkdown(parentTabId, true)
   const studySession = useStudySession(deck, objectId, parentTabId)
   
   const deckOperations = useDeckOperations(
@@ -247,6 +249,18 @@ export function DeckEditor({
     dialogs.setShowExternalUrlDialog(false)
   }
   
+  // Handle bulk add cards
+  const handleBulkImport = async (cards: Array<{ front: string; back: string }>) => {
+    if (!deck) return
+    
+    try {
+      await deckOperations.bulkAddCards(cards)
+      logger.debug('[handleBulkImport] Successfully imported', cards.length, 'cards')
+    } catch (error) {
+      logger.error('[handleBulkImport] Failed:', error)
+    }
+  }
+  
   // Handle cancel add card
   const handleCancelAddCard = async () => {
     for (const assetId of cardForm.uploadedAssets) {
@@ -306,13 +320,23 @@ export function DeckEditor({
             </div>
           </div>
           
-          <button
-            className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors border border-gray-600 flex items-center gap-2"
-            onClick={() => dialogs.setShowSettings(true)}
-          >
-            <Settings size={16} />
-            Settings
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition-colors flex items-center gap-2"
+              onClick={() => dialogs.setShowBulkAddDialog(true)}
+            >
+              <Upload size={16} />
+              Bulk Add
+            </button>
+            
+            <button
+              className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors border border-gray-600 flex items-center gap-2"
+              onClick={() => dialogs.setShowSettings(true)}
+            >
+              <Settings size={16} />
+              Settings
+            </button>
+          </div>
         </div>
       </div>
 
@@ -455,7 +479,7 @@ export function DeckEditor({
               studySession.endSession()
               setView('overview')
             }}
-            renderMarkdown={renderMarkdown}
+            renderMarkdown={renderMarkdownWithAutoPlay}
           />
         )}
         
@@ -484,6 +508,15 @@ export function DeckEditor({
               dialogs.setExternalUrl('')
             }}
             onInsert={handleInsertExternalUrl}
+          />
+        )}
+        
+        {/* Bulk Add Dialog */}
+        {dialogs.showBulkAddDialog && (
+          <BulkAddDialog
+            open={dialogs.showBulkAddDialog}
+            onClose={() => dialogs.setShowBulkAddDialog(false)}
+            onImport={handleBulkImport}
           />
         )}
       </div>
