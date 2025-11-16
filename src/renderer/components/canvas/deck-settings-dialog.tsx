@@ -248,6 +248,31 @@ export function DeckSettingsDialog({
                 </div>
               </div>
 
+              {/* Initial Ease Factor */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Initial Ease Factor: {(config.initialEase * 100).toFixed(0)}%
+                </label>
+                <input
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                  max={500}
+                  min={130}
+                  step={5}
+                  type="range"
+                  value={config.initialEase * 100}
+                  onChange={e =>
+                    updateConfig({ initialEase: parseInt(e.target.value) / 100 })
+                  }
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>130%</span>
+                  <span>500%</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Starting ease for new cards (default: 250%)
+                </p>
+              </div>
+
               {/* Maximum Review Interval */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -264,6 +289,50 @@ export function DeckSettingsDialog({
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Cap on how far cards can be pushed out
+                </p>
+              </div>
+
+              {/* Minimum Lapse Interval */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Minimum Lapse Interval (days)
+                </label>
+                <input
+                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                  min={1}
+                  type="number"
+                  value={config.minimumLapseInterval}
+                  onChange={e =>
+                    updateConfig({ minimumLapseInterval: parseInt(e.target.value) })
+                  }
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Minimum interval for lapsed cards
+                </p>
+              </div>
+
+              {/* Interval Multiplier */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Interval Multiplier: {config.intervalMultiplier.toFixed(2)}
+                </label>
+                <input
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                  max={2.0}
+                  min={0.5}
+                  step={0.05}
+                  type="range"
+                  value={config.intervalMultiplier}
+                  onChange={e =>
+                    updateConfig({ intervalMultiplier: parseFloat(e.target.value) })
+                  }
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>0.5x</span>
+                  <span>2.0x</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Multiply all intervals by this factor
                 </p>
               </div>
             </>
@@ -302,6 +371,31 @@ export function DeckSettingsDialog({
                 </p>
               </div>
 
+              {/* FSRS Parameters Editor */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  FSRS Parameters (Advanced)
+                </label>
+                <textarea
+                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all font-mono text-xs"
+                  placeholder="19 comma-separated parameters"
+                  rows={4}
+                  value={config.fsrsParams.join(', ')}
+                  onChange={e => {
+                    const params = e.target.value
+                      .split(',')
+                      .map(s => parseFloat(s.trim()))
+                      .filter(s => !isNaN(s) && s > 0)
+                    if (params.length === 19) {
+                      updateConfig({ fsrsParams: params })
+                    }
+                  }}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  19 FSRS parameters - edit only if you know what you're doing
+                </p>
+              </div>
+
               {/* FSRS Parameters Info */}
               <div className="bg-purple-900/20 border border-purple-400/30 rounded-lg p-4">
                 <div className="flex items-start gap-3">
@@ -323,7 +417,48 @@ export function DeckSettingsDialog({
 
           {activeTab === 'ordering' && (
             <>
-              {/* New Card Order */}
+              {/* New Card Insert Order */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  New Card Insert Order
+                </label>
+                <select
+                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                  value={config.newCardInsertOrder}
+                  onChange={e =>
+                    updateConfig({ newCardInsertOrder: parseInt(e.target.value) })
+                  }
+                >
+                  <option value={0}>Due</option>
+                  <option value={1}>Random</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  How new cards are inserted into the deck
+                </p>
+              </div>
+
+              {/* New Card Gather Priority */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  New Card Gather Priority
+                </label>
+                <select
+                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                  value={config.newCardGatherPriority}
+                  onChange={e =>
+                    updateConfig({ newCardGatherPriority: parseInt(e.target.value) })
+                  }
+                >
+                  <option value={0}>Deck</option>
+                  <option value={1}>Position (Lowest First)</option>
+                  <option value={2}>Position (Highest First)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  How new cards are gathered from the deck
+                </p>
+              </div>
+
+              {/* New Card Sort Order */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   New Card Sort Order
@@ -335,12 +470,12 @@ export function DeckSettingsDialog({
                     updateConfig({ newCardSortOrder: parseInt(e.target.value) })
                   }
                 >
-                  <option value={0}>Order Added</option>
+                  <option value={0}>Template</option>
                   <option value={1}>Random</option>
-                  <option value={2}>Reverse Order</option>
+                  <option value={2}>Reverse</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  How new cards are ordered for study
+                  How new cards are sorted for study
                 </p>
               </div>
 
@@ -374,7 +509,7 @@ export function DeckSettingsDialog({
               {/* New/Review Mix */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  New/Review Mix
+                  New Card Mix
                 </label>
                 <select
                   className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
@@ -388,6 +523,28 @@ export function DeckSettingsDialog({
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
                   How to mix new cards with review cards
+                </p>
+              </div>
+
+              {/* Interday Learning Mix */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Interday Learning Mix
+                </label>
+                <select
+                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                  value={config.interdayLearningMix}
+                  onChange={e =>
+                    updateConfig({ interdayLearningMix: parseInt(e.target.value) })
+                  }
+                >
+                  <option value={0}>Mix with Reviews</option>
+                  <option value={1}>Reviews First</option>
+                  <option value={2}>New First</option>
+                  <option value={3}>Reviews Only</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  How to mix interday learning cards with reviews
                 </p>
               </div>
             </>

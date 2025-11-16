@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { logger } from 'shared/logger'
 import { BookOpen, Plus, Settings, Trash2, Edit3, GraduationCap, X } from 'lucide-react'
-import type { Deck, DeckConfig } from 'shared/fsrs/types'
+import type { Deck, DeckConfig, Card } from 'shared/fsrs/types'
 import { DeckSettingsDialog } from 'renderer/components/canvas/deck-settings-dialog'
 import { useStudySession } from 'renderer/hooks/use-study-session'
 
@@ -41,7 +41,17 @@ export function DeckEditor({
   const [newCardBack, setNewCardBack] = useState('')
   const [addCardError, setAddCardError] = useState('')
   
+  // Edit card state
+  const [editingCardId, setEditingCardId] = useState<number | null>(null)
+  const [editCardFront, setEditCardFront] = useState('')
+  const [editCardBack, setEditCardBack] = useState('')
+  const [editError, setEditError] = useState('')
+  
+  // Delete confirmation state
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null)
+  
   const frontInputRef = useRef<HTMLTextAreaElement>(null)
+  const editFrontInputRef = useRef<HTMLTextAreaElement>(null)
   
   // Study session hook
   const studySession = useStudySession(deck, objectId, parentTabId)
@@ -212,12 +222,63 @@ export function DeckEditor({
     }
   }
 
+  // Start editing card
+  const handleStartEdit = (card: Card) => {
+    setEditingCardId(card.id)
+    setEditCardFront(card.front)
+    setEditCardBack(card.back)
+    setEditError('')
+    setTimeout(() => editFrontInputRef.current?.focus(), 100)
+  }
+  
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingCardId(null)
+    setEditCardFront('')
+    setEditCardBack('')
+    setEditError('')
+  }
+  
+  // Save edited card
+  const handleSaveEdit = async () => {
+    if (!deck || editingCardId === null) return
+    
+    if (!editCardFront.trim() || !editCardBack.trim()) {
+      setEditError('Both front and back are required')
+      return
+    }
+    
+    try {
+      const card = deck.cards.find(c => c.id === editingCardId)
+      if (!card) return
+      
+      await window.App.deck.updateCard(
+        {
+          ...card,
+          front: editCardFront.trim(),
+          back: editCardBack.trim(),
+        },
+        parentTabId
+      )
+      
+      // Reload deck
+      const updatedDeck = await window.App.deck.load(objectId, parentTabId)
+      setDeck(updatedDeck)
+      
+      // Clear editing state
+      handleCancelEdit()
+    } catch (error) {
+      logger.error('Failed to update card:', error)
+      setEditError('Failed to update card. Please try again.')
+    }
+  }
+  
   // Delete card
-  const handleDeleteCard = async (cardId: string) => {
+  const handleDeleteCard = async (cardId: number) => {
     if (!deck) return
     
     try {
-      await window.App.deck.deleteCard(Number(cardId), parentTabId)
+      await window.App.deck.deleteCard(cardId, parentTabId)
       
       // Reload deck
       const updatedDeck = await window.App.deck.load(objectId, parentTabId)
@@ -232,6 +293,8 @@ export function DeckEditor({
         review: deckStats.reviewCards,
         due: deckStats.dueCards,
       })
+      
+      setDeleteConfirmId(null)
     } catch (error) {
       logger.error('Failed to delete card:', error)
     }
@@ -278,6 +341,43 @@ export function DeckEditor({
           onCancel={() => setShowSettings(false)}
           onConfirm={handleSettingsSave}
         />
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmId !== null && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-9999"
+          onClick={() => setDeleteConfirmId(null)}
+        >
+          <div
+            className="bg-black/90 rounded-lg shadow-2xl border border-red-400/30 p-6 w-[400px] max-w-[90vw]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="text-3xl">⚠️</div>
+              <h2 className="text-xl font-semibold text-red-400">Delete Card?</h2>
+            </div>
+            
+            <p className="text-gray-300 mb-6">
+              Are you sure you want to delete this card? This action cannot be undone.
+            </p>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
+                onClick={() => setDeleteConfirmId(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium transition-colors"
+                onClick={() => handleDeleteCard(deleteConfirmId)}
+              >
+                Delete Card
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Header */}
@@ -457,35 +557,91 @@ export function DeckEditor({
                     key={card.id}
                     className="bg-black/40 border border-purple-400/20 rounded-lg p-6 hover:border-purple-400/40 transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-3 mb-3">
-                          <span className="text-gray-400 font-mono text-sm mt-1">#{index + 1}</span>
-                          <div className="flex-1">
-                            <div className="text-sm text-gray-400 mb-1">Question</div>
-                            <div className="text-white mb-4">{card.front}</div>
-                            
-                            <div className="text-sm text-gray-400 mb-1">Answer</div>
-                            <div className="text-gray-300">{card.back}</div>
-                          </div>
+                    {editingCardId === card.id ? (
+                      // Edit mode
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-2">Question (Front)</label>
+                          <textarea
+                            ref={editFrontInputRef}
+                            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all min-h-20"
+                            placeholder="What is the question?"
+                            value={editCardFront}
+                            onChange={e => setEditCardFront(e.target.value)}
+                          />
                         </div>
                         
-                        {card.interval > 0 && (
-                          <div className="text-xs text-gray-500 mt-3 flex items-center gap-4">
-                            <span>Interval: {card.interval}d</span>
-                            <span>Reviews: {card.reps}</span>
-                            <span>Lapses: {card.lapses}</span>
-                          </div>
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-2">Answer (Back)</label>
+                          <textarea
+                            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all min-h-20"
+                            placeholder="What is the answer?"
+                            value={editCardBack}
+                            onChange={e => setEditCardBack(e.target.value)}
+                          />
+                        </div>
+                        
+                        {editError && (
+                          <div className="text-red-400 text-sm">{editError}</div>
                         )}
+                        
+                        <div className="flex gap-3 justify-end">
+                          <button
+                            className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
+                            onClick={handleCancelEdit}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium transition-colors"
+                            onClick={handleSaveEdit}
+                          >
+                            Save Changes
+                          </button>
+                        </div>
                       </div>
-                      
-                      <button
-                        className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
-                        onClick={() => handleDeleteCard(String(card.id))}
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+                    ) : (
+                      // View mode
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start gap-3 mb-3">
+                            <span className="text-gray-400 font-mono text-sm mt-1">#{index + 1}</span>
+                            <div className="flex-1">
+                              <div className="text-sm text-gray-400 mb-1">Question</div>
+                              <div className="text-white mb-4 whitespace-pre-wrap">{card.front}</div>
+                              
+                              <div className="text-sm text-gray-400 mb-1">Answer</div>
+                              <div className="text-gray-300 whitespace-pre-wrap">{card.back}</div>
+                            </div>
+                          </div>
+                          
+                          {card.interval > 0 && (
+                            <div className="text-xs text-gray-500 mt-3 flex items-center gap-4">
+                              <span>Interval: {card.interval}d</span>
+                              <span>Reviews: {card.reps}</span>
+                              <span>Lapses: {card.lapses}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <button
+                            className="p-2 rounded-lg text-purple-400 hover:bg-purple-400/10 transition-colors"
+                            onClick={() => handleStartEdit(card)}
+                            title="Edit card"
+                          >
+                            <Edit3 size={18} />
+                          </button>
+                          <button
+                            className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
+                            onClick={() => setDeleteConfirmId(card.id)}
+                            title="Delete card"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
