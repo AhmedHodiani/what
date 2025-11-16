@@ -1,11 +1,66 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { logger } from 'shared/logger'
-import { BookOpen, Plus, Settings, Trash2, Edit3, GraduationCap, X, Eye } from 'lucide-react'
+import { BookOpen, Plus, Settings, Trash2, Edit3, GraduationCap, X, Eye, Paperclip, Link } from 'lucide-react'
 import type { Deck, DeckConfig, Card } from 'shared/fsrs/types'
 import { generateNoteId } from 'shared/fsrs/cardUtils'
 import { DeckSettingsDialog } from 'renderer/components/canvas/deck-settings-dialog'
 import { useStudySession } from 'renderer/hooks/use-study-session'
 import { useMarkdown } from 'renderer/hooks/use-markdown'
+
+function AssetMedia({ assetId, alt, parentTabId }: { assetId: string; alt?: string; parentTabId: string }) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null)
+  const [mimeType, setMimeType] = useState<string | null>(null)
+
+  useEffect(() => {
+    const loadAsset = async () => {
+      try {
+        logger.debug('[AssetMedia] Loading asset:', { assetId, parentTabId })
+        const url = await window.App.file.getAssetDataUrl(assetId, parentTabId)
+        logger.debug('[AssetMedia] Got URL:', url ? 'success' : 'null')
+        if (!url) {
+          logger.error('Failed to load asset: URL is null or undefined', { assetId, parentTabId })
+          return
+        }
+        
+        setDataUrl(url)
+        
+        // Extract MIME type from data URL (format: data:image/png;base64,...)
+        const match = url.match(/^data:([^;]+);/)
+        if (match) {
+          setMimeType(match[1])
+          logger.debug('[AssetMedia] MIME type:', match[1])
+        }
+      } catch (error) {
+        logger.error('Failed to load asset:', error, { assetId, parentTabId })
+      }
+    }
+    loadAsset()
+  }, [assetId, parentTabId])
+
+  if (!dataUrl) return <span className="text-gray-500">Loading asset...</span>
+  
+  // Determine media type from MIME type
+  if (mimeType?.startsWith('video/')) {
+    return (
+      <video controls className="max-w-full h-auto rounded">
+        <source src={dataUrl} type={mimeType} />
+        Your browser does not support the video tag.
+      </video>
+    )
+  }
+  
+  if (mimeType?.startsWith('audio/')) {
+    return (
+      <audio controls className="w-full">
+        <source src={dataUrl} type={mimeType} />
+        Your browser does not support the audio tag.
+      </audio>
+    )
+  }
+  
+  // Default to image
+  return <img src={dataUrl} alt={alt || 'Asset'} className="max-w-full h-auto rounded" />
+}
 
 interface DeckEditorProps {
   tabId: string // FlexLayout tab ID (passed from factory)
@@ -42,6 +97,11 @@ export function DeckEditor({
   const [newCardFront, setNewCardFront] = useState('')
   const [newCardBack, setNewCardBack] = useState('')
   const [addCardError, setAddCardError] = useState('')
+  const [uploadedAssets, setUploadedAssets] = useState<string[]>([]) // Track assets uploaded during card creation
+  const [showExternalUrlDialog, setShowExternalUrlDialog] = useState(false)
+  const [externalUrl, setExternalUrl] = useState('')
+  const [externalMediaType, setExternalMediaType] = useState<'image' | 'audio' | 'video'>('image')
+  const [activeInput, setActiveInput] = useState<'front' | 'back'>('front') // Track which textarea is focused
   
   // Edit card state
   const [editingCardId, setEditingCardId] = useState<number | null>(null)
@@ -54,12 +114,100 @@ export function DeckEditor({
   
   const frontInputRef = useRef<HTMLTextAreaElement>(null)
   const editFrontInputRef = useRef<HTMLTextAreaElement>(null)
+  const assetInputRef = useRef<HTMLInputElement>(null)
   
   // Study session hook
   const studySession = useStudySession(deck, objectId, parentTabId)
   
-  // Markdown rendering
-  const { renderMarkdown } = useMarkdown()
+  // Base markdown rendering hook (must be at top level)
+  const { renderMarkdown: baseRenderMarkdown } = useMarkdown()
+  
+  // Custom markdown renderer with asset support and external media
+  const renderMarkdown = useCallback((text: string) => {
+    console.log('[renderMarkdown] Called with text:', text?.substring(0, 200))
+    
+    if (!text || text.trim() === '') return null
+    
+    // Check for all special markers: assets, audio, video
+    const assetRegex = /!\[([^\]]*)\]\(asset:\/\/([a-zA-Z0-9_-]+)\)/g
+    const audioRegex = /\[AUDIO:([^\]]+)\]/g
+    const videoRegex = /\[VIDEO:([^\]]+)\]/g
+    
+    const assetMatches = [...text.matchAll(assetRegex)]
+    const audioMatches = [...text.matchAll(audioRegex)]
+    const videoMatches = [...text.matchAll(videoRegex)]
+    
+    const allMatches = [
+      ...assetMatches.map(m => ({ type: 'asset', match: m })),
+      ...audioMatches.map(m => ({ type: 'audio', match: m })),
+      ...videoMatches.map(m => ({ type: 'video', match: m })),
+    ].sort((a, b) => (a.match.index || 0) - (b.match.index || 0))
+    
+    console.log('[renderMarkdown] Found matches:', allMatches.length)
+    
+    if (allMatches.length === 0) {
+      // No special content, use base renderer directly
+      return baseRenderMarkdown(text)
+    }
+    
+    // Build parts by splitting on match positions
+    const parts: React.ReactNode[] = []
+    let lastIndex = 0
+    let partKey = 0
+    
+    allMatches.forEach(({ type, match }) => {
+      // Add markdown content before this match
+      if (match.index !== undefined && match.index > lastIndex) {
+        const markdownBefore = text.substring(lastIndex, match.index)
+        if (markdownBefore.trim()) {
+          parts.push(<span key={`md-${partKey++}`}>{baseRenderMarkdown(markdownBefore)}</span>)
+        }
+      }
+      
+      // Add the appropriate media element
+      if (type === 'asset') {
+        const alt = match[1]
+        const assetId = match[2]
+        parts.push(
+          <div key={`asset-${assetId}-${partKey++}`} className="my-2">
+            <AssetMedia assetId={assetId} alt={alt} parentTabId={parentTabId} />
+          </div>
+        )
+      } else if (type === 'audio') {
+        const url = match[1]
+        parts.push(
+          <div key={`audio-${partKey++}`} className="my-2">
+            <audio controls className="w-full">
+              <source src={url} />
+              Your browser does not support the audio tag.
+            </audio>
+          </div>
+        )
+      } else if (type === 'video') {
+        const url = match[1]
+        parts.push(
+          <div key={`video-${partKey++}`} className="my-2">
+            <video controls className="max-w-full h-auto rounded">
+              <source src={url} />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        )
+      }
+      
+      lastIndex = (match.index !== undefined ? match.index : 0) + match[0].length
+    })
+    
+    // Add remaining markdown content
+    if (lastIndex < text.length) {
+      const markdownAfter = text.substring(lastIndex)
+      if (markdownAfter.trim()) {
+        parts.push(<span key={`md-${partKey++}`}>{baseRenderMarkdown(markdownAfter)}</span>)
+      }
+    }
+    
+    return <>{parts}</>
+  }, [parentTabId, baseRenderMarkdown])
   
   // Stats data - will be loaded from database
   const [stats, setStats] = useState({
@@ -149,6 +297,34 @@ export function DeckEditor({
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true })
   }, [])
 
+  // Clean up assets when user removes them from card text
+  useEffect(() => {
+    if (uploadedAssets.length === 0) return
+    
+    const currentAssets = [
+      ...extractAssetIds(newCardFront),
+      ...extractAssetIds(newCardBack)
+    ]
+    
+    // Find assets that were uploaded but are no longer in the text
+    const removedAssets = uploadedAssets.filter(id => !currentAssets.includes(id))
+    
+    if (removedAssets.length > 0) {
+      logger.debug('[Asset cleanup] Removing assets from text:', removedAssets)
+      // Clean up removed assets
+      removedAssets.forEach(async (assetId) => {
+        try {
+          await window.App.file.deleteAsset(assetId, parentTabId)
+        } catch (error) {
+          logger.error('Failed to delete removed asset:', error)
+        }
+      })
+      
+      // Update tracking to only include assets still in text
+      setUploadedAssets(currentAssets)
+    }
+  }, [newCardFront, newCardBack, parentTabId])
+
   // Save deck to database
   const saveDeck = async (updatedDeck: Deck) => {
     try {
@@ -203,9 +379,36 @@ export function DeckEditor({
       
       await window.App.deck.addCard(newCard, objectId, parentTabId)
       
+      // Clean up unused assets (uploaded but not in final card text)
+      const usedAssets = [...extractAssetIds(front), ...extractAssetIds(back)]
+      const unusedAssets = uploadedAssets.filter(id => !usedAssets.includes(id))
+      
+      logger.debug('[handleAddCard] Asset cleanup:', {
+        front: front.substring(0, 200),
+        back: back.substring(0, 200),
+        uploadedAssets,
+        usedAssets,
+        unusedAssets
+      })
+      
+      for (const assetId of unusedAssets) {
+        try {
+          logger.debug('[handleAddCard] Deleting unused asset:', assetId)
+          await window.App.file.deleteAsset(assetId, parentTabId)
+        } catch (error) {
+          logger.error('Failed to delete unused asset:', error)
+        }
+      }
+      
       // Reload deck to get updated cards
       const updatedDeck = await window.App.deck.load(objectId, parentTabId)
       setDeck(updatedDeck)
+      
+      logger.debug('[handleAddCard] Deck reloaded, cards:', updatedDeck?.cards.map((c: Card) => ({
+        id: c.id,
+        front: c.front.substring(0, 100),
+        back: c.back.substring(0, 100)
+      })))
       
       // Reload stats
       const deckStats = await window.App.deck.getStats(objectId, parentTabId)
@@ -217,6 +420,9 @@ export function DeckEditor({
         due: deckStats.dueCards,
       })
       
+      // Clear uploadedAssets tracking BEFORE clearing form to prevent cleanup effect
+      setUploadedAssets([])
+      
       // Clear form
       setNewCardFront('')
       setNewCardBack('')
@@ -225,6 +431,99 @@ export function DeckEditor({
       logger.error('Failed to add card:', error)
       setAddCardError('Failed to add card. Please try again.')
     }
+  }
+
+  // Handle asset upload
+  const handleAssetUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    
+    const file = files[0]
+    const arrayBuffer = await file.arrayBuffer()
+    
+    try {
+      logger.debug('[handleAssetUpload] Saving asset:', { 
+        fileName: file.name, 
+        fileType: file.type,
+        parentTabId 
+      })
+      
+      const assetId = await window.App.file.saveAsset(
+        file.name,
+        arrayBuffer,
+        file.type,
+        parentTabId
+      )
+      
+      logger.debug('[handleAssetUpload] Asset saved with ID:', assetId)
+      
+      // Insert asset reference into the active input
+      const assetMarkdown = `![${file.name}](asset://${assetId})`
+      if (activeInput === 'front') {
+        setNewCardFront(prev => prev + (prev ? '\n\n' : '') + assetMarkdown)
+      } else {
+        setNewCardBack(prev => prev + (prev ? '\n\n' : '') + assetMarkdown)
+      }
+      
+      // Track this asset so we can clean it up if unused
+      setUploadedAssets(prev => [...prev, assetId])
+    } catch (error) {
+      logger.error('Failed to upload asset:', error)
+      setAddCardError('Failed to upload asset. Please try again.')
+    }
+  }
+  
+  // Auto-detect media type from URL extension
+  const detectMediaType = (url: string): 'image' | 'audio' | 'video' => {
+    const lowerUrl = url.toLowerCase()
+    
+    // Image extensions
+    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp|ico|avif)($|\?)/.test(lowerUrl)) {
+      return 'image'
+    }
+    
+    // Audio extensions
+    if (/\.(mp3|wav|ogg|m4a|aac|flac|wma)($|\?)/.test(lowerUrl)) {
+      return 'audio'
+    }
+    
+    // Video extensions
+    if (/\.(mp4|webm|ogv|mov|avi|mkv|flv|wmv|m4v)($|\?)/.test(lowerUrl)) {
+      return 'video'
+    }
+    
+    // Default to image
+    return 'image'
+  }
+  
+  // Handle external URL insertion
+  const handleInsertExternalUrl = () => {
+    if (!externalUrl.trim()) return
+    
+    let markdown = ''
+    if (externalMediaType === 'image') {
+      markdown = `![External Image](${externalUrl})`
+    } else if (externalMediaType === 'audio') {
+      // Use a special marker that we'll replace with actual audio element
+      markdown = `[AUDIO:${externalUrl}]`
+    } else if (externalMediaType === 'video') {
+      // Use a special marker that we'll replace with actual video element
+      markdown = `[VIDEO:${externalUrl}]`
+    }
+    
+    // Insert into the active input
+    if (activeInput === 'front') {
+      setNewCardFront(prev => prev + (prev ? '\n\n' : '') + markdown)
+    } else {
+      setNewCardBack(prev => prev + (prev ? '\n\n' : '') + markdown)
+    }
+    
+    setExternalUrl('')
+    setShowExternalUrlDialog(false)
+  }  // Extract asset IDs from markdown text
+  const extractAssetIds = (text: string): string[] => {
+    const regex = /asset:\/\/([a-zA-Z0-9_-]+)/g
+    const matches = [...text.matchAll(regex)]
+    return matches.map(m => m[1])
   }
 
   // Start editing card
@@ -278,11 +577,25 @@ export function DeckEditor({
     }
   }
   
-  // Delete card
+  // Delete card and its assets
   const handleDeleteCard = async (cardId: number) => {
     if (!deck) return
     
     try {
+      const card = deck.cards.find(c => c.id === cardId)
+      if (!card) return
+      
+      // Extract and delete all assets from card content
+      const frontAssets = extractAssetIds(card.front)
+      const backAssets = extractAssetIds(card.back)
+      const allAssets = [...new Set([...frontAssets, ...backAssets])]
+      
+      // Delete all assets
+      for (const assetId of allAssets) {
+        await window.App.file.deleteAsset(assetId, parentTabId)
+      }
+      
+      // Delete card from database
       await window.App.deck.deleteCard(cardId, parentTabId)
       
       // Reload deck
@@ -680,6 +993,7 @@ export function DeckEditor({
                         setNewCardFront(e.target.value)
                         setAddCardError('')
                       }}
+                      onFocus={() => setActiveInput('front')}
                       placeholder="**What** is the capital of France?\n\n- Use *markdown* formatting\n- ==Highlight== text\n- Create `code` blocks"
                       ref={frontInputRef}
                       value={newCardFront}
@@ -696,6 +1010,7 @@ export function DeckEditor({
                         setNewCardBack(e.target.value)
                         setAddCardError('')
                       }}
+                      onFocus={() => setActiveInput('back')}
                       placeholder="**Paris** - the capital and largest city of France.\n\n> Located on the Seine River"
                       value={newCardBack}
                     />
@@ -708,7 +1023,30 @@ export function DeckEditor({
                     </div>
                   )}
                 
+                  {/* Hidden file input for assets */}
+                  <input
+                    ref={assetInputRef}
+                    type="file"
+                    accept="image/*,audio/*,video/*"
+                    className="hidden"
+                    onChange={(e) => handleAssetUpload(e.target.files)}
+                  />
+                
                   <div className="flex gap-3">
+                    <button
+                      className="px-4 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-medium transition-colors flex items-center gap-2"
+                      onClick={() => assetInputRef.current?.click()}
+                    >
+                      <Paperclip size={16} />
+                      Attach Asset
+                    </button>
+                    <button
+                      className="px-4 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white font-medium transition-colors flex items-center gap-2"
+                      onClick={() => setShowExternalUrlDialog(true)}
+                    >
+                      <Link size={16} />
+                      External URL
+                    </button>
                     <button
                       className="flex-1 px-4 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium transition-colors"
                       onClick={handleAddCard}
@@ -717,11 +1055,21 @@ export function DeckEditor({
                     </button>
                     <button
                       className="px-4 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-colors"
-                      onClick={() => {
+                      onClick={async () => {
+                        // Clean up all uploaded assets when cancelling
+                        for (const assetId of uploadedAssets) {
+                          try {
+                            await window.App.file.deleteAsset(assetId, parentTabId)
+                          } catch (error) {
+                            logger.error('Failed to delete asset:', error)
+                          }
+                        }
+                        
                         setView('overview')
                         setNewCardFront('')
                         setNewCardBack('')
                         setAddCardError('')
+                        setUploadedAssets([])
                       }}
                     >
                       Cancel
@@ -899,6 +1247,98 @@ export function DeckEditor({
               >
                 Back to Overview
               </button>
+            </div>
+          </div>
+        )}
+        
+        {/* External URL Dialog */}
+        {showExternalUrlDialog && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+            <div className="bg-gray-900 rounded-lg border border-purple-400/30 p-6 w-full max-w-md">
+              <h3 className="text-xl font-bold text-purple-400 mb-4">Insert External Media URL</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Media Type</label>
+                  <div className="flex gap-2">
+                    <button
+                      className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                        externalMediaType === 'image'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      }`}
+                      onClick={() => setExternalMediaType('image')}
+                    >
+                      Image
+                    </button>
+                    <button
+                      className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                        externalMediaType === 'audio'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      }`}
+                      onClick={() => setExternalMediaType('audio')}
+                    >
+                      Audio
+                    </button>
+                    <button
+                      className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                        externalMediaType === 'video'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                      }`}
+                      onClick={() => setExternalMediaType('video')}
+                    >
+                      Video
+                    </button>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">URL</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                    placeholder="https://example.com/media.jpg"
+                    value={externalUrl}
+                    onChange={(e) => {
+                      const url = e.target.value
+                      setExternalUrl(url)
+                      // Auto-detect media type from URL extension
+                      if (url.trim()) {
+                        setExternalMediaType(detectMediaType(url))
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleInsertExternalUrl()
+                      } else if (e.key === 'Escape') {
+                        setShowExternalUrlDialog(false)
+                        setExternalUrl('')
+                      }
+                    }}
+                    autoFocus
+                  />
+                </div>
+                
+                <div className="flex gap-3 justify-end">
+                  <button
+                    className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors"
+                    onClick={() => {
+                      setShowExternalUrlDialog(false)
+                      setExternalUrl('')
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium transition-colors"
+                    onClick={handleInsertExternalUrl}
+                  >
+                    Insert
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
