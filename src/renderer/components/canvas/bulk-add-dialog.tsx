@@ -176,11 +176,6 @@ export function BulkAddDialog({ open, onClose, onImport }: BulkAddDialogProps) {
 				front += `\n\n*${vocab.subTitle}*`
 			}
 
-			// Add audio to front if available
-			if (vocab.audios.length > 0 && vocab.audios[0].mp3Src) {
-				front += `\n\n[AUDIO:${vocab.audios[0].mp3Src}]`
-			}
-
 			// Add image to front if available
 			if (
 				vocab.audios.length > 0 &&
@@ -190,6 +185,11 @@ export function BulkAddDialog({ open, onClose, onImport }: BulkAddDialogProps) {
 					vocab.audios[0].mainContentImage.staticUrl,
 				)
 				front += `\n\n![](${imageUrl})`
+			}
+
+			// Add audio to front if available
+			if (vocab.audios.length > 0 && vocab.audios[0].mp3Src) {
+				front += `\n\n[AUDIO:${vocab.audios[0].mp3Src}]`
 			}
 
 			// Back: English translation only
