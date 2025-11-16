@@ -191,7 +191,7 @@ export function AddCardView({
               <div className="text-sm font-medium text-gray-400 mb-3">Question</div>
               <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700 min-h-[120px]">
                 {frontValue ? (
-                  <div className="markdown-content text-white">
+                  <div className="markdown-content text-white text-center">
                     {renderMarkdown(frontValue)}
                   </div>
                 ) : (
@@ -204,7 +204,7 @@ export function AddCardView({
               <div className="text-sm font-medium text-gray-400 mb-3">Answer</div>
               <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700 min-h-[120px]">
                 {backValue ? (
-                  <div className="markdown-content text-white">
+                  <div className="markdown-content text-white text-center">
                     {renderMarkdown(backValue)}
                   </div>
                 ) : (

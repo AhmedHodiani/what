@@ -64,10 +64,10 @@ export function DeckWidget({
               {object.object_data.title || 'Deck'}
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              Double-click: Split view
+              Double-click: Full tab
             </div>
             <div className="text-xs text-gray-500 mt-2">
-              Ctrl+Double-click: Full tab
+              Ctrl+Double-click: Split view
             </div>
           </div>
         </div>

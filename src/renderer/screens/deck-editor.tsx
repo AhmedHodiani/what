@@ -311,7 +311,6 @@ export function DeckEditor({
       <div className="border-b border-purple-400/20 bg-black/40 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="text-3xl">🃏</div>
             <div>
               <h1 className="text-2xl font-bold text-purple-400">{deck.name}</h1>
               <p className="text-sm text-gray-400 mt-0.5">

@@ -27,11 +27,11 @@ export const DEFAULT_FSRS_PARAMS = [
  */
 export function createDefaultDeckConfig(): DeckConfig {
     return {
-        // Learning steps: 1 minute, 10 minutes
-        learnSteps: [1.0, 10.0],
+        // Learning steps: 1 minute, 5 minutes
+        learnSteps: [1.0, 5.0],
         
-        // Relearning steps: 10 minutes
-        relearnSteps: [10.0],
+        // Relearning steps: 5 minutes
+        relearnSteps: [5.0],
         
         // Daily limits
         newPerDay: 20,
@@ -54,7 +54,7 @@ export function createDefaultDeckConfig(): DeckConfig {
         
         // FSRS Parameters
         fsrsParams: [...DEFAULT_FSRS_PARAMS],
-        desiredRetention: 0.9, // 90% retention target
+        desiredRetention: 0.99, // 99% retention target
         
         // Card ordering
         newCardInsertOrder: NewCardInsertOrder.Due,

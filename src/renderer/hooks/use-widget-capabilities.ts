@@ -47,9 +47,9 @@ export function useWidgetCapabilities(
       e.stopPropagation()
 
       // Determine split view mode based on Ctrl key
-      // Regular double-click = split view (50%)
-      // Ctrl+Double-click = full tab (100%)
-      const splitView = !e.ctrlKey
+      // Regular double-click = full tab (100%)
+      // Ctrl+Double-click = split view (50%)
+      const splitView = e.ctrlKey
 
       try {
         // Get widget-specific config

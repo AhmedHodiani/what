@@ -256,15 +256,9 @@ export function DeckSettingsDialog({
         `}</style>
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
-          <div className="text-3xl">⚙️</div>
-          <div>
             <h2 className="text-xl font-semibold text-purple-400">
               Deck Settings
             </h2>
-            <p className="text-sm text-gray-400 mt-0.5">
-              {deckName}
-            </p>
-          </div>
         </div>
 
         {/* Tabs */}
