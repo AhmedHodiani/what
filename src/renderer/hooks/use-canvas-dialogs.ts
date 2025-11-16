@@ -20,6 +20,7 @@ interface UseCanvasDialogsOptions {
   selectObject: (id: string) => void
   clearSelection: () => void
   setTool: (tool: CanvasTool) => void
+  tabId: string // Needed for deck creation IPC call
 }
 
 export interface ContextMenuState {
@@ -45,6 +46,7 @@ export function useCanvasDialogs({
   selectObject,
   clearSelection,
   setTool,
+  tabId,
 }: UseCanvasDialogsOptions) {
   // YouTube dialog state
   const [showYouTubeDialog, setShowYouTubeDialog] = useState(false)
@@ -308,17 +310,23 @@ export function useCanvasDialogs({
         z_index: objectsLength,
         object_data: {
           title: name,
-          assetId: undefined, // Will be created on first save
         },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       }
+      
+      // IMPORTANT: Add the deck object to canvas FIRST (creates objects table entry)
+      // This must happen before deck.create() because deck_config has FK to objects(id)
       await addObject(newDeck)
+      
+      // Now create the deck in the database (deck_config entry)
+      await window.App.deck.create(newDeck.id, name, tabId)
+      
       selectObject(newDeck.id)
       setShowDeckDialog(false)
       setTool('select')
     },
-    [deckDialogPosition, objectsLength, addObject, selectObject, setTool]
+    [deckDialogPosition, objectsLength, addObject, selectObject, setTool, tabId]
   )
 
   /**

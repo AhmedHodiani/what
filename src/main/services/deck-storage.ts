@@ -105,16 +105,15 @@ export class DeckStorageService {
   addCard(card: Card, deckObjectId: string): void {
     const stmt = this.db.prepare(`
       INSERT INTO cards (
-        id, note_id, deck_id, front, back,
+        note_id, deck_id, front, back,
         ctype, queue, due, interval, ease_factor,
         reps, lapses, remaining_steps,
         stability, difficulty, desired_retention,
         mtime, last_review, flags, custom_data
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
-    stmt.run(
-      card.id,
+    const result = stmt.run(
       card.noteId,
       deckObjectId,
       card.front,
@@ -136,7 +135,7 @@ export class DeckStorageService {
       card.customData
     )
 
-    logger.objects.debug('Added card:', { cardId: card.id, deckObjectId })
+    logger.objects.debug('Added card:', { cardId: result.lastInsertRowid, deckObjectId })
   }
 
   /**

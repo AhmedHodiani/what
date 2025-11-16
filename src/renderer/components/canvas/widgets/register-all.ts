@@ -211,17 +211,12 @@ export function registerAllWidgets(): void {
         enabled: true,
         componentName: 'deck',
         getTabConfig: async (object, tabId) => {
-          // Reload from database to get latest assetId
-          const objects = await window.App.file.getObjects(tabId)
-          const freshObject = objects.find((obj: any) => obj.id === object.id)
-          const assetId = freshObject?.object_data?.assetId
-
+          // Decks use objectId directly as deck_id in SQLite (no asset files)
           return {
             type: 'deck',
             objectId: object.id,
             parentTabId: tabId,
             title: (object.object_data as any).title || 'Deck',
-            assetId,
           }
         },
         tabTitle: object => (object.object_data as any).title || 'Deck',

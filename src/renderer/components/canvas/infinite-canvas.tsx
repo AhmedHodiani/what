@@ -286,6 +286,7 @@ export function InfiniteCanvas({
     selectObject,
     clearSelection,
     setTool,
+    tabId: tabId || '',
   })
 
   // Object duplication hook - handles Ctrl+D duplication with asset copying
