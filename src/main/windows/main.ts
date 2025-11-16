@@ -578,6 +578,156 @@ export async function MainWindow() {
     }
   )
 
+  // ============================================================================
+  // Deck operations (FSRS flashcards)
+  // ============================================================================
+
+  ipcMain.removeHandler('deck-create')
+  ipcMain.handle(
+    'deck-create',
+    async (_event, deckObjectId: string, name: string, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) {
+          throw new Error('No active tab')
+        }
+
+        return multiFileManager.createDeck(targetTabId, deckObjectId, name)
+      } catch (error) {
+        logger.error('Failed to create deck:', error)
+        throw error
+      }
+    }
+  )
+
+  ipcMain.removeHandler('deck-load')
+  ipcMain.handle(
+    'deck-load',
+    async (_event, deckObjectId: string, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) {
+          throw new Error('No active tab')
+        }
+
+        return multiFileManager.loadDeck(targetTabId, deckObjectId)
+      } catch (error) {
+        logger.error('Failed to load deck:', error)
+        throw error
+      }
+    }
+  )
+
+  ipcMain.removeHandler('deck-save-config')
+  ipcMain.handle(
+    'deck-save-config',
+    async (_event, deckObjectId: string, config: any, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) {
+          throw new Error('No active tab')
+        }
+
+        multiFileManager.saveDeckConfig(targetTabId, deckObjectId, config)
+        return true
+      } catch (error) {
+        logger.error('Failed to save deck config:', error)
+        throw error
+      }
+    }
+  )
+
+  ipcMain.removeHandler('deck-add-card')
+  ipcMain.handle(
+    'deck-add-card',
+    async (_event, card: any, deckObjectId: string, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) {
+          throw new Error('No active tab')
+        }
+
+        multiFileManager.addCard(targetTabId, card, deckObjectId)
+        return true
+      } catch (error) {
+        logger.error('Failed to add card:', error)
+        throw error
+      }
+    }
+  )
+
+  ipcMain.removeHandler('deck-update-card')
+  ipcMain.handle('deck-update-card', async (_event, card: any, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) {
+        throw new Error('No active tab')
+      }
+
+      multiFileManager.updateCard(targetTabId, card)
+      return true
+    } catch (error) {
+      logger.error('Failed to update card:', error)
+      throw error
+    }
+  })
+
+  ipcMain.removeHandler('deck-delete-card')
+  ipcMain.handle(
+    'deck-delete-card',
+    async (_event, cardId: number, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) {
+          throw new Error('No active tab')
+        }
+
+        multiFileManager.deleteCard(targetTabId, cardId)
+        return true
+      } catch (error) {
+        logger.error('Failed to delete card:', error)
+        throw error
+      }
+    }
+  )
+
+  ipcMain.removeHandler('deck-add-review-log')
+  ipcMain.handle(
+    'deck-add-review-log',
+    async (_event, log: any, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) {
+          throw new Error('No active tab')
+        }
+
+        multiFileManager.addReviewLog(targetTabId, log)
+        return true
+      } catch (error) {
+        logger.error('Failed to add review log:', error)
+        throw error
+      }
+    }
+  )
+
+  ipcMain.removeHandler('deck-get-stats')
+  ipcMain.handle(
+    'deck-get-stats',
+    async (_event, deckObjectId: string, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) {
+          throw new Error('No active tab')
+        }
+
+        return multiFileManager.getDeckStats(targetTabId, deckObjectId)
+      } catch (error) {
+        logger.error('Failed to get deck stats:', error)
+        throw error
+      }
+    }
+  )
+
   // Notify renderer when maximize state changes
   window.on('maximize', () => {
     window.webContents.send('window-maximize-change', true)

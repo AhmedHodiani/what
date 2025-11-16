@@ -117,6 +117,26 @@ const API = {
     getFileSize: (tabId?: string) => ipcRenderer.invoke('file-get-size', tabId),
   },
 
+  // Deck operations (FSRS flashcards)
+  deck: {
+    create: (deckObjectId: string, name: string, tabId?: string) =>
+      ipcRenderer.invoke('deck-create', deckObjectId, name, tabId),
+    load: (deckObjectId: string, tabId?: string) =>
+      ipcRenderer.invoke('deck-load', deckObjectId, tabId),
+    saveConfig: (deckObjectId: string, config: any, tabId?: string) =>
+      ipcRenderer.invoke('deck-save-config', deckObjectId, config, tabId),
+    addCard: (card: any, deckObjectId: string, tabId?: string) =>
+      ipcRenderer.invoke('deck-add-card', card, deckObjectId, tabId),
+    updateCard: (card: any, tabId?: string) =>
+      ipcRenderer.invoke('deck-update-card', card, tabId),
+    deleteCard: (cardId: number, tabId?: string) =>
+      ipcRenderer.invoke('deck-delete-card', cardId, tabId),
+    addReviewLog: (log: any, tabId?: string) =>
+      ipcRenderer.invoke('deck-add-review-log', log, tabId),
+    getStats: (deckObjectId: string, tabId?: string) =>
+      ipcRenderer.invoke('deck-get-stats', deckObjectId, tabId),
+  },
+
   // Tab management
   tabs: {
     getAll: () => ipcRenderer.invoke('tabs-get-all'),
