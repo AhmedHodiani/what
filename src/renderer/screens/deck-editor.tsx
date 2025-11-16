@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { logger } from 'shared/logger'
-import { BookOpen, Plus, Settings, Trash2, Edit3, GraduationCap, X } from 'lucide-react'
+import { BookOpen, Plus, Settings, Trash2, Edit3, GraduationCap, X, Eye } from 'lucide-react'
 import type { Deck, DeckConfig, Card } from 'shared/fsrs/types'
+import { generateNoteId } from 'shared/fsrs/cardUtils'
 import { DeckSettingsDialog } from 'renderer/components/canvas/deck-settings-dialog'
 import { useStudySession } from 'renderer/hooks/use-study-session'
+import { useMarkdown } from 'renderer/hooks/use-markdown'
 
 interface DeckEditorProps {
   tabId: string // FlexLayout tab ID (passed from factory)
@@ -55,6 +57,9 @@ export function DeckEditor({
   
   // Study session hook
   const studySession = useStudySession(deck, objectId, parentTabId)
+  
+  // Markdown rendering
+  const { renderMarkdown } = useMarkdown()
   
   // Stats data - will be loaded from database
   const [stats, setStats] = useState({
@@ -176,13 +181,13 @@ export function DeckEditor({
       // Create card object matching Card type from shared/fsrs/types.ts
       const newCard = {
         id: 0, // Will be assigned by database
-        noteId: Date.now(), // Use timestamp as unique note ID
+        noteId: generateNoteId(), // Use proper ID generation with counter
         deckId: deck.id,
         front,
         back,
         ctype: 0, // CardType.New
         queue: 0, // CardQueue.New
-        due: Math.floor(Date.now() / 1000), // Unix timestamp in seconds
+        due: 0, // Position in new queue (NOT timestamp!)
         interval: 0,
         easeFactor: 2500, // 250% (Anki default)
         reps: 0,
@@ -193,7 +198,7 @@ export function DeckEditor({
         mtime: Math.floor(Date.now() / 1000),
         lastReview: null,
         flags: 0,
-        customData: '{}',
+        customData: '', // Empty string, not JSON object
       }
       
       await window.App.deck.addCard(newCard, objectId, parentTabId)
@@ -561,10 +566,10 @@ export function DeckEditor({
                       // Edit mode
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm text-gray-400 mb-2">Question (Front)</label>
+                          <label className="block text-sm text-gray-400 mb-2">Question (Front) - Markdown Supported</label>
                           <textarea
                             ref={editFrontInputRef}
-                            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all min-h-20"
+                            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all min-h-20 font-mono text-sm"
                             placeholder="What is the question?"
                             value={editCardFront}
                             onChange={e => setEditCardFront(e.target.value)}
@@ -572,9 +577,9 @@ export function DeckEditor({
                         </div>
                         
                         <div>
-                          <label className="block text-sm text-gray-400 mb-2">Answer (Back)</label>
+                          <label className="block text-sm text-gray-400 mb-2">Answer (Back) - Markdown Supported</label>
                           <textarea
-                            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all min-h-20"
+                            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all min-h-20 font-mono text-sm"
                             placeholder="What is the answer?"
                             value={editCardBack}
                             onChange={e => setEditCardBack(e.target.value)}
@@ -608,10 +613,14 @@ export function DeckEditor({
                             <span className="text-gray-400 font-mono text-sm mt-1">#{index + 1}</span>
                             <div className="flex-1">
                               <div className="text-sm text-gray-400 mb-1">Question</div>
-                              <div className="text-white mb-4 whitespace-pre-wrap">{card.front}</div>
+                              <div className="text-white mb-4 markdown-content">
+                                {renderMarkdown(card.front)}
+                              </div>
                               
                               <div className="text-sm text-gray-400 mb-1">Answer</div>
-                              <div className="text-gray-300 whitespace-pre-wrap">{card.back}</div>
+                              <div className="text-gray-300 markdown-content">
+                                {renderMarkdown(card.back)}
+                              </div>
                             </div>
                           </div>
                           
@@ -651,76 +660,111 @@ export function DeckEditor({
 
         {/* Add Card View */}
         {view === 'add-card' && (
-          <div className="max-w-2xl mx-auto p-8">
-            <div className="bg-black/40 border border-purple-400/20 rounded-lg p-8">
-              <h2 className="text-2xl font-bold text-purple-400 mb-6 flex items-center gap-2">
-                <Plus size={24} />
-                Add New Card
-              </h2>
-              
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Question (Front)
-                  </label>
-                  <textarea
-                    className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all resize-none"
-                    onChange={(e) => {
-                      setNewCardFront(e.target.value)
-                      setAddCardError('')
-                    }}
-                    placeholder="What is the capital of France?"
-                    ref={frontInputRef}
-                    rows={3}
-                    value={newCardFront}
-                  />
-                </div>
+          <div className="flex-1 flex gap-6 p-8 overflow-hidden">
+            {/* Editor Side */}
+            <div className="flex-1 flex flex-col">
+              <div className="bg-black/40 border border-purple-400/20 rounded-lg p-6 flex flex-col flex-1">
+                <h2 className="text-2xl font-bold text-purple-400 mb-6 flex items-center gap-2">
+                  <Plus size={24} />
+                  Add New Card
+                </h2>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Answer (Back)
-                  </label>
-                  <textarea
-                    className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all resize-none"
-                    onChange={(e) => {
-                      setNewCardBack(e.target.value)
-                      setAddCardError('')
-                    }}
-                    placeholder="Paris"
-                    rows={3}
-                    value={newCardBack}
-                  />
-                </div>
-                
-                {addCardError && (
-                  <div className="text-red-400 text-sm flex items-center gap-2">
-                    <span>⚠️</span>
-                    <span>{addCardError}</span>
+                <div className="space-y-6 flex-1 flex flex-col">
+                  <div className="flex-1 flex flex-col">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Question (Front) - Markdown Supported
+                    </label>
+                    <textarea
+                      className="flex-1 w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all resize-none font-mono text-sm"
+                      onChange={(e) => {
+                        setNewCardFront(e.target.value)
+                        setAddCardError('')
+                      }}
+                      placeholder="**What** is the capital of France?\n\n- Use *markdown* formatting\n- ==Highlight== text\n- Create `code` blocks"
+                      ref={frontInputRef}
+                      value={newCardFront}
+                    />
                   </div>
-                )}
+                  
+                  <div className="flex-1 flex flex-col">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Answer (Back) - Markdown Supported
+                    </label>
+                    <textarea
+                      className="flex-1 w-full px-4 py-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all resize-none font-mono text-sm"
+                      onChange={(e) => {
+                        setNewCardBack(e.target.value)
+                        setAddCardError('')
+                      }}
+                      placeholder="**Paris** - the capital and largest city of France.\n\n> Located on the Seine River"
+                      value={newCardBack}
+                    />
+                  </div>
+                  
+                  {addCardError && (
+                    <div className="text-red-400 text-sm flex items-center gap-2">
+                      <span>⚠️</span>
+                      <span>{addCardError}</span>
+                    </div>
+                  )}
                 
-                <div className="flex gap-3">
-                  <button
-                    className="flex-1 px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold transition-colors"
-                    onClick={handleAddCard}
-                  >
-                    Add Card
-                  </button>
-                  <button
-                    className="px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-colors border border-gray-600"
-                    onClick={() => {
-                      setNewCardFront('')
-                      setNewCardBack('')
-                      setAddCardError('')
-                      setView('overview')
-                    }}
-                  >
-                    Cancel
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      className="flex-1 px-4 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium transition-colors"
+                      onClick={handleAddCard}
+                    >
+                      Add Card
+                    </button>
+                    <button
+                      className="px-4 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-colors"
+                      onClick={() => {
+                        setView('overview')
+                        setNewCardFront('')
+                        setNewCardBack('')
+                        setAddCardError('')
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
+              </div>
+            </div>
+            
+            {/* Preview Side */}
+            <div className="flex-1 flex flex-col">
+              <div className="bg-black/40 border border-purple-400/20 rounded-lg p-6 flex flex-col flex-1">
+                <h2 className="text-xl font-bold text-purple-400 mb-6 flex items-center gap-2">
+                  <Eye size={20} />
+                  Live Preview
+                </h2>
                 
-                <div className="text-xs text-gray-500 pt-4 border-t border-purple-400/20">
-                  <p>💡 Tip: Use clear, concise questions and answers for best results</p>
+                <div className="space-y-6 flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+                  <div className="flex-1 flex flex-col">
+                    <div className="text-sm font-medium text-gray-400 mb-3">Question</div>
+                    <div className="flex-1 bg-gray-900/50 rounded-lg p-4 border border-gray-700 overflow-y-auto custom-scrollbar">
+                      {newCardFront ? (
+                        <div className="markdown-content text-white">
+                          {renderMarkdown(newCardFront)}
+                        </div>
+                      ) : (
+                        <div className="text-gray-500 italic">Preview will appear here...</div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 flex flex-col">
+                    <div className="text-sm font-medium text-gray-400 mb-3">Answer</div>
+                    <div className="flex-1 bg-gray-900/50 rounded-lg p-4 border border-gray-700 overflow-y-auto custom-scrollbar">
+                      {newCardBack ? (
+                        <div className="markdown-content text-white">
+                          {renderMarkdown(newCardBack)}
+                        </div>
+                      ) : (
+                        <div className="text-gray-500 italic">Preview will appear here...</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -746,8 +790,8 @@ export function DeckEditor({
                 {/* Question */}
                 <div className="bg-black/60 border-2 border-purple-400/30 rounded-2xl p-12 mb-8">
                   <div className="text-sm text-purple-400 mb-4 font-medium">QUESTION</div>
-                  <div className="text-3xl text-white text-center leading-relaxed">
-                    {studySession.currentCard.front}
+                  <div className="text-3xl text-white text-center leading-relaxed markdown-content">
+                    {renderMarkdown(studySession.currentCard.front)}
                   </div>
                   {studySession.currentCard.interval > 0 && (
                     <div className="text-sm text-gray-500 mt-4 text-center">
@@ -760,8 +804,8 @@ export function DeckEditor({
                 {studySession.showingAnswer && (
                   <div className="bg-black/60 border-2 border-green-400/30 rounded-2xl p-12 mb-8 animate-in fade-in duration-300">
                     <div className="text-sm text-green-400 mb-4 font-medium">ANSWER</div>
-                    <div className="text-2xl text-white text-center leading-relaxed">
-                      {studySession.currentCard.back}
+                    <div className="text-2xl text-white text-center leading-relaxed markdown-content">
+                      {renderMarkdown(studySession.currentCard.back)}
                     </div>
                   </div>
                 )}

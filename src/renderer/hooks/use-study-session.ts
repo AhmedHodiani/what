@@ -185,6 +185,7 @@ export function useStudySession(
     // Priority 2: Main queue cards
     if (mainQueue.length > 0) {
       const entry = mainQueue[0]
+      mainQueueRef.current = mainQueue.slice(1) // Remove card from queue IMMEDIATELY (matches CLI)
       const kind = entry.kind === 'new' ? 'new' : 
                    entry.kind === 'day-learning' ? 'learning' : 'review'
       return {
@@ -307,11 +308,23 @@ export function useStudySession(
           rating
         )
         
-        // Update card in database
-        await window.App.deck.updateCard({ id: currentCard.id, ...cardUpdates }, parentTabId)
+        // Update card in deck's in-memory cards array (matches CLI pattern)
+        const cardIndex = deckRef.current.cards.findIndex(c => c.id === currentCard.id)
+        if (cardIndex !== -1) {
+          deckRef.current.cards[cardIndex] = {
+            ...deckRef.current.cards[cardIndex],
+            ...cardUpdates,
+            mtime: Math.floor(Date.now() / 1000),
+          }
+        }
         
-        // Add review log
-        await window.App.deck.addReviewLog(
+        // Save to database (async, non-blocking)
+        window.App.deck.updateCard({ id: currentCard.id, ...cardUpdates }, parentTabId).catch(err => {
+          logger.error('Failed to save card update:', err)
+        })
+        
+        // Add review log (async, non-blocking)
+        window.App.deck.addReviewLog(
           {
             id: Date.now(),
             cardId: currentCard.id,
@@ -319,7 +332,9 @@ export function useStudySession(
             ...reviewLog,
           },
           parentTabId
-        )
+        ).catch(err => {
+          logger.error('Failed to save review log:', err)
+        })
         
         // Update reviewed count
         setReviewedCount(prev => prev + 1)
@@ -327,16 +342,13 @@ export function useStudySession(
         // If this was a learning card, remove it from the intraday queue
         if (wasLearningCard) {
           queueBuilder.removeIntradayLearningCard(currentCard.id)
-        } else {
-          // Remove from main queue (shift)
-          mainQueueRef.current = mainQueueRef.current.slice(1)
         }
+        // Note: mainQueue already shifted in getNextCard (matches CLI)
         
         // If card is still in learning (not graduated), requeue it
         if (cardUpdates.queue === CardQueue.Learn || cardUpdates.queue === CardQueue.PreviewRepeat) {
-          // Reload deck to get updated card
-          const updatedDeck = await window.App.deck.load(objectId, parentTabId)
-          const updatedCard = updatedDeck?.cards.find((c: Card) => c.id === currentCard.id)
+          // Find updated card from in-memory deck (matches CLI pattern)
+          const updatedCard = deckRef.current.cards.find(c => c.id === currentCard.id)
           
           if (updatedCard) {
             queueBuilder.requeueLearningCard(updatedCard)
@@ -408,7 +420,7 @@ export function useStudySession(
       return card.due <= now
     }
     if (card.queue === CardQueue.DayLearn) {
-      return card.due <= now
+      return card.due <= daysElapsed // DayLearn uses days, not seconds!
     }
     if (card.queue === CardQueue.Review) {
       return card.due <= daysElapsed

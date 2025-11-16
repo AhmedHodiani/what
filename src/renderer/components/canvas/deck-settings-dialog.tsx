@@ -1,7 +1,96 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 import type { DeckConfig } from 'shared/fsrs/types'
-import { Settings, BookOpen, Brain, Layers, AlertCircle } from 'lucide-react'
+import { Settings, BookOpen, Brain, Layers, AlertCircle, ChevronDown, Check } from 'lucide-react'
+
+interface SelectOption {
+  value: number
+  label: string
+  description: string
+}
+
+/**
+ * CustomSelect - Styled dropdown with descriptions
+ */
+function CustomSelect({
+  options,
+  value,
+  onChange,
+  disabled = false,
+}: {
+  options: SelectOption[]
+  value: number
+  onChange: (value: number) => void
+  disabled?: boolean
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
+
+  const selectedOption = options.find(opt => opt.value === value) || options[0]
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        disabled={disabled}
+        className={`w-full px-4 py-2.5 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all flex items-center justify-between ${
+          disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-purple-400/50 cursor-pointer'
+        }`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        <span className="text-sm">{selectedOption.label}</span>
+        <ChevronDown className={`w-4 h-4 text-purple-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="fixed z-9999 bg-gray-800 border border-purple-400/30 rounded-lg shadow-2xl max-h-96 overflow-y-auto custom-scrollbar"
+          style={{
+            top: dropdownRef.current ? `${dropdownRef.current.getBoundingClientRect().bottom + 8}px` : '0',
+            left: dropdownRef.current ? `${dropdownRef.current.getBoundingClientRect().left}px` : '0',
+            width: dropdownRef.current ? `${dropdownRef.current.getBoundingClientRect().width}px` : 'auto',
+          }}
+        >
+          {options.map(option => (
+            <button
+              key={option.value}
+              type="button"
+              className={`w-full px-4 py-3 text-left hover:bg-purple-900/30 transition-colors border-b border-gray-700 last:border-b-0 ${
+                option.value === value ? 'bg-purple-900/20' : ''
+              }`}
+              onClick={() => {
+                onChange(option.value)
+                setIsOpen(false)
+              }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-white mb-1">{option.label}</div>
+                  <div className="text-xs text-gray-400 leading-relaxed">{option.description}</div>
+                </div>
+                {option.value === value && (
+                  <Check className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 interface DeckSettingsDialogProps {
   onConfirm: (config: DeckConfig) => void
@@ -31,6 +120,10 @@ export function DeckSettingsDialog({
   const [config, setConfig] = useState<DeckConfig>(initialConfig)
   const [activeTab, setActiveTab] = useState<'learning' | 'fsrs' | 'ordering' | 'advanced'>('learning')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  
+  // Local state for text inputs to allow free typing
+  const [learnStepsText, setLearnStepsText] = useState(initialConfig.learnSteps.join(', '))
+  const [relearnStepsText, setRelearnStepsText] = useState(initialConfig.relearnSteps.join(', '))
 
   const handleConfirm = () => {
     // Validate settings
@@ -90,9 +183,77 @@ export function DeckSettingsDialog({
       onClick={onCancel}
     >
       <div
-        className="bg-black/90 rounded-lg shadow-2xl border border-purple-400/30 p-6 w-[700px] max-w-[90vw] max-h-[85vh] overflow-hidden flex flex-col"
+        className="bg-black/90 rounded-lg shadow-2xl border border-purple-400/30 p-6 w-[900px] max-w-[95vw] max-h-[90vh] overflow-hidden flex flex-col"
         onClick={e => e.stopPropagation()}
       >
+        <style>{`
+          /* Hide number input arrows */
+          input[type='number']::-webkit-inner-spin-button,
+          input[type='number']::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+          input[type='number'] {
+            -moz-appearance: textfield;
+          }
+          
+          /* Custom scrollbar for dark theme */
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 10px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.4);
+            border-radius: 5px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(168, 85, 247, 0.6);
+          }
+          
+          /* Custom checkbox */
+          .custom-checkbox {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #4b5563;
+            border-radius: 4px;
+            background: #111827;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+          }
+          .custom-checkbox:checked {
+            background: #9333ea;
+            border-color: #9333ea;
+          }
+          .custom-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+          }
+          .custom-checkbox:hover {
+            border-color: #9333ea;
+          }
+          
+          /* Custom select */
+          .custom-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239333ea'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.25em;
+            padding-right: 2.5rem;
+          }
+        `}</style>
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <div className="text-3xl">⚙️</div>
@@ -155,9 +316,9 @@ export function DeckSettingsDialog({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
           {activeTab === 'learning' && (
-            <>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-5">
               {/* Learning Steps */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -167,13 +328,21 @@ export function DeckSettingsDialog({
                   className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
                   placeholder="e.g., 1, 10"
                   type="text"
-                  value={config.learnSteps.join(', ')}
-                  onChange={e => {
-                    const steps = e.target.value
+                  value={learnStepsText}
+                  onChange={e => setLearnStepsText(e.target.value)}
+                  onBlur={() => {
+                    // Parse on blur to update config
+                    const steps = learnStepsText
                       .split(',')
                       .map(s => parseFloat(s.trim()))
                       .filter(s => !isNaN(s) && s > 0)
-                    updateConfig({ learnSteps: steps })
+                    if (steps.length > 0) {
+                      updateConfig({ learnSteps: steps })
+                      setLearnStepsText(steps.join(', '))
+                    } else {
+                      // Revert to current config if invalid
+                      setLearnStepsText(config.learnSteps.join(', '))
+                    }
                   }}
                 />
                 {errors.learnSteps && (
@@ -196,13 +365,19 @@ export function DeckSettingsDialog({
                   className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
                   placeholder="e.g., 10"
                   type="text"
-                  value={config.relearnSteps.join(', ')}
-                  onChange={e => {
-                    const steps = e.target.value
+                  value={relearnStepsText}
+                  onChange={e => setRelearnStepsText(e.target.value)}
+                  onBlur={() => {
+                    const steps = relearnStepsText
                       .split(',')
                       .map(s => parseFloat(s.trim()))
                       .filter(s => !isNaN(s) && s > 0)
-                    updateConfig({ relearnSteps: steps })
+                    if (steps.length > 0) {
+                      updateConfig({ relearnSteps: steps })
+                      setRelearnStepsText(steps.join(', '))
+                    } else {
+                      setRelearnStepsText(config.relearnSteps.join(', '))
+                    }
                   }}
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -210,73 +385,48 @@ export function DeckSettingsDialog({
                 </p>
               </div>
 
-              {/* Graduating Intervals */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Graduating Interval (days)
-                  </label>
-                  <input
-                    className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
-                    min={1}
-                    type="number"
-                    value={config.graduatingIntervalGood}
-                    onChange={e =>
-                      updateConfig({ graduatingIntervalGood: parseInt(e.target.value) })
-                    }
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    After "Good" on final step
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Easy Interval (days)
-                  </label>
-                  <input
-                    className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
-                    min={1}
-                    type="number"
-                    value={config.graduatingIntervalEasy}
-                    onChange={e =>
-                      updateConfig({ graduatingIntervalEasy: parseInt(e.target.value) })
-                    }
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    After "Easy" on learning card
-                  </p>
-                </div>
-              </div>
-
-              {/* Initial Ease Factor */}
+              {/* Graduating Interval Good */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Initial Ease Factor: {(config.initialEase * 100).toFixed(0)}%
+                  Graduating Interval (days)
                 </label>
                 <input
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                  max={500}
-                  min={130}
-                  step={5}
-                  type="range"
-                  value={config.initialEase * 100}
+                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                  min={1}
+                  type="number"
+                  value={config.graduatingIntervalGood}
                   onChange={e =>
-                    updateConfig({ initialEase: parseInt(e.target.value) / 100 })
+                    updateConfig({ graduatingIntervalGood: parseInt(e.target.value) })
                   }
                 />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>130%</span>
-                  <span>500%</span>
-                </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Starting ease for new cards (default: 250%)
+                  After "Good" on final step
+                </p>
+              </div>
+
+              {/* Easy Interval */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Easy Interval (days)
+                </label>
+                <input
+                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                  min={1}
+                  type="number"
+                  value={config.graduatingIntervalEasy}
+                  onChange={e =>
+                    updateConfig({ graduatingIntervalEasy: parseInt(e.target.value) })
+                  }
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  After "Easy" on learning card
                 </p>
               </div>
 
               {/* Maximum Review Interval */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Maximum Review Interval (days)
+                  Maximum Interval (days)
                 </label>
                 <input
                   className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
@@ -311,8 +461,33 @@ export function DeckSettingsDialog({
                 </p>
               </div>
 
+              {/* Initial Ease Factor */}
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Initial Ease Factor: {(config.initialEase * 100).toFixed(0)}%
+                </label>
+                <input
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                  max={500}
+                  min={130}
+                  step={5}
+                  type="range"
+                  value={config.initialEase * 100}
+                  onChange={e =>
+                    updateConfig({ initialEase: parseInt(e.target.value) / 100 })
+                  }
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>130%</span>
+                  <span>500%</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Starting ease for new cards (default: 250%)
+                </p>
+              </div>
+
               {/* Interval Multiplier */}
-              <div>
+              <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Interval Multiplier: {config.intervalMultiplier.toFixed(2)}
                 </label>
@@ -335,13 +510,13 @@ export function DeckSettingsDialog({
                   Multiply all intervals by this factor
                 </p>
               </div>
-            </>
+            </div>
           )}
 
           {activeTab === 'fsrs' && (
-            <>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-5">
               {/* Desired Retention */}
-              <div>
+              <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Desired Retention: {(config.desiredRetention * 100).toFixed(0)}%
                 </label>
@@ -372,12 +547,12 @@ export function DeckSettingsDialog({
               </div>
 
               {/* FSRS Parameters Editor */}
-              <div>
+              <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   FSRS Parameters (Advanced)
                 </label>
                 <textarea
-                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all font-mono text-xs"
+                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all font-mono text-xs resize-none custom-scrollbar"
                   placeholder="19 comma-separated parameters"
                   rows={4}
                   value={config.fsrsParams.join(', ')}
@@ -397,7 +572,7 @@ export function DeckSettingsDialog({
               </div>
 
               {/* FSRS Parameters Info */}
-              <div className="bg-purple-900/20 border border-purple-400/30 rounded-lg p-4">
+              <div className="col-span-2 bg-purple-900/20 border border-purple-400/30 rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <Brain className="w-5 h-5 text-purple-400 mt-0.5" />
                   <div>
@@ -412,29 +587,24 @@ export function DeckSettingsDialog({
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {activeTab === 'ordering' && (
-            <>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-5">
               {/* New Card Insert Order */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   New Card Insert Order
                 </label>
-                <select
-                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                <CustomSelect
                   value={config.newCardInsertOrder}
-                  onChange={e =>
-                    updateConfig({ newCardInsertOrder: parseInt(e.target.value) })
-                  }
-                >
-                  <option value={0}>Due</option>
-                  <option value={1}>Random</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  How new cards are inserted into the deck
-                </p>
+                  onChange={value => updateConfig({ newCardInsertOrder: value })}
+                  options={[
+                    { value: 0, label: 'Due', description: 'New cards appear in order of their due number' },
+                    { value: 1, label: 'Random', description: 'New cards appear in random order' },
+                  ]}
+                />
               </div>
 
               {/* New Card Gather Priority */}
@@ -442,20 +612,15 @@ export function DeckSettingsDialog({
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   New Card Gather Priority
                 </label>
-                <select
-                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                <CustomSelect
                   value={config.newCardGatherPriority}
-                  onChange={e =>
-                    updateConfig({ newCardGatherPriority: parseInt(e.target.value) })
-                  }
-                >
-                  <option value={0}>Deck</option>
-                  <option value={1}>Position (Lowest First)</option>
-                  <option value={2}>Position (Highest First)</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  How new cards are gathered from the deck
-                </p>
+                  onChange={value => updateConfig({ newCardGatherPriority: value })}
+                  options={[
+                    { value: 0, label: 'Deck', description: 'Gather cards in the order they appear in the deck' },
+                    { value: 1, label: 'Position (Lowest First)', description: 'Start with cards that have the lowest position number' },
+                    { value: 2, label: 'Position (Highest First)', description: 'Start with cards that have the highest position number' },
+                  ]}
+                />
               </div>
 
               {/* New Card Sort Order */}
@@ -463,20 +628,15 @@ export function DeckSettingsDialog({
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   New Card Sort Order
                 </label>
-                <select
-                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                <CustomSelect
                   value={config.newCardSortOrder}
-                  onChange={e =>
-                    updateConfig({ newCardSortOrder: parseInt(e.target.value) })
-                  }
-                >
-                  <option value={0}>Template</option>
-                  <option value={1}>Random</option>
-                  <option value={2}>Reverse</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  How new cards are sorted for study
-                </p>
+                  onChange={value => updateConfig({ newCardSortOrder: value })}
+                  options={[
+                    { value: 0, label: 'Template', description: 'Sort by card template order' },
+                    { value: 1, label: 'Random', description: 'Randomize the order of new cards' },
+                    { value: 2, label: 'Reverse', description: 'Reverse the template order' },
+                  ]}
+                />
               </div>
 
               {/* Review Card Order */}
@@ -484,26 +644,21 @@ export function DeckSettingsDialog({
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Review Card Order
                 </label>
-                <select
-                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                <CustomSelect
                   value={config.reviewOrder}
-                  onChange={e =>
-                    updateConfig({ reviewOrder: parseInt(e.target.value) })
-                  }
-                >
-                  <option value={0}>Due Date</option>
-                  <option value={1}>Due Date, then Random</option>
-                  <option value={2}>Deck, then Due Date</option>
-                  <option value={3}>Random</option>
-                  <option value={4}>Intervals (Ascending)</option>
-                  <option value={5}>Intervals (Descending)</option>
-                  <option value={6}>Ease (Ascending)</option>
-                  <option value={7}>Ease (Descending)</option>
-                  <option value={8}>Relative Overdueness</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  How review cards are ordered for study
-                </p>
+                  onChange={value => updateConfig({ reviewOrder: value })}
+                  options={[
+                    { value: 0, label: 'Due Date', description: 'Show cards in order of their due date' },
+                    { value: 1, label: 'Due Date, then Random', description: 'Sort by due date, randomize cards with same date' },
+                    { value: 2, label: 'Deck, then Due Date', description: 'Group by deck, then sort by due date' },
+                    { value: 3, label: 'Random', description: 'Completely random order' },
+                    { value: 4, label: 'Intervals (Ascending)', description: 'Shortest intervals first' },
+                    { value: 5, label: 'Intervals (Descending)', description: 'Longest intervals first' },
+                    { value: 6, label: 'Ease (Ascending)', description: 'Hardest cards (lowest ease) first' },
+                    { value: 7, label: 'Ease (Descending)', description: 'Easiest cards (highest ease) first' },
+                    { value: 8, label: 'Relative Overdueness', description: 'Most overdue cards relative to their interval' },
+                  ]}
+                />
               </div>
 
               {/* New/Review Mix */}
@@ -511,19 +666,16 @@ export function DeckSettingsDialog({
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   New Card Mix
                 </label>
-                <select
-                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                <CustomSelect
                   value={config.newMix}
-                  onChange={e => updateConfig({ newMix: parseInt(e.target.value) })}
-                >
-                  <option value={0}>Mix with Reviews</option>
-                  <option value={1}>Reviews First</option>
-                  <option value={2}>New First</option>
-                  <option value={3}>Reviews Only</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  How to mix new cards with review cards
-                </p>
+                  onChange={value => updateConfig({ newMix: value })}
+                  options={[
+                    { value: 0, label: 'Mix with Reviews', description: 'Interleave new cards with reviews for better retention' },
+                    { value: 1, label: 'Reviews First', description: 'Show all reviews before any new cards' },
+                    { value: 2, label: 'New First', description: 'Show all new cards before reviews' },
+                    { value: 3, label: 'Reviews Only', description: 'Skip new cards, only show reviews' },
+                  ]}
+                />
               </div>
 
               {/* Interday Learning Mix */}
@@ -531,28 +683,23 @@ export function DeckSettingsDialog({
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Interday Learning Mix
                 </label>
-                <select
-                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                <CustomSelect
                   value={config.interdayLearningMix}
-                  onChange={e =>
-                    updateConfig({ interdayLearningMix: parseInt(e.target.value) })
-                  }
-                >
-                  <option value={0}>Mix with Reviews</option>
-                  <option value={1}>Reviews First</option>
-                  <option value={2}>New First</option>
-                  <option value={3}>Reviews Only</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  How to mix interday learning cards with reviews
-                </p>
+                  onChange={value => updateConfig({ interdayLearningMix: value })}
+                  options={[
+                    { value: 0, label: 'Mix with Reviews', description: 'Show learning cards mixed with reviews' },
+                    { value: 1, label: 'Reviews First', description: 'Show reviews before learning cards' },
+                    { value: 2, label: 'New First', description: 'Show learning cards before reviews' },
+                    { value: 3, label: 'Reviews Only', description: 'Skip learning cards, only show reviews' },
+                  ]}
+                />
               </div>
-            </>
+            </div>
           )}
 
           {activeTab === 'advanced' && (
-            <>
-              {/* Leech Settings */}
+            <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+              {/* Leech Threshold */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Leech Threshold
@@ -571,74 +718,72 @@ export function DeckSettingsDialog({
                 </p>
               </div>
 
+              {/* Leech Action */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Leech Action
                 </label>
-                <select
-                  className="w-full px-4 py-2 bg-gray-900 text-white rounded-lg border border-gray-600 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 transition-all"
+                <CustomSelect
                   value={config.leechAction}
-                  onChange={e =>
-                    updateConfig({ leechAction: parseInt(e.target.value) })
-                  }
-                >
-                  <option value={0}>Suspend Card</option>
-                  <option value={1}>Tag Only</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  What to do when a card becomes a leech
-                </p>
+                  onChange={value => updateConfig({ leechAction: value })}
+                  options={[
+                    { value: 0, label: 'Suspend Card', description: 'Automatically suspend cards that become leeches so you can review them later' },
+                    { value: 1, label: 'Tag Only', description: 'Mark leeches with a tag but keep them in rotation' },
+                  ]}
+                />
               </div>
 
               {/* Sibling Burying */}
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-300">
+              <div className="col-span-2 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+                <label className="block text-sm font-medium text-gray-300 mb-4">
                   Sibling Burying
                 </label>
                 
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    checked={config.buryNew}
-                    className="w-4 h-4 bg-gray-900 border-gray-600 rounded focus:ring-2 focus:ring-purple-400/20 text-purple-600"
-                    type="checkbox"
-                    onChange={e => updateConfig({ buryNew: e.target.checked })}
-                  />
-                  <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                    Bury new siblings
-                  </span>
-                </label>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      checked={config.buryNew}
+                      className="custom-checkbox"
+                      type="checkbox"
+                      onChange={e => updateConfig({ buryNew: e.target.checked })}
+                    />
+                    <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                      Bury new siblings
+                    </span>
+                  </label>
 
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    checked={config.buryReviews}
-                    className="w-4 h-4 bg-gray-900 border-gray-600 rounded focus:ring-2 focus:ring-purple-400/20 text-purple-600"
-                    type="checkbox"
-                    onChange={e => updateConfig({ buryReviews: e.target.checked })}
-                  />
-                  <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                    Bury review siblings
-                  </span>
-                </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      checked={config.buryReviews}
+                      className="custom-checkbox"
+                      type="checkbox"
+                      onChange={e => updateConfig({ buryReviews: e.target.checked })}
+                    />
+                    <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                      Bury review siblings
+                    </span>
+                  </label>
 
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    checked={config.buryInterdayLearning}
-                    className="w-4 h-4 bg-gray-900 border-gray-600 rounded focus:ring-2 focus:ring-purple-400/20 text-purple-600"
-                    type="checkbox"
-                    onChange={e =>
-                      updateConfig({ buryInterdayLearning: e.target.checked })
-                    }
-                  />
-                  <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                    Bury interday learning siblings
-                  </span>
-                </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      checked={config.buryInterdayLearning}
+                      className="custom-checkbox"
+                      type="checkbox"
+                      onChange={e =>
+                        updateConfig({ buryInterdayLearning: e.target.checked })
+                      }
+                    />
+                    <span className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                      Bury interday learning siblings
+                    </span>
+                  </label>
+                </div>
 
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 mt-4">
                   Prevent cards from the same note from appearing together in one session
                 </p>
               </div>
-            </>
+            </div>
           )}
         </div>
 
