@@ -21,6 +21,16 @@ pnpm install
 pnpm dev
 ```
 
+### Troubleshooting
+
+If you encounter native module errors related to `better-sqlite3`:
+```bash
+# Rebuild native modules for Electron
+pnpm run install:deps
+```
+
+This happens when switching Node.js versions or on first setup. The `predev` script now handles this automatically.
+
 ## File Format
 
 A `.what` file is a custom container that includes:

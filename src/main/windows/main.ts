@@ -1,8 +1,8 @@
-import { BrowserWindow, ipcMain, dialog } from 'electron'
+import { BrowserWindow, ipcMain, dialog, Menu } from 'electron'
 import { join } from 'node:path'
 
 import { createWindow } from 'lib/electron-app/factories/windows/create'
-import { ENVIRONMENT } from 'shared/constants'
+import { ENVIRONMENT, PLATFORM } from 'shared/constants'
 import { displayName } from '~/package.json'
 import { multiFileManager } from '../services/multi-file-manager'
 import {
@@ -28,9 +28,9 @@ export async function MainWindow() {
     movable: true,
     resizable: true,
     alwaysOnTop: false,
-    autoHideMenuBar: true,
-    frame: false,
-    titleBarStyle: 'hidden',
+    autoHideMenuBar: !PLATFORM.IS_MAC, // Show menu bar on macOS
+    frame: PLATFORM.IS_MAC, // Use native frame on macOS
+    titleBarStyle: PLATFORM.IS_MAC ? 'hiddenInset' : 'hidden', // macOS: native with traffic lights
     icon: join(__dirname, '../../resources/build/icons/png/512x512.png'), // Dev mode icon
 
     webPreferences: {
@@ -38,6 +38,116 @@ export async function MainWindow() {
       webviewTag: true, // Enable <webview> tag for external web content
     },
   })
+
+  // Setup native macOS menu
+  if (PLATFORM.IS_MAC) {
+    const template: Electron.MenuItemConstructorOptions[] = [
+      {
+        label: displayName,
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          {
+            label: 'Check for Updates...',
+            click: async () => {
+              window.webContents.send('menu-check-updates')
+            },
+          },
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { role: 'quit' },
+        ],
+      },
+      {
+        label: 'File',
+        submenu: [
+          {
+            label: 'New File',
+            accelerator: 'CmdOrCtrl+N',
+            click: async () => {
+              window.webContents.send('menu-file-new')
+            },
+          },
+          {
+            label: 'Open File...',
+            accelerator: 'CmdOrCtrl+O',
+            click: async () => {
+              window.webContents.send('menu-file-open')
+            },
+          },
+          { type: 'separator' },
+          {
+            label: 'Save',
+            accelerator: 'CmdOrCtrl+S',
+            click: async () => {
+              window.webContents.send('menu-file-save')
+            },
+          },
+          {
+            label: 'Save As...',
+            accelerator: 'CmdOrCtrl+Shift+S',
+            click: async () => {
+              window.webContents.send('menu-file-save-as')
+            },
+          },
+          { type: 'separator' },
+          {
+            label: 'Close File',
+            accelerator: 'CmdOrCtrl+W',
+            click: async () => {
+              window.webContents.send('menu-file-close')
+            },
+          },
+        ],
+      },
+      // {
+      //   label: 'Edit',
+      //   submenu: [
+      //     { role: 'undo' },
+      //     { role: 'redo' },
+      //     { type: 'separator' },
+      //     { role: 'cut' },
+      //     { role: 'copy' },
+      //     { role: 'paste' },
+      //     { role: 'delete' },
+      //     { role: 'selectAll' },
+      //   ],
+      // },
+      // {
+      //   label: 'View',
+      //   submenu: [
+      //     { role: 'reload' },
+      //     { role: 'forceReload' },
+      //     { role: 'toggleDevTools' },
+      //     { type: 'separator' },
+      //     { role: 'resetZoom' },
+      //     { role: 'zoomIn' },
+      //     { role: 'zoomOut' },
+      //     { type: 'separator' },
+      //     { role: 'togglefullscreen' },
+      //   ],
+      // },
+      {
+        label: 'Window',
+        submenu: [
+          { role: 'minimize' },
+          { role: 'zoom' },
+          // { type: 'separator' },
+          // { role: 'front' },
+          // { type: 'separator' },
+          // { role: 'window' },
+        ],
+      },
+    ]
+
+    const menu = Menu.buildFromTemplate(template)
+    Menu.setApplicationMenu(menu)
+  }
 
   // Configure all new child windows (popouts) to be frameless
   window.webContents.setWindowOpenHandler(details => {
