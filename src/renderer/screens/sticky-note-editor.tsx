@@ -1,8 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { logger } from 'shared/logger'
-import type { StickyNoteObject } from 'lib/types/canvas'
+import type { StickyNoteObject, FileObject } from 'lib/types/canvas'
 import { useMarkdown } from 'renderer/hooks/use-markdown'
 import Editor, { type OnMount } from '@monaco-editor/react'
+import affData from 'typo-js/dictionaries/en_US/en_US.aff?raw'
+import wordsData from 'typo-js/dictionaries/en_US/en_US.dic?raw'
+import { useSpellchecker } from 'renderer/hooks/use-spellchecker'
 
 interface StickyNoteEditorProps {
   tabId: string // FlexLayout tab ID
@@ -22,7 +25,7 @@ export function StickyNoteEditor({
   parentTabId,
   title,
 }: StickyNoteEditorProps) {
-  const [object, setObject] = useState<StickyNoteObject | null>(null)
+  const [object, setObject] = useState<StickyNoteObject | FileObject | null>(null)
   const [text, setText] = useState('')
   const [isDirty, setIsDirty] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('edit')
@@ -31,6 +34,8 @@ export function StickyNoteEditor({
   const [fontSize, setFontSize] = useState(14)
   const editorRef = useRef<any>(null)
   const monacoRef = useRef<any>(null)
+  const [editorInstance, setEditorInstance] = useState<any>(null)
+  const [monacoInstance, setMonacoInstance] = useState<any>(null)
   
   const { renderMarkdown } = useMarkdown()
 
@@ -39,81 +44,43 @@ export function StickyNoteEditor({
     const loadObject = async () => {
       try {
         const objects = await window.App.file.getObjects(parentTabId)
-        const foundObject = objects.find((o: any) => o.id === objectId) as StickyNoteObject
+        const foundObject = objects.find((o: any) => o.id === objectId)
         
         if (foundObject) {
           setObject(foundObject)
-          setText(foundObject.object_data.text || '')
-          setFontSize(foundObject.object_data.fontSize || 14)
+          
+          if (foundObject.type === 'sticky-note') {
+            setText(foundObject.object_data.text || '')
+            setFontSize(foundObject.object_data.fontSize || 14)
+          } else if (foundObject.type === 'file') {
+            // Load file content
+            const assetId = foundObject.object_data.assetId
+            if (assetId) {
+              try {
+                const content = await window.App.file.getAssetContent(assetId, parentTabId)
+                if (typeof content === 'string') {
+                  setText(content)
+                } else if (content) {
+                  const decoder = new TextDecoder('utf-8')
+                  setText(decoder.decode(content))
+                }
+              } catch (e) {
+                logger.error('Failed to load asset content:', e)
+                setText('Error loading file content')
+              }
+            }
+            setFontSize(14)
+          }
         } else {
-          logger.error('Sticky note not found:', objectId)
+          logger.error('Object not found:', objectId)
         }
       } catch (error) {
-        logger.error('Failed to load sticky note:', error)
+        logger.error('Failed to load object:', error)
       }
     }
     
     loadObject()
   }, [objectId, parentTabId])
-
-  // Listen for external updates (e.g. from other editors or canvas)
-  useEffect(() => {
-    const handleExternalUpdate = (e: Event) => {
-      const customEvent = e as CustomEvent
-      const { objectId: updatedId, tabId: updatedTabId, object: updatedObject } = customEvent.detail
-
-      // Only update if it's for this object and this file
-      if (updatedId !== objectId || updatedTabId !== parentTabId) return
-
-      // Don't update if we are the ones who triggered it (avoid loops/flicker)
-      // We can check if the text is different
-      if (updatedObject.object_data.text === text) return
-
-      logger.debug('Received external update for sticky note:', objectId)
-      
-      setObject(updatedObject)
-      setText(updatedObject.object_data.text || '')
-      setIsDirty(false) // Reset dirty state as we are now in sync
-    }
-
-    window.addEventListener('canvas-object-updated', handleExternalUpdate)
-    return () => window.removeEventListener('canvas-object-updated', handleExternalUpdate)
-  }, [objectId, parentTabId, text])
-  // ...existing code...
-
-  // Update theme
-  const updateTheme = useCallback((monaco: any, bg: string, fg: string) => {
-    // Monaco theme names must be alphanumeric + hyphens (no underscores)
-    const safeId = objectId.replace(/[^a-z0-9\-]/gi, '-')
-    const themeName = `sticky-note-theme-${safeId}`
-    
-    monaco.editor.defineTheme(themeName, {
-      base: 'vs',
-      inherit: true,
-      rules: [
-        { token: '', foreground: fg.replace('#', '') }
-      ],
-      colors: {
-        'editor.background': bg,
-        'editor.foreground': fg,
-        'editorCursor.foreground': fg,
-        'editor.lineHighlightBackground': '#00000010',
-        'editorLineNumber.foreground': '#00000060',
-        'editor.selectionBackground': '#00000020',
-        'editor.inactiveSelectionBackground': '#00000010',
-      }
-    })
-    monaco.editor.setTheme(themeName)
-  }, [objectId])
-
-  // Update theme when object changes
-  useEffect(() => {
-    if (monacoRef.current && object) {
-       const bg = object.object_data.paperColor || '#ffd700'
-       const fg = object.object_data.fontColor || '#333333'
-       updateTheme(monacoRef.current, bg, fg)
-    }
-  }, [object, updateTheme])
 
   // Listen for external updates (e.g. from other editors or canvas)
   useEffect(() => {
@@ -154,34 +121,43 @@ export function StickyNoteEditor({
     if (!object) return
 
     try {
-      const updatedObject = {
-        ...object,
-        object_data: {
-          ...object.object_data,
-          text: newText
-        },
-        updated: new Date().toISOString()
-      }
-
-      await window.App.file.saveObject(updatedObject, parentTabId)
-      setObject(updatedObject)
-      setIsDirty(false)
-      
-      // Notify other components (like the canvas) about the update
-      window.dispatchEvent(new CustomEvent('canvas-object-updated', {
-        detail: { 
-          objectId: updatedObject.id,
-          tabId: parentTabId,
-          object: updatedObject
+      if (object.type === 'sticky-note') {
+        const updatedObject = {
+          ...object,
+          object_data: {
+            ...object.object_data,
+            text: newText
+          },
+          updated: new Date().toISOString()
         }
-      }))
+
+        await window.App.file.saveObject(updatedObject, parentTabId)
+        setObject(updatedObject)
+        
+        // Notify other components (like the canvas) about the update
+        window.dispatchEvent(new CustomEvent('canvas-object-updated', {
+          detail: { 
+            objectId: updatedObject.id,
+            tabId: parentTabId,
+            object: updatedObject
+          }
+        }))
+      } else if (object.type === 'file') {
+        const assetId = object.object_data.assetId
+        if (assetId) {
+          const encoder = new TextEncoder()
+          const buffer = encoder.encode(newText)
+          await window.App.file.updateAsset(assetId, buffer, undefined, parentTabId)
+          logger.debug('Saved file asset changes')
+        }
+      }
       
-      logger.debug('Saved sticky note changes')
+      setIsDirty(false)
+      logger.debug('Saved changes')
     } catch (error) {
-      logger.error('Failed to save sticky note:', error)
+      logger.error('Failed to save changes:', error)
     }
   }, [object, parentTabId])
-
   // Debounced save
   useEffect(() => {
     if (!isDirty) return
@@ -200,10 +176,18 @@ export function StickyNoteEditor({
     setIsDirty(newText !== object?.object_data.text)
   }
 
+  // Initialize spellchecker
+  useSpellchecker(editorInstance, monacoInstance, {
+    affData,
+    wordsData
+  })
+
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor
     monacoRef.current = monaco
-    
+    setEditorInstance(editor)
+    setMonacoInstance(monaco)
+
     // Define a base transparent theme if not already defined
     try {
         monaco.editor.defineTheme('sticky-note-transparent', {
@@ -216,7 +200,7 @@ export function StickyNoteEditor({
                 'editor.selectionBackground': '#00000020',
             }
         })
-    } catch (e) {
+    } catch {
         // Ignore if already defined
     }
     
@@ -257,10 +241,10 @@ export function StickyNoteEditor({
     )
   }
 
-  const paperColor = object.object_data.paperColor || '#ffd700'
-  const fontColor = object.object_data.fontColor || '#333333'
+  const paperColor = (object as any).object_data?.paperColor || '#ffffff'
+  const fontColor = (object as any).object_data?.fontColor || '#333333'
   
-  const safeId = objectId.replace(/[^a-z0-9\-]/gi, '-')
+  const safeId = objectId.replace(/[^a-z0-9-]/gi, '-')
   const wrapperClass = `sticky-note-wrapper-${safeId}`
 
   return (
@@ -289,6 +273,21 @@ export function StickyNoteEditor({
             color: ${fontColor} !important;
             opacity: 0.5;
         }
+        .${wrapperClass} .current-line {
+            border: none !important;
+            background-color: rgba(0,0,0,0.05) !important;
+        }
+
+        /* Widen the Quick Fix / Code Action menu */
+        .monaco-menu-container {
+            min-width: 300px !important;
+            max-width: 600px !important;
+        }
+        
+        .monaco-menu-container .action-label {
+            max-width: 100% !important;
+            width: auto !important;
+        }
       `}</style>
       {/* Toolbar */}
       <div 
@@ -300,11 +299,10 @@ export function StickyNoteEditor({
         }}
       >
         <div className="text-sm font-medium truncate flex items-center gap-2">
-          <span>{title}</span>
           {activeTab === 'edit' && (
             <>
                 <button 
-                className={`ml-4 px-2 py-0.5 text-xs rounded border hover:bg-black/5`}
+                className={`px-2 py-0.5 text-xs rounded border hover:bg-black/5`}
                 style={{ borderColor: 'rgba(0,0,0,0.2)' }}
                 onClick={() => setWordWrap(!wordWrap)}
                 title="Toggle Word Wrap (Alt+Z)"
@@ -372,6 +370,8 @@ export function StickyNoteEditor({
                 automaticLayout: true,
                 fontFamily: "'Droid Sans Mono', 'monospace', monospace", // Default Monaco font
                 padding: { top: 16, bottom: 16 },
+                acceptSuggestionOnEnter: 'on',
+                quickSuggestions: false,
             }}
           />
         )}

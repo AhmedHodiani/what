@@ -2,6 +2,7 @@ import type { FileObject, DrawingObject } from 'lib/types/canvas'
 import { WidgetWrapper } from './widget-wrapper'
 import { useCallback } from 'react'
 import { useWidgetCapabilities } from 'renderer/hooks'
+import { logger } from 'shared/logger'
 
 interface FileWidgetProps {
   object: FileObject
@@ -35,7 +36,7 @@ export function FileWidget({
   onContextMenu,
   onStartDrag,
 }: FileWidgetProps) {
-  const { fileName, fileSize, mimeType, assetId } = object.object_data
+  const { fileName, fileSize, mimeType = '', assetId } = object.object_data
 
   // Get external-tab capability (for double-click to open viewer)
   const { handleExternalTabOpen } = useWidgetCapabilities(
@@ -97,6 +98,27 @@ export function FileWidget({
   // File size text: 6-9% of the smaller dimension
   const sizeTextSize = Math.max(8, Math.min(width, height) * 0.065)
 
+  const handleCtrlClick = useCallback(async (e: React.MouseEvent) => {
+    if (e.ctrlKey && tabId) {
+      e.stopPropagation()
+      e.preventDefault()
+      
+      try {
+        await window.App.externalTab.open({
+          widgetType: 'sticky-note', // Use sticky-note editor
+          componentName: 'sticky-note',
+          parentTabId: tabId,
+          objectId: object.id,
+          title: fileName,
+          icon: 'file-text',
+        })
+        logger.info('Opened file in sticky note editor')
+      } catch (error) {
+        logger.error('Failed to open file editor:', error)
+      }
+    }
+  }, [object.id, fileName, tabId])
+
   return (
     <WidgetWrapper
       currentTool={currentTool}
@@ -114,8 +136,9 @@ export function FileWidget({
     >
       <div
         className="flex flex-col items-center justify-center w-full h-full p-2 bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg border-2 border-gray-700 hover:border-blue-500 transition-colors cursor-pointer group"
-        title={`Double-click to view ${fileName}`}
+        title={`Double-click to view ${fileName}\nCtrl+Click to edit text`}
         onDoubleClick={handleExternalTabOpen}
+        onClick={handleCtrlClick}
       >
         {/* File Icon */}
         <div

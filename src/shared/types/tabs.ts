@@ -1,6 +1,6 @@
 // Tab management types for multi-file support
 
-export type TabType = 'canvas' | 'spreadsheet' | 'external-web' | 'deck'
+export type TabType = 'canvas' | 'spreadsheet' | 'external-web' | 'deck' | 'file'
 
 export interface BaseTab {
   id: string // Unique tab identifier
@@ -44,7 +44,16 @@ export interface DeckTab extends BaseTab {
   splitView?: boolean // Whether to open in split view (50%) or full tab (100%)
 }
 
-export type FileTab = CanvasTab | SpreadsheetTab | ExternalWebTab | DeckTab
+export interface FileViewerTab extends BaseTab {
+  type: 'file'
+  parentTabId: string
+  objectId: string
+  assetId: string
+  mimeType: string
+  splitView?: boolean
+}
+
+export type FileTab = CanvasTab | SpreadsheetTab | ExternalWebTab | DeckTab | FileViewerTab
 
 export interface TabState {
   tabs: FileTab[]

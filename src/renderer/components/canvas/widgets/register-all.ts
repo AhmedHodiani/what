@@ -13,6 +13,7 @@
  */
 
 import { widgetRegistry } from './widget-registry'
+import { logger } from 'shared/logger'
 
 // Import all widget components
 import { ImageWidget } from './image-widget'
@@ -115,7 +116,19 @@ export function registerAllWidgets(): void {
         enabled: true,
         componentName: 'file',
         async getTabConfig(object, tabId) {
-          const fileObject = object as {
+          // Reload from database to ensure we have the latest data (especially assetId)
+          let freshObject = object
+          try {
+            const objects = await window.App.file.getObjects(tabId)
+            const found = objects.find((obj: any) => obj.id === object.id)
+            if (found) {
+              freshObject = found
+            }
+          } catch (e) {
+            console.error('Failed to reload object from DB', e)
+          }
+
+          const fileObject = freshObject as {
             id: string
             object_data: {
               assetId: string
@@ -125,7 +138,12 @@ export function registerAllWidgets(): void {
             }
           }
 
-          const { assetId, fileName, mimeType } = fileObject.object_data
+          const { assetId, fileName, mimeType = '' } = fileObject.object_data
+
+          if (!assetId) {
+            logger.error('FileWidget: Missing assetId for object', object.id)
+            return null
+          }
 
           // Only open external tab for viewable file types
           const isViewable =

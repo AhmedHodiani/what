@@ -148,9 +148,9 @@ export function MainScreenWithTabs() {
                   children: allTabs.map((tab: FileTab) => ({
                     type: 'tab',
                     name: tab.fileName,
-                    component: 'canvas',
+                    component: tab.type,
                     id: tab.id,
-                    config: { tabId: tab.id },
+                    config: { ...tab, tabId: tab.id },
                     enablePopout: true, // Enable popout for this tab
                   })),
                 },
