@@ -257,7 +257,8 @@ export async function MainWindow() {
       })
 
       // Generate unique tab ID
-      const tabId = `${widgetType}-tab-${parentTabId}-${objectId}`
+      // Append timestamp to allow multiple tabs for the same object
+      const tabId = `${widgetType}-tab-${parentTabId}-${objectId}-${Date.now()}`
 
       // Send event to renderer
       window.webContents.send('external-tab-opened', {
@@ -509,12 +510,12 @@ export async function MainWindow() {
 
   // Object operations
   ipcMain.removeHandler('file-get-objects')
-  ipcMain.handle('file-get-objects', async (_event, tabId?: string) => {
+  ipcMain.handle('file-get-objects', async (_event, tabId?: string, viewport?: { x: number; y: number; zoom: number; width: number; height: number }) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
       if (!targetTabId) return []
 
-      const objects = multiFileManager.getObjects(targetTabId)
+      const objects = multiFileManager.getObjects(targetTabId, viewport)
       return objects
     } catch (error) {
       logger.error('Failed to get objects:', error)
@@ -817,6 +818,54 @@ export async function MainWindow() {
       window.destroy()
     }
   })
+
+  ipcMain.removeHandler('file-get-object-count')
+  ipcMain.handle('file-get-object-count', async (_event, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) return 0
+
+      const count = multiFileManager.getObjectCount(targetTabId)
+      return count
+    } catch (error) {
+      logger.error('Failed to get object count:', error)
+      return 0
+    }
+  })
+
+  ipcMain.removeHandler('file-get-canvas-settings')
+  ipcMain.handle('file-get-canvas-settings', async (_event, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) return null
+
+      const settings = multiFileManager.getCanvasSettings(targetTabId)
+      return settings
+    } catch (error) {
+      logger.error('Failed to get canvas settings:', error)
+      return null
+    }
+  })
+
+  ipcMain.removeHandler('file-save-canvas-settings')
+  ipcMain.handle(
+    'file-save-canvas-settings',
+    async (_event, settings: any, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) {
+          logger.warn('No tab ID for save canvas settings, skipping')
+          return false
+        }
+
+        multiFileManager.saveCanvasSettings(targetTabId, settings)
+        return true
+      } catch (error) {
+        logger.error('Failed to save canvas settings:', error)
+        return false
+      }
+    }
+  )
 
   return window
 }

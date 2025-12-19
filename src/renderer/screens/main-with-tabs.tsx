@@ -79,6 +79,9 @@ function TabSwitchHandler({
 
       // Load objects from database for this tab
       const objects = await window.App.file.getObjects(activeTabId)
+      
+      // Load canvas settings
+      const canvasSettings = await window.App.file.getCanvasSettings(activeTabId)
 
       // Immediately update the context with the new tab's data
       updateActiveTab({
@@ -86,6 +89,7 @@ function TabSwitchHandler({
         viewport,
         objects: objects || [],
         selectedObjectIds: [], // Clear selection when switching tabs
+        canvasSettings: canvasSettings || { gridType: 'grid', renderType: 'normal' },
       })
     }
 
@@ -144,9 +148,9 @@ export function MainScreenWithTabs() {
                   children: allTabs.map((tab: FileTab) => ({
                     type: 'tab',
                     name: tab.fileName,
-                    component: 'canvas',
+                    component: tab.type,
                     id: tab.id,
-                    config: { tabId: tab.id },
+                    config: { ...tab, tabId: tab.id },
                     enablePopout: true, // Enable popout for this tab
                   })),
                 },

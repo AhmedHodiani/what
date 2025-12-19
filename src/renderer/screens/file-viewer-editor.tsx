@@ -36,7 +36,7 @@ export function FileViewerEditor({
   title,
   assetId,
   fileName,
-  mimeType,
+  mimeType = '', // Default to empty string to prevent crashes
 }: FileViewerEditorProps) {
   const [fileUrl, setFileUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)

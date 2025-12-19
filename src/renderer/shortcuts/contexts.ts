@@ -81,6 +81,11 @@ export function shouldBlockShortcuts(target: EventTarget | null): boolean {
     return false
   }
 
+  // Check if we are inside a Monaco Editor
+  if (target.closest('.monaco-editor')) {
+    return true
+  }
+
   const tagName = target.tagName.toLowerCase()
   const isEditable = target.isContentEditable
 

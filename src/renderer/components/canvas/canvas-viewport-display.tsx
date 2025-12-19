@@ -22,8 +22,9 @@ function formatBytes(bytes: number): string {
  * Useful for debugging and user feedback.
  */
 export function CanvasViewportDisplay(_props: CanvasViewportDisplayProps) {
-  const { viewport, objects, tabId } = useActiveTab()
-  const objectCount = objects.length
+  const { viewport, objects, tabId, totalObjectCount, renderedObjectCount } = useActiveTab()
+  const loadedCount = objects.length
+  const loadedPercentage = totalObjectCount > 0 ? ((loadedCount / totalObjectCount) * 100).toFixed(1) : '0.0'
   const [fileSize, setFileSize] = useState<string | null>(null)
 
   // Get file size from IPC if available
@@ -53,7 +54,7 @@ export function CanvasViewportDisplay(_props: CanvasViewportDisplayProps) {
     // Refresh file size every 500ms for real-time updates
     const interval = setInterval(fetchFileSize, 500)
     return () => clearInterval(interval)
-  }, [tabId, objectCount]) // Re-fetch when objectCount changes
+  }, [tabId, loadedCount]) // Re-fetch when loadedCount changes
 
   // Show placeholder if no active tab
   if (!viewport || !tabId) {
@@ -74,8 +75,16 @@ export function CanvasViewportDisplay(_props: CanvasViewportDisplayProps) {
       {/* File stats */}
       <div className="mt-2 pt-2 border-t border-white/10 flex flex-col gap-0.5">
         <div className="flex items-center gap-1">
-          <span className="text-gray-400">📦 Objects:</span>
-          <span className="text-teal-300 font-semibold">{objectCount}</span>
+          <span className="text-gray-400">📦 Loaded:</span>
+          <span className="text-teal-300 font-semibold">
+            {loadedCount} ({loadedPercentage}%)
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-gray-400">👁️ Rendered:</span>
+          <span className="text-teal-300 font-semibold">
+            {renderedObjectCount}
+          </span>
         </div>
         {fileSize && (
           <div className="flex items-center gap-1">

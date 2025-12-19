@@ -55,6 +55,10 @@ export function useWidgetCapabilities(
         // Get widget-specific config
         const config = await externalTabCap.getTabConfig(object, tabId)
 
+        if (!config) {
+          return
+        }
+
         // Get tab title (use capability function or fallback to object data)
         const title = externalTabCap.tabTitle
           ? externalTabCap.tabTitle(object)

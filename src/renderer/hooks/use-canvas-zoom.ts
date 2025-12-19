@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import type { Viewport } from 'lib/types/canvas'
 import type { Point } from 'lib/types/canvas'
 import { CanvasUtils } from 'lib/utils/canvas'
@@ -33,6 +33,10 @@ export function useCanvasZoom({
   const onZoomRef = useRef(onZoom)
   const minZoomRef = useRef(minZoom)
   const maxZoomRef = useRef(maxZoom)
+
+  // Track zooming state
+  const [isZooming, setIsZooming] = useState(false)
+  const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Keep refs in sync
   useEffect(() => {
@@ -93,6 +97,15 @@ export function useCanvasZoom({
       const newViewportY =
         worldPoint.y - (mouseY - currentDimensions.height / 2) / newZoom
 
+      // Set zooming state
+      setIsZooming(true)
+      if (zoomTimeoutRef.current) {
+        clearTimeout(zoomTimeoutRef.current)
+      }
+      zoomTimeoutRef.current = setTimeout(() => {
+        setIsZooming(false)
+      }, 200) // Reset after 200ms of no zoom events
+
       onZoomRef.current({
         x: newViewportX,
         y: newViewportY,
@@ -111,6 +124,11 @@ export function useCanvasZoom({
 
     return () => {
       container.removeEventListener('wheel', handleWheel)
+      if (zoomTimeoutRef.current) {
+        clearTimeout(zoomTimeoutRef.current)
+      }
     }
   }, [containerRef, handleWheel])
+
+  return { isZooming }
 }

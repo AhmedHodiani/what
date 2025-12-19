@@ -3,12 +3,14 @@ import type { StickyNoteObject, DrawingObject } from 'lib/types/canvas'
 import { WidgetWrapper } from './widget-wrapper'
 import { useAutoResize } from 'renderer/hooks/use-auto-resize'
 import { useMarkdown } from 'renderer/hooks/use-markdown'
+import { useWidgetCapabilities } from 'renderer/hooks/use-widget-capabilities'
 
 interface StickyNoteWidgetProps {
   object: StickyNoteObject
   isSelected: boolean
   zoom: number
   currentTool?: string
+  tabId?: string | null
   onUpdate: (id: string, updates: Partial<DrawingObject>) => void
   onSelect: (id: string) => void
   onContextMenu: (event: React.MouseEvent, id: string) => void
@@ -20,6 +22,7 @@ interface StickyNoteWidgetProps {
  *
  * Features:
  * - Double-click to edit
+ * - Ctrl+Double-click to open in side window
  * - Handwritten font (Kalam)
  * - Folded corner effect
  * - Paper texture
@@ -30,6 +33,7 @@ export function StickyNoteWidget({
   isSelected,
   zoom,
   currentTool,
+  tabId,
   onUpdate,
   onSelect,
   onContextMenu,
@@ -38,6 +42,13 @@ export function StickyNoteWidget({
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState(object.object_data.text)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Use capability system for external tab behavior
+  const { handleExternalTabOpen } = useWidgetCapabilities(
+    'sticky-note',
+    object,
+    tabId || undefined
+  )
 
   const paperColor = object.object_data.paperColor || '#ffd700'
   const fontColor = object.object_data.fontColor || '#333333'
@@ -74,6 +85,17 @@ export function StickyNoteWidget({
       setEditText(object.object_data.text)
     },
     [object.object_data.text]
+  )
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      // If Ctrl key is pressed, open in external tab (side window)
+      if (e.ctrlKey) {
+        e.stopPropagation()
+        handleExternalTabOpen(e)
+      }
+    },
+    [handleExternalTabOpen]
   )
 
   // Prevent drag when interacting with textarea
@@ -188,6 +210,7 @@ export function StickyNoteWidget({
       <div
         className="relative w-full h-full overflow-hidden"
         onDoubleClick={handleDoubleClick}
+        onClick={handleClick}
         style={{
           backgroundColor: paperColor,
           clipPath:

@@ -60,7 +60,8 @@ declare global {
           tabId?: string
         ) => Promise<string | null>
         deleteAsset: (assetId: string, tabId?: string) => Promise<boolean>
-        getObjects: (tabId?: string) => Promise<any[]>
+        getObjectCount: (tabId?: string) => Promise<number>
+        getObjects: (tabId?: string, viewport?: { x: number; y: number; zoom: number; width: number; height: number }) => Promise<any[]>
         saveObject: (object: any, tabId?: string) => Promise<boolean>
         deleteObject: (objectId: string, tabId?: string) => Promise<boolean>
       }

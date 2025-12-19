@@ -7,6 +7,15 @@ export interface WhatFile {
   isModified: boolean
 }
 
+export type GridType = 'dots' | 'grid' | 'none'
+export type RenderType = 'normal' | 'fast'
+
+export interface CanvasSettings {
+  gridType: GridType
+  renderType: RenderType
+  gridSize: number
+}
+
 export interface WhatFileMetadata {
   version: string
   created: string
@@ -18,6 +27,8 @@ export interface WhatFileMetadata {
   viewport_x?: number
   viewport_y?: number
   viewport_zoom?: number
+  // Canvas settings
+  canvas_settings?: CanvasSettings
 }
 
 // Deprecated: We no longer use canvas table (1 file = 1 canvas)

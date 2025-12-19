@@ -388,13 +388,13 @@ export class MultiFileManager {
   /**
    * Get all objects from a specific tab's file
    */
-  getObjects(tabId: string): any[] {
+  getObjects(tabId: string, viewport?: { x: number; y: number; zoom: number; width: number; height: number }): any[] {
     const service = this.fileServices.get(tabId)
     if (!service) {
       throw new Error(`No file service found for tab ${tabId}`)
     }
 
-    return service.getObjects()
+    return service.getObjects(viewport)
   }
 
   /**
@@ -421,6 +421,18 @@ export class MultiFileManager {
 
     service.deleteObject(objectId)
     this.markTabModified(tabId)
+  }
+
+  /**
+   * Get total number of objects in a specific tab's file
+   */
+  getObjectCount(tabId: string): number {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    return service.getObjectCount()
   }
 
   // ============================================================================
@@ -528,6 +540,31 @@ export class MultiFileManager {
     }
 
     return service.getDeckStorage().getDeckStats(deckObjectId)
+  }
+
+  /**
+   * Get canvas settings for a specific tab
+   */
+  getCanvasSettings(tabId: string): { gridType: string; renderType: string } {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    return service.getCanvasSettings()
+  }
+
+  /**
+   * Save canvas settings for a specific tab
+   */
+  saveCanvasSettings(tabId: string, settings: { gridType: string; renderType: string }): void {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    service.saveCanvasSettings(settings)
+    this.markTabModified(tabId)
   }
 
   /**

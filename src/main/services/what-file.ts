@@ -726,20 +726,108 @@ export class WhatFileService {
   }
 
   /**
+   * Get canvas settings from metadata
+   */
+  getCanvasSettings(): { gridType: string; renderType: string } {
+    if (!this.db) {
+      throw new Error('No database connection')
+    }
+
+    const metadata = this.getMetadata()
+    
+    // Default settings
+    const defaultSettings = {
+      gridType: 'grid',
+      renderType: 'normal',
+    }
+
+    if (!metadata.canvas_settings) {
+      return defaultSettings
+    }
+
+    try {
+      // If it's already an object (parsed by getMetadata), use it
+      // If it's a string (raw from DB), parse it
+      const settings = typeof metadata.canvas_settings === 'string' 
+        ? JSON.parse(metadata.canvas_settings) 
+        : metadata.canvas_settings
+
+      return {
+        ...defaultSettings,
+        ...settings,
+      }
+    } catch (error) {
+      logger.error('Failed to parse canvas settings:', error)
+      return defaultSettings
+    }
+  }
+
+  /**
+   * Save canvas settings to metadata
+   */
+  saveCanvasSettings(settings: { gridType: string; renderType: string }): void {
+    if (!this.db) {
+      throw new Error('No database connection')
+    }
+
+    this.updateMetadata({
+      canvas_settings: settings,
+    })
+  }
+
+  /**
    * Get all objects
    */
-  getObjects(): WhatFileObject[] {
+  getObjects(viewport?: { x: number; y: number; zoom: number; width: number; height: number }): WhatFileObject[] {
     if (!this.db) throw new Error('No database connection')
 
+    let query = 'SELECT * FROM objects'
+    const params: any[] = []
+
+    // If viewport is provided, filter objects by visibility
+    if (viewport) {
+      const buffer = 1000 // Buffer in pixels
+      const halfWidth = viewport.width / (2 * viewport.zoom)
+      const halfHeight = viewport.height / (2 * viewport.zoom)
+
+      const viewLeft = viewport.x - halfWidth - buffer / viewport.zoom
+      const viewRight = viewport.x + halfWidth + buffer / viewport.zoom
+      const viewTop = viewport.y - halfHeight - buffer / viewport.zoom
+      const viewBottom = viewport.y + halfHeight + buffer / viewport.zoom
+
+      // We use a simplified bounding box check here for SQL efficiency
+      // This is a "broad phase" check - it might include some objects that are slightly off-screen
+      // but it significantly reduces the amount of data transferred from SQLite
+      query += ` WHERE 
+        (x + width >= ? AND x <= ? AND y + height >= ? AND y <= ?)
+        OR type IN ('arrow', 'freehand') -- Always load complex shapes as their bounds are harder to query in SQL
+      `
+      params.push(viewLeft, viewRight, viewTop, viewBottom)
+    }
+
+    query += ' ORDER BY z_index ASC'
+
     const objects = this.db
-      .prepare('SELECT * FROM objects ORDER BY z_index ASC')
-      .all() as WhatFileObject[]
+      .prepare(query)
+      .all(...params) as WhatFileObject[]
 
     // Parse object_data JSON
     return objects.map(obj => ({
       ...obj,
       object_data: JSON.parse(obj.object_data as any),
     }))
+  }
+
+  /**
+   * Get total number of objects in the database
+   */
+  getObjectCount(): number {
+    if (!this.db) throw new Error('No database connection')
+
+    const result = this.db
+      .prepare('SELECT COUNT(*) as count FROM objects')
+      .get() as { count: number }
+    return result.count
   }
 
   /**
