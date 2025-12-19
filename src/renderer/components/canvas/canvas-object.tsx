@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, memo } from 'react'
 import type { DrawingObject } from 'lib/types/canvas'
 import { widgetRegistry } from './widgets/widget-registry'
 import './widgets/register-all' // Auto-registers all widgets
@@ -25,7 +25,7 @@ interface CanvasObjectProps {
  * 2. Register it in widgets/register-all.ts
  * 3. That's it! No need to edit this file.
  */
-export function CanvasObject({
+export const CanvasObject = memo(function CanvasObject({
   object,
   isSelected,
   zoom,
@@ -115,4 +115,4 @@ export function CanvasObject({
       zoom={zoom}
     />
   )
-}
+})

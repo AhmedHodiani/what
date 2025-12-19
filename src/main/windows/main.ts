@@ -509,12 +509,12 @@ export async function MainWindow() {
 
   // Object operations
   ipcMain.removeHandler('file-get-objects')
-  ipcMain.handle('file-get-objects', async (_event, tabId?: string) => {
+  ipcMain.handle('file-get-objects', async (_event, tabId?: string, viewport?: { x: number; y: number; zoom: number; width: number; height: number }) => {
     try {
       const targetTabId = tabId || multiFileManager.getActiveTabId()
       if (!targetTabId) return []
 
-      const objects = multiFileManager.getObjects(targetTabId)
+      const objects = multiFileManager.getObjects(targetTabId, viewport)
       return objects
     } catch (error) {
       logger.error('Failed to get objects:', error)
@@ -815,6 +815,20 @@ export async function MainWindow() {
 
     for (const window of BrowserWindow.getAllWindows()) {
       window.destroy()
+    }
+  })
+
+  ipcMain.removeHandler('file-get-object-count')
+  ipcMain.handle('file-get-object-count', async (_event, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) return 0
+
+      const count = multiFileManager.getObjectCount(targetTabId)
+      return count
+    } catch (error) {
+      logger.error('Failed to get object count:', error)
+      return 0
     }
   })
 

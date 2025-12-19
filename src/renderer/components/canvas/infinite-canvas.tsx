@@ -26,11 +26,11 @@ import { useCanvasDialogs } from 'renderer/hooks/use-canvas-dialogs'
 import { useObjectDuplication } from 'renderer/hooks/use-object-duplication'
 import { useRectangleSelection } from 'renderer/hooks/use-rectangle-selection'
 import { useCanvasTool } from 'renderer/hooks/use-canvas-tool'
+import { useCanvasVirtualization } from 'renderer/hooks/use-canvas-virtualization'
 import { useShortcut, ShortcutContext } from 'renderer/shortcuts'
 import { useActiveTab } from 'renderer/contexts'
 // UI / Components
 import { ErrorBoundary } from '../error-boundary'
-import { CanvasGrid } from './canvas-grid'
 import { CanvasObject } from './canvas-object'
 import { FreehandPreview } from './freehand-preview'
 import { ArrowPreview } from './arrow-preview'
@@ -101,20 +101,6 @@ export function InfiniteCanvas({
   // Active tab context for syncing state
   const { brushSettings, updateActiveTab } = useActiveTab()
 
-  // Use generic canvas objects hook
-  const {
-    objects,
-    selectedObjectIds,
-    addObject,
-    updateObject,
-    deleteObject,
-    selectObject,
-    selectMultipleObjects,
-    clearSelection,
-    moveObject,
-    saveObjectPosition,
-  } = useCanvasObjects({ tabId: tabId || undefined })
-
   // Sanitize initial viewport to ensure valid values
   const safeInitialViewport = useMemo(
     () =>
@@ -131,16 +117,72 @@ export function InfiniteCanvas({
     onViewportChange,
   })
 
+  // Use generic canvas objects hook
+  const {
+    objects,
+    totalObjectCount,
+    selectedObjectIds,
+    addObject,
+    updateObject,
+    deleteObject,
+    selectObject,
+    selectMultipleObjects,
+    clearSelection,
+    moveObject,
+    saveObjectPosition,
+  } = useCanvasObjects({ 
+    tabId: tabId || undefined,
+    viewport,
+    containerSize: dimensions
+  })
+
+  // Virtualization: Only render objects visible in the viewport
+  const visibleObjects = useCanvasVirtualization({
+    objects,
+    viewport,
+    containerSize: dimensions,
+  })
+
+  // Throttle updates to ActiveTabContext to avoid excessive re-renders (max 30fps)
+  const updateActiveTabTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastUpdateRef = useRef<number>(0)
+
   // Sync with ActiveTabContext when this canvas is active
   useEffect(() => {
-    if (isActive && tabId) {
+    if (!isActive || !tabId) return
+
+    const now = Date.now()
+    const THROTTLE_MS = 32 // ~30fps
+    const timeSinceLastUpdate = now - lastUpdateRef.current
+
+    const doUpdate = () => {
       updateActiveTab({
         tabId,
         viewport,
         selectedObjectIds,
         objects,
+        totalObjectCount,
+        renderedObjectCount: visibleObjects.length,
         updateObject, // Pass the updateObject function so properties panels can trigger saves
       })
+      lastUpdateRef.current = Date.now()
+    }
+
+    if (timeSinceLastUpdate >= THROTTLE_MS) {
+      doUpdate()
+    } else {
+      // Clear existing timeout
+      if (updateActiveTabTimeoutRef.current) {
+        clearTimeout(updateActiveTabTimeoutRef.current)
+      }
+      // Schedule trailing update
+      updateActiveTabTimeoutRef.current = setTimeout(doUpdate, THROTTLE_MS - timeSinceLastUpdate)
+    }
+
+    return () => {
+      if (updateActiveTabTimeoutRef.current) {
+        clearTimeout(updateActiveTabTimeoutRef.current)
+      }
     }
   }, [
     isActive,
@@ -148,6 +190,8 @@ export function InfiniteCanvas({
     viewport,
     selectedObjectIds,
     objects,
+    totalObjectCount,
+    visibleObjects.length,
     updateObject,
     updateActiveTab,
   ])
@@ -319,6 +363,17 @@ export function InfiniteCanvas({
     isActive: isActive ?? true,
   })
 
+  // Refs for stable callbacks
+  const objectsRef = useRef(objects)
+  const selectedObjectIdsRef = useRef(selectedObjectIds)
+  const isActiveRef = useRef(isActive)
+
+  useEffect(() => {
+    objectsRef.current = objects
+    selectedObjectIdsRef.current = selectedObjectIds
+    isActiveRef.current = isActive
+  }, [objects, selectedObjectIds, isActive])
+
   // Object management callbacks - now using generic methods
   const handleUpdateObject = useCallback(
     async (
@@ -344,12 +399,15 @@ export function InfiniteCanvas({
     (e: React.MouseEvent, objectId: string) => {
       e.stopPropagation() // Stop canvas pan from triggering
 
-      const object = objects.find(o => o.id === objectId)
+      const currentObjects = objectsRef.current
+      const currentSelectedIds = selectedObjectIdsRef.current
+
+      const object = currentObjects.find(o => o.id === objectId)
       if (!object) return
 
       // Check if the clicked object is in the current selection
-      const isObjectSelected = selectedObjectIds.includes(objectId)
-      let objectsToMove = selectedObjectIds
+      const isObjectSelected = currentSelectedIds.includes(objectId)
+      let objectsToMove = currentSelectedIds
 
       if (!isObjectSelected) {
         // If not selected, select only this object
@@ -359,7 +417,7 @@ export function InfiniteCanvas({
 
       // Store original positions for all objects that will be moved
       const originalPositions = new Map<string, { x: number; y: number }>()
-      objects.forEach(obj => {
+      currentObjects.forEach(obj => {
         if (objectsToMove.includes(obj.id)) {
           originalPositions.set(obj.id, { x: obj.x, y: obj.y })
         }
@@ -442,8 +500,6 @@ export function InfiniteCanvas({
       document.addEventListener('mouseup', handleDragEnd)
     },
     [
-      objects,
-      selectedObjectIds,
       screenToWorld,
       moveObject,
       saveObjectPosition,
@@ -682,13 +738,8 @@ export function InfiniteCanvas({
   }, [viewport, dimensions])
 
   // Refs for shortcuts (prevent re-registration)
-  const selectedObjectIdsRef = useRef(selectedObjectIds)
-  const isActiveRef = useRef(isActive)
-
-  useEffect(() => {
-    selectedObjectIdsRef.current = selectedObjectIds
-    isActiveRef.current = isActive
-  }, [selectedObjectIds, isActive])
+  // Note: selectedObjectIdsRef and isActiveRef are already defined above for drag handling
+  // We just need to keep them updated, which is done in the useEffect above
 
   // Canvas shortcut: Delete selected objects
   const handleDeleteShortcut = useCallback(() => {
@@ -758,6 +809,34 @@ export function InfiniteCanvas({
     }
   }, [])
 
+  // Calculate grid background styles
+  const gridStyle = useMemo(() => {
+    if (!showGrid) return {}
+
+    const gridSize = 50 // Base grid size
+    const scaledGridSize = gridSize * viewport.zoom
+    const centerOffsetX = dimensions.width / 2
+    const centerOffsetY = dimensions.height / 2
+    
+    // Calculate offset based on viewport position
+    const offsetX = (centerOffsetX - viewport.x * viewport.zoom) % scaledGridSize
+    const offsetY = (centerOffsetY - viewport.y * viewport.zoom) % scaledGridSize
+
+    return {
+      backgroundImage: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px)',
+      backgroundSize: `${scaledGridSize}px ${scaledGridSize}px`,
+      backgroundPosition: `${offsetX}px ${offsetY}px`,
+    }
+  }, [showGrid, viewport.zoom, viewport.x, viewport.y, dimensions.width, dimensions.height])
+
+  // Handle context menu - generic for all object types
+  const handleContextMenuWrapper = useCallback(
+    (e: React.MouseEvent, objectId: string) => {
+      handleContextMenu(e, objectId)
+    },
+    [handleContextMenu]
+  )
+
   return (
     <div
       className="absolute inset-0 overflow-hidden bg-[#181819] select-none"
@@ -766,6 +845,7 @@ export function InfiniteCanvas({
       onMouseDown={handleMouseDown}
       ref={containerRef}
       style={{
+        ...gridStyle,
         cursor:
           currentTool === 'freehand' || currentTool === 'arrow'
             ? 'crosshair'
@@ -838,14 +918,11 @@ export function InfiniteCanvas({
         viewBox={viewBox}
         width={dimensions.width}
       >
-        {/* Grid pattern */}
-        {showGrid && <CanvasGrid dimensions={dimensions} viewport={viewport} />}
-
         {/* Canvas content */}
         {children}
 
         {/* Render all drawing objects */}
-        {objects.map(obj => {
+        {visibleObjects.map(obj => {
           // Freehand and arrow objects render directly as SVG (not in foreignObject)
           if (obj.type === 'freehand' || obj.type === 'arrow') {
             return (
@@ -860,7 +937,7 @@ export function InfiniteCanvas({
                 <CanvasObject
                   isSelected={selectedObjectIds.includes(obj.id)}
                   object={obj}
-                  onContextMenu={handleContextMenu}
+                  onContextMenu={handleContextMenuWrapper}
                   onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}
                   onUpdate={handleUpdateObject}
@@ -889,7 +966,7 @@ export function InfiniteCanvas({
                   currentTool={currentTool}
                   isSelected={selectedObjectIds.includes(obj.id)}
                   object={obj}
-                  onContextMenu={handleContextMenu}
+                  onContextMenu={handleContextMenuWrapper}
                   onSelect={handleSelectObject}
                   onStartDrag={handleStartDrag}
                   onUpdate={handleUpdateObject}

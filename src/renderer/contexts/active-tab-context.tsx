@@ -25,6 +25,8 @@ export interface ActiveTabData {
   viewport: Viewport | null
   selectedObjectIds: string[]
   objects: DrawingObject[]
+  totalObjectCount: number
+  renderedObjectCount: number
   brushSettings: BrushSettings
   updateObject?: (id: string, updates: Partial<DrawingObject>) => void
 }
@@ -70,6 +72,8 @@ export function ActiveTabProvider({ children }: ActiveTabProviderProps) {
     viewport: null,
     selectedObjectIds: [],
     objects: [],
+    totalObjectCount: 0,
+    renderedObjectCount: 0,
     brushSettings: {
       strokeColor: '#FFFFFF',
       strokeWidth: 15,

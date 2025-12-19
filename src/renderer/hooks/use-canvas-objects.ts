@@ -3,11 +3,15 @@ import type {
   DrawingObject,
   FreehandObject,
   ArrowObject,
+  Viewport,
+  CanvasSize,
 } from 'lib/types/canvas'
 import { logger } from '../../shared/logger'
 
 interface UseCanvasObjectsOptions {
   tabId?: string
+  viewport?: Viewport
+  containerSize?: CanvasSize
   onLoad?: (objects: DrawingObject[]) => void
   onError?: (error: Error) => void
 }
@@ -19,12 +23,15 @@ interface UseCanvasObjectsOptions {
  */
 export function useCanvasObjects({
   tabId,
+  viewport,
+  containerSize,
   onLoad,
   onError,
 }: UseCanvasObjectsOptions = {}) {
   const [objects, setObjects] = useState<
     (DrawingObject & { _imageUrl?: string })[]
   >([])
+  const [totalObjectCount, setTotalObjectCount] = useState(0)
   const [selectedObjectIds, setSelectedObjectIds] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -33,67 +40,176 @@ export function useCanvasObjects({
 
   // Track the last loaded tabId to prevent duplicate loads
   const lastLoadedTabIdRef = useRef<string | undefined>(undefined)
+  
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const loadedChunksRef = useRef(new Set<string>())
+  const CHUNK_SIZE = 2000
 
   // Keep ref in sync with state
   useEffect(() => {
     objectsRef.current = objects
   }, [objects])
 
-  // Load objects from database on mount or when tabId changes
-  // Note: Will only load once per unique tabId
+  // Reset cache when tabId changes
   useEffect(() => {
-    // Skip if we already loaded this tabId
-    if (lastLoadedTabIdRef.current === tabId) {
-      return
+    loadedChunksRef.current.clear()
+    setObjects([])
+    objectsRef.current = []
+    lastLoadedTabIdRef.current = undefined
+  }, [tabId])
+
+  // Load objects from database on mount or when tabId/viewport changes
+  useEffect(() => {
+    if (!tabId || !viewport || !containerSize) return
+
+    // Debounce loading to prevent excessive IPC calls during pan/zoom
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current)
     }
 
-    lastLoadedTabIdRef.current = tabId
+    loadTimeoutRef.current = setTimeout(() => {
+      const loadObjects = async () => {
+        try {
+          // Calculate visible bounds in world coordinates
+          // We use a buffer to pre-load surrounding areas
+          const PRELOAD_BUFFER = 1000 / viewport.zoom
+          const halfWidth = containerSize.width / (2 * viewport.zoom)
+          const halfHeight = containerSize.height / (2 * viewport.zoom)
+          
+          const viewBounds = {
+            minX: viewport.x - halfWidth - PRELOAD_BUFFER,
+            maxX: viewport.x + halfWidth + PRELOAD_BUFFER,
+            minY: viewport.y - halfHeight - PRELOAD_BUFFER,
+            maxY: viewport.y + halfHeight + PRELOAD_BUFFER
+          }
 
-    const loadObjects = async () => {
-      try {
-        const loadedObjects = await window.App.file.getObjects(tabId)
+          // Identify which chunks cover the visible area
+          const startChunkX = Math.floor(viewBounds.minX / CHUNK_SIZE)
+          const endChunkX = Math.floor(viewBounds.maxX / CHUNK_SIZE)
+          const startChunkY = Math.floor(viewBounds.minY / CHUNK_SIZE)
+          const endChunkY = Math.floor(viewBounds.maxY / CHUNK_SIZE)
 
-        logger.objects.debug(
-          'Raw loaded objects from database:',
-          loadedObjects.map((obj: any) => ({
-            id: obj.id,
-            type: obj.type,
-            x: obj.x,
-            y: obj.y,
-            width: obj.width,
-            height: obj.height,
-            object_data: obj.object_data,
-          }))
-        )
+          const missingChunks: {x: number, y: number}[] = []
 
-        // Load asset data URLs for image objects (and other asset-based types in future)
-        const objectsWithAssets = await Promise.all(
-          loadedObjects.map(async (obj: DrawingObject) => {
-            if (obj.type === 'image') {
-              const dataUrl = await window.App.file.getAssetDataUrl(
-                obj.object_data.assetId,
-                tabId
-              )
-              return { ...obj, _imageUrl: dataUrl }
+          for (let x = startChunkX; x <= endChunkX; x++) {
+            for (let y = startChunkY; y <= endChunkY; y++) {
+              const key = `${x},${y}`
+              if (!loadedChunksRef.current.has(key)) {
+                missingChunks.push({x, y})
+              }
             }
-            return obj
-          })
-        )
+          }
 
-        setObjects(objectsWithAssets as any)
-        onLoad?.(objectsWithAssets)
-      } catch (error) {
-        logger.objects.error('Failed to load objects:', error)
-        onError?.(error as Error)
-      } finally {
-        setIsLoading(false)
+          // If no new chunks to load, skip
+          if (missingChunks.length === 0 && lastLoadedTabIdRef.current === tabId) {
+            return
+          }
+
+          lastLoadedTabIdRef.current = tabId
+
+          // Calculate bounding box of all missing chunks to fetch them in one go
+          let fetchParams = undefined
+          
+          if (missingChunks.length > 0) {
+             let minChunkX = Infinity, maxChunkX = -Infinity
+             let minChunkY = Infinity, maxChunkY = -Infinity
+
+             missingChunks.forEach(c => {
+               minChunkX = Math.min(minChunkX, c.x)
+               maxChunkX = Math.max(maxChunkX, c.x)
+               minChunkY = Math.min(minChunkY, c.y)
+               maxChunkY = Math.max(maxChunkY, c.y)
+             })
+
+             const fetchBounds = {
+               minX: minChunkX * CHUNK_SIZE,
+               maxX: (maxChunkX + 1) * CHUNK_SIZE,
+               minY: minChunkY * CHUNK_SIZE,
+               maxY: (maxChunkY + 1) * CHUNK_SIZE
+             }
+             
+             const width = fetchBounds.maxX - fetchBounds.minX
+             const height = fetchBounds.maxY - fetchBounds.minY
+             
+             fetchParams = {
+               x: fetchBounds.minX + width / 2,
+               y: fetchBounds.minY + height / 2,
+               width,
+               height,
+               zoom: 1 // Use zoom 1 to get consistent buffer from backend
+             }
+             
+             // Mark chunks as loaded
+             missingChunks.forEach(c => loadedChunksRef.current.add(`${c.x},${c.y}`))
+          } else {
+             return
+          }
+
+          const loadedObjects = await window.App.file.getObjects(tabId, fetchParams)
+          
+          // Fetch total object count
+          const count = await window.App.file.getObjectCount(tabId)
+          setTotalObjectCount(count)
+
+          logger.objects.debug(
+            `Loaded ${loadedObjects.length} objects from database for ${missingChunks.length} chunks. Total in DB: ${count}`
+          )
+
+          // Load asset data URLs for image objects
+          const objectsWithAssets = await Promise.all(
+            loadedObjects.map(async (obj: DrawingObject) => {
+              if (obj.type === 'image') {
+                // Check if we already have the asset URL in memory to avoid re-fetching
+                const existing = objectsRef.current.find(o => o.id === obj.id)
+                if (existing && existing._imageUrl) {
+                  return { ...obj, _imageUrl: existing._imageUrl }
+                }
+
+                const dataUrl = await window.App.file.getAssetDataUrl(
+                  obj.object_data.assetId,
+                  tabId
+                )
+                return { ...obj, _imageUrl: dataUrl }
+              }
+              return obj
+            })
+          )
+
+          // Merge with existing objects
+          // We use a Map to deduplicate by ID, preferring the newly loaded version
+          // But we keep existing objects that might be off-screen (to avoid them disappearing if we pan back)
+          // Note: This means memory usage grows as you explore, which is usually desired behavior
+          setObjects(prev => {
+            const objectMap = new Map(prev.map(o => [o.id, o]))
+            
+            // Update/Add loaded objects
+            objectsWithAssets.forEach(obj => {
+              objectMap.set(obj.id, obj as any)
+            })
+            
+            const newObjects = Array.from(objectMap.values())
+            objectsRef.current = newObjects
+            return newObjects
+          })
+          
+          onLoad?.(objectsWithAssets as any)
+        } catch (error) {
+          logger.objects.error('Failed to load objects:', error)
+          onError?.(error as Error)
+        } finally {
+          setIsLoading(false)
+        }
+      }
+
+      loadObjects()
+    }, 100) // 100ms debounce
+
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current)
       }
     }
-
-    loadObjects()
-    // Only re-run if tabId changes (not when callbacks change)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId])
+  }, [tabId, viewport, containerSize]) // Re-run when viewport changes
 
   // Add a new object
   const addObject = useCallback(
@@ -104,6 +220,8 @@ export function useCanvasObjects({
         objectsRef.current = newObjects
         return newObjects
       })
+      
+      setTotalObjectCount(prev => prev + 1)
 
       // Save to database (exclude temporary fields like _imageUrl)
       const { _imageUrl, ...objectToSave } = object
@@ -196,6 +314,8 @@ export function useCanvasObjects({
         objectsRef.current = newObjects
         return newObjects
       })
+      
+      setTotalObjectCount(prev => Math.max(0, prev - 1))
 
       // If it's an external-tab widget (spreadsheet, external-web, etc.), close its tab
       if (objectToDelete && tabId && window.__handleWidgetDelete) {
@@ -338,6 +458,7 @@ export function useCanvasObjects({
 
   return {
     objects,
+    totalObjectCount,
     selectedObjectIds,
     isLoading,
     addObject,

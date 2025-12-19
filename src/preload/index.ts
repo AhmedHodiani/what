@@ -105,8 +105,10 @@ const API = {
     deleteAsset: (assetId: string, tabId?: string) =>
       ipcRenderer.invoke('file-delete-asset', assetId, tabId),
     // Object operations
-    getObjects: (tabId?: string) =>
-      ipcRenderer.invoke('file-get-objects', tabId),
+    getObjectCount: (tabId?: string) =>
+      ipcRenderer.invoke('file-get-object-count', tabId),
+    getObjects: (tabId?: string, viewport?: { x: number; y: number; zoom: number; width: number; height: number }) =>
+      ipcRenderer.invoke('file-get-objects', tabId, viewport),
     saveObject: (object: any, tabId?: string) =>
       ipcRenderer.invoke('file-save-object', object, tabId),
     deleteObject: (objectId: string, tabId?: string) =>
