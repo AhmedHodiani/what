@@ -36,6 +36,7 @@
   "dependencies": {
     "@mdit/plugin-align": "^0.22.2",
     "@mdit/plugin-tasklist": "^0.22.2",
+    "@monaco-editor/react": "^4.7.0",
     "@types/better-sqlite3": "^7.6.13",
     "@univerjs/core": "^0.10.12",
     "@univerjs/design": "^0.10.12",

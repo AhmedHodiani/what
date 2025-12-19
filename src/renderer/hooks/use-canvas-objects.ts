@@ -61,6 +61,30 @@ export function useCanvasObjects({
     lastLoadedTabIdRef.current = undefined
   }, [tabId])
 
+  // Listen for external updates (e.g. from sticky note editor)
+  useEffect(() => {
+    if (!tabId) return
+
+    const handleExternalUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent
+      const { objectId, tabId: eventTabId, object } = customEvent.detail
+
+      // Only update if it's for the current tab
+      if (eventTabId !== tabId) return
+
+      logger.objects.debug('Received external update for object:', objectId)
+
+      setObjects(prev => {
+        const newObjects = prev.map(obj => (obj.id === objectId ? object : obj))
+        objectsRef.current = newObjects
+        return newObjects
+      })
+    }
+
+    window.addEventListener('canvas-object-updated', handleExternalUpdate)
+    return () => window.removeEventListener('canvas-object-updated', handleExternalUpdate)
+  }, [tabId])
+
   // Load objects from database on mount or when tabId/viewport changes
   useEffect(() => {
     if (!tabId || !viewport || !containerSize) return
@@ -300,6 +324,16 @@ export function useCanvasObjects({
         const { _imageUrl, ...objectToSave } = updated
         try {
           await window.App.file.saveObject(objectToSave, tabId)
+          
+          // Notify other components (like sticky note editors) about the update
+          window.dispatchEvent(new CustomEvent('canvas-object-updated', {
+            detail: { 
+              objectId: id,
+              tabId,
+              object: updated
+            }
+          }))
+          
           logger.objects.success('Saved object:', id)
         } catch (error) {
           logger.objects.error('Failed to save object update:', error)

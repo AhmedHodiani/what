@@ -70,7 +70,7 @@ export function CanvasSettingsPanel() {
     <div className="absolute top-3 right-3 flex flex-col items-end gap-2 pointer-events-auto">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-black/80 text-teal-400 px-3 py-2 rounded-md text-xs font-mono border border-teal-400/30 hover:bg-black/90 transition-colors"
+        className="bg-black/80 text-teal-400 px-3 pt-2 pb-1 rounded-md text-xs font-mono border border-teal-400/30 hover:bg-black/90 transition-colors"
       >
         ⚙️ Settings
       </button>

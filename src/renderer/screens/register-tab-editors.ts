@@ -11,6 +11,7 @@ import { ExternalWebEditor } from './external-web-editor'
 import { ImageViewerEditor } from './image-viewer-editor'
 import { FileViewerEditor } from './file-viewer-editor'
 import { DeckEditor } from './deck-editor'
+import { StickyNoteEditor } from './sticky-note-editor'
 
 export function registerAllTabEditors(): void {
   // Register spreadsheet editor
@@ -36,6 +37,11 @@ export function registerAllTabEditors(): void {
   // Register deck editor
   tabEditorRegistry.register('deck', DeckEditor, {
     description: 'Flashcard deck editor for spaced repetition learning',
+  })
+
+  // Register sticky note editor
+  tabEditorRegistry.register('sticky-note', StickyNoteEditor, {
+    description: 'Full-screen sticky note editor',
   })
 
   // Future editors can be registered here:

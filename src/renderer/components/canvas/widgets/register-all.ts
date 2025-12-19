@@ -58,6 +58,22 @@ export function registerAllWidgets(): void {
   widgetRegistry.register('sticky-note', StickyNoteWidget, {
     displayName: 'Sticky Note',
     description: 'Colorful sticky notes with editable text',
+    capabilities: {
+      externalTab: {
+        enabled: true,
+        componentName: 'sticky-note',
+        getTabConfig: async (object, tabId) => {
+          return {
+            type: 'sticky-note',
+            objectId: object.id,
+            parentTabId: tabId,
+            title: (object.object_data as any).title || 'Sticky Note',
+          }
+        },
+        tabTitle: object => (object.object_data as any).title || 'Sticky Note',
+        tabIcon: 'sticky-note',
+      },
+    },
   })
 
   // Shape widget

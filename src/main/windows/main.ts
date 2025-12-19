@@ -257,7 +257,8 @@ export async function MainWindow() {
       })
 
       // Generate unique tab ID
-      const tabId = `${widgetType}-tab-${parentTabId}-${objectId}`
+      // Append timestamp to allow multiple tabs for the same object
+      const tabId = `${widgetType}-tab-${parentTabId}-${objectId}-${Date.now()}`
 
       // Send event to renderer
       window.webContents.send('external-tab-opened', {
