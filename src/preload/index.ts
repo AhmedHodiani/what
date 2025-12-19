@@ -117,6 +117,11 @@ const API = {
     getMetadata: (tabId?: string) =>
       ipcRenderer.invoke('file-get-metadata', tabId),
     getFileSize: (tabId?: string) => ipcRenderer.invoke('file-get-size', tabId),
+    // Canvas settings operations
+    getCanvasSettings: (tabId?: string) =>
+      ipcRenderer.invoke('file-get-canvas-settings', tabId),
+    saveCanvasSettings: (settings: any, tabId?: string) =>
+      ipcRenderer.invoke('file-save-canvas-settings', settings, tabId),
   },
 
   // Deck operations (FSRS flashcards)

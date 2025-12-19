@@ -832,5 +832,39 @@ export async function MainWindow() {
     }
   })
 
+  ipcMain.removeHandler('file-get-canvas-settings')
+  ipcMain.handle('file-get-canvas-settings', async (_event, tabId?: string) => {
+    try {
+      const targetTabId = tabId || multiFileManager.getActiveTabId()
+      if (!targetTabId) return null
+
+      const settings = multiFileManager.getCanvasSettings(targetTabId)
+      return settings
+    } catch (error) {
+      logger.error('Failed to get canvas settings:', error)
+      return null
+    }
+  })
+
+  ipcMain.removeHandler('file-save-canvas-settings')
+  ipcMain.handle(
+    'file-save-canvas-settings',
+    async (_event, settings: any, tabId?: string) => {
+      try {
+        const targetTabId = tabId || multiFileManager.getActiveTabId()
+        if (!targetTabId) {
+          logger.warn('No tab ID for save canvas settings, skipping')
+          return false
+        }
+
+        multiFileManager.saveCanvasSettings(targetTabId, settings)
+        return true
+      } catch (error) {
+        logger.error('Failed to save canvas settings:', error)
+        return false
+      }
+    }
+  )
+
   return window
 }

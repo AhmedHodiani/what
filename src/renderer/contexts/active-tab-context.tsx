@@ -7,6 +7,7 @@ import React, {
   type ReactNode,
 } from 'react'
 import type { Viewport, DrawingObject } from 'lib/types/canvas'
+import type { CanvasSettings } from 'shared/types/what-file'
 
 /**
  * Brush settings for drawing tools (per-tab)
@@ -27,6 +28,7 @@ export interface ActiveTabData {
   objects: DrawingObject[]
   totalObjectCount: number
   renderedObjectCount: number
+  canvasSettings: CanvasSettings
   brushSettings: BrushSettings
   updateObject?: (id: string, updates: Partial<DrawingObject>) => void
 }
@@ -74,6 +76,11 @@ export function ActiveTabProvider({ children }: ActiveTabProviderProps) {
     objects: [],
     totalObjectCount: 0,
     renderedObjectCount: 0,
+    canvasSettings: {
+      gridType: 'grid',
+      renderType: 'normal',
+      gridSize: 50,
+    },
     brushSettings: {
       strokeColor: '#FFFFFF',
       strokeWidth: 15,

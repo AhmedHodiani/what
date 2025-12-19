@@ -42,6 +42,8 @@ import { ExternalWebDialog } from './external-web-dialog'
 import { ContextMenu } from './context-menu'
 import { ConfirmationDialog } from './confirmation-dialog'
 import { Toast, useToast } from '../ui/toast'
+import { CanvasViewportDisplay } from './canvas-viewport-display'
+import { CanvasSettingsPanel } from './canvas-settings-panel'
 
 interface InfiniteCanvasProps {
   initialViewport?: Viewport
@@ -99,7 +101,7 @@ export function InfiniteCanvas({
   const { toasts, show: showToast, remove: removeToast } = useToast()
 
   // Active tab context for syncing state
-  const { brushSettings, updateActiveTab } = useActiveTab()
+  const { brushSettings, canvasSettings, updateActiveTab } = useActiveTab()
 
   // Sanitize initial viewport to ensure valid values
   const safeInitialViewport = useMemo(
@@ -133,14 +135,50 @@ export function InfiniteCanvas({
   } = useCanvasObjects({ 
     tabId: tabId || undefined,
     viewport,
-    containerSize: dimensions
+    containerSize: dimensions,
+    renderType: canvasSettings.renderType
   })
+
+  // Handle panning - use functional update to always get latest viewport
+  const { isPanning, handleMouseDown } = useCanvasPan(containerRef, (deltaX, deltaY) => {
+    setViewport(prev => ({
+      x: prev.x - deltaX / prev.zoom,
+      y: prev.y - deltaY / prev.zoom,
+      zoom: prev.zoom,
+    }))
+  })
+
+  // Handle zooming
+  const { isZooming } = useCanvasZoom({
+    containerRef,
+    viewport,
+    dimensions,
+    minZoom,
+    maxZoom,
+    onZoom: setViewport,
+  })
+
+  // In 'fast' mode, we want to freeze the set of visible objects during interaction
+  // This creates the "black void" effect for new areas until interaction stops
+  const isInteracting = isPanning || isZooming
+  const frozenViewportRef = useRef(viewport)
+
+  // Update frozen viewport only when NOT interacting
+  if (!isInteracting) {
+    frozenViewportRef.current = viewport
+  }
+
+  // Use frozen viewport for virtualization during interaction in fast mode
+  const virtualizationViewport = (canvasSettings.renderType === 'fast' && isInteracting)
+    ? frozenViewportRef.current
+    : viewport
 
   // Virtualization: Only render objects visible in the viewport
   const visibleObjects = useCanvasVirtualization({
     objects,
-    viewport,
+    viewport: virtualizationViewport,
     containerSize: dimensions,
+    buffer: canvasSettings.renderType === 'fast' ? 0 : 1000,
   })
 
   // Throttle updates to ActiveTabContext to avoid excessive re-renders (max 30fps)
@@ -708,25 +746,6 @@ export function InfiniteCanvas({
     ]
   )
 
-  // Handle panning - use functional update to always get latest viewport
-  const { handleMouseDown } = useCanvasPan(containerRef, (deltaX, deltaY) => {
-    setViewport(prev => ({
-      x: prev.x - deltaX / prev.zoom,
-      y: prev.y - deltaY / prev.zoom,
-      zoom: prev.zoom,
-    }))
-  })
-
-  // Handle zooming
-  useCanvasZoom({
-    containerRef,
-    viewport,
-    dimensions,
-    minZoom,
-    maxZoom,
-    onZoom: setViewport,
-  })
-
   // Calculate SVG viewBox for viewport transformation
   // Memoize to avoid recalculating on every render
   const viewBox = useMemo(() => {
@@ -811,9 +830,12 @@ export function InfiniteCanvas({
 
   // Calculate grid background styles
   const gridStyle = useMemo(() => {
-    if (!showGrid) return {}
+    // In fast mode during interaction, hide the grid to show "black void"
+    if (canvasSettings.renderType === 'fast' && isInteracting) return {}
 
-    const gridSize = 50 // Base grid size
+    if (!showGrid || canvasSettings.gridType === 'none') return {}
+
+    const gridSize = canvasSettings.gridSize || 50 // Use setting or default
     const scaledGridSize = gridSize * viewport.zoom
     const centerOffsetX = dimensions.width / 2
     const centerOffsetY = dimensions.height / 2
@@ -822,12 +844,79 @@ export function InfiniteCanvas({
     const offsetX = (centerOffsetX - viewport.x * viewport.zoom) % scaledGridSize
     const offsetY = (centerOffsetY - viewport.y * viewport.zoom) % scaledGridSize
 
+    if (canvasSettings.gridType === 'grid') {
+      return {
+        backgroundImage: `
+          linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)
+        `,
+        backgroundSize: `${scaledGridSize}px ${scaledGridSize}px`,
+        backgroundPosition: `${offsetX}px ${offsetY}px`,
+      }
+    }
+
+    // Default to dots
     return {
       backgroundImage: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px)',
       backgroundSize: `${scaledGridSize}px ${scaledGridSize}px`,
       backgroundPosition: `${offsetX}px ${offsetY}px`,
     }
-  }, [showGrid, viewport.zoom, viewport.x, viewport.y, dimensions.width, dimensions.height])
+  }, [showGrid, canvasSettings.gridType, canvasSettings.gridSize, viewport.zoom, viewport.x, viewport.y, dimensions.width, dimensions.height, canvasSettings.renderType, isInteracting])
+
+  // Calculate frozen background for fast mode
+  const frozenBackground = useMemo(() => {
+    if (canvasSettings.renderType !== 'fast' || !isInteracting) return null
+
+    const fViewport = frozenViewportRef.current
+    const halfWidth = dimensions.width / (2 * fViewport.zoom)
+    const halfHeight = dimensions.height / (2 * fViewport.zoom)
+    
+    const bounds = {
+      x: fViewport.x - halfWidth,
+      y: fViewport.y - halfHeight,
+      width: dimensions.width / fViewport.zoom,
+      height: dimensions.height / fViewport.zoom
+    }
+
+    if (!showGrid || canvasSettings.gridType === 'none') {
+      return { bounds, style: {} }
+    }
+
+    const gridSize = canvasSettings.gridSize || 50 // World units
+    
+    // We need to adjust the line/dot size so it remains constant in screen pixels
+    // In world space (inside foreignObject), 1 screen pixel = 1/zoom world units
+    const lineWidth = 1 / fViewport.zoom
+    const dotSize = 1.5 / fViewport.zoom
+    
+    // Align grid with world origin (0,0)
+    // The div starts at bounds.x, bounds.y
+    // We use modulo to keep values small, but ensure alignment matches world 0,0
+    const bgPosX = -bounds.x % gridSize
+    const bgPosY = -bounds.y % gridSize
+
+    let style: React.CSSProperties = {}
+
+    if (canvasSettings.gridType === 'grid') {
+      style = {
+        backgroundImage: `
+          linear-gradient(to right, rgba(255, 255, 255, 0.05) ${lineWidth}px, transparent ${lineWidth}px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.05) ${lineWidth}px, transparent ${lineWidth}px)
+        `,
+        backgroundSize: `${gridSize}px ${gridSize}px`,
+        backgroundPosition: `${bgPosX}px ${bgPosY}px`,
+      }
+    } else {
+      // Dots
+      style = {
+        backgroundImage: `radial-gradient(circle, rgba(255, 255, 255, 0.15) ${dotSize}px, transparent ${dotSize}px)`,
+        backgroundSize: `${gridSize}px ${gridSize}px`,
+        backgroundPosition: `${bgPosX}px ${bgPosY}px`,
+      }
+    }
+
+    return { bounds, style }
+  }, [canvasSettings.renderType, isInteracting, dimensions.width, dimensions.height, showGrid, canvasSettings.gridType, canvasSettings.gridSize])
 
   // Handle context menu - generic for all object types
   const handleContextMenuWrapper = useCallback(
@@ -839,7 +928,9 @@ export function InfiniteCanvas({
 
   return (
     <div
-      className="absolute inset-0 overflow-hidden bg-[#181819] select-none"
+      className={`absolute inset-0 overflow-hidden select-none ${
+        canvasSettings.renderType === 'fast' && isInteracting ? 'bg-[#000000]' : 'bg-[#181819]'
+      }`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onMouseDown={handleMouseDown}
@@ -918,10 +1009,61 @@ export function InfiniteCanvas({
         viewBox={viewBox}
         width={dimensions.width}
       >
+        {/* Frozen background for fast mode */}
+        {frozenBackground && (
+          <>
+            <defs>
+              <clipPath id="frozen-clip">
+                <rect
+                  x={frozenBackground.bounds.x}
+                  y={frozenBackground.bounds.y}
+                  width={frozenBackground.bounds.width}
+                  height={frozenBackground.bounds.height}
+                />
+              </clipPath>
+            </defs>
+            <foreignObject
+              x={frozenBackground.bounds.x}
+              y={frozenBackground.bounds.y}
+              width={frozenBackground.bounds.width}
+              height={frozenBackground.bounds.height}
+              style={{ pointerEvents: 'none' }}
+            >
+              <div
+                className="w-full h-full bg-[#181819]"
+                style={frozenBackground.style}
+              />
+            </foreignObject>
+          </>
+        )}
+
+        {/* Axes (if enabled) - REMOVED */}
+        {/* canvasSettings.gridType === 'axes' && (
+          <g pointerEvents="none">
+            <line
+              x1={0}
+              y1={dimensions.height / 2 - viewport.y * viewport.zoom}
+              x2={dimensions.width}
+              y2={dimensions.height / 2 - viewport.y * viewport.zoom}
+              stroke="rgba(255, 255, 255, 0.2)"
+              strokeWidth={1}
+            />
+            <line
+              x1={dimensions.width / 2 - viewport.x * viewport.zoom}
+              y1={0}
+              x2={dimensions.width / 2 - viewport.x * viewport.zoom}
+              y2={dimensions.height}
+              stroke="rgba(255, 255, 255, 0.2)"
+              strokeWidth={1}
+            />
+          </g>
+        ) */}
+
         {/* Canvas content */}
         {children}
 
         {/* Render all drawing objects */}
+        <g clipPath={frozenBackground ? "url(#frozen-clip)" : undefined}>
         {visibleObjects.map(obj => {
           // Freehand and arrow objects render directly as SVG (not in foreignObject)
           if (obj.type === 'freehand' || obj.type === 'arrow') {
@@ -977,6 +1119,7 @@ export function InfiniteCanvas({
             </ErrorBoundary>
           )
         })}
+        </g>
 
         {/* Freehand/Arrow drawing preview */}
         {isFreehandDrawing && freehandPath.length > 0 && (
@@ -1013,6 +1156,10 @@ export function InfiniteCanvas({
           />
         )}
       </svg>
+
+      {/* UI Overlays */}
+      <CanvasViewportDisplay />
+      <CanvasSettingsPanel />
 
       {/* Dialogs - Still rendered here (not global) */}
       {/* YouTube URL dialog */}

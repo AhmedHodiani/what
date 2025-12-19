@@ -543,6 +543,31 @@ export class MultiFileManager {
   }
 
   /**
+   * Get canvas settings for a specific tab
+   */
+  getCanvasSettings(tabId: string): { gridType: string; renderType: string } {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    return service.getCanvasSettings()
+  }
+
+  /**
+   * Save canvas settings for a specific tab
+   */
+  saveCanvasSettings(tabId: string, settings: { gridType: string; renderType: string }): void {
+    const service = this.fileServices.get(tabId)
+    if (!service) {
+      throw new Error(`No file service found for tab ${tabId}`)
+    }
+
+    service.saveCanvasSettings(settings)
+    this.markTabModified(tabId)
+  }
+
+  /**
    * Close all tabs
    */
   closeAll(): void {

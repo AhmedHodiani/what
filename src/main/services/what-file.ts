@@ -726,6 +726,56 @@ export class WhatFileService {
   }
 
   /**
+   * Get canvas settings from metadata
+   */
+  getCanvasSettings(): { gridType: string; renderType: string } {
+    if (!this.db) {
+      throw new Error('No database connection')
+    }
+
+    const metadata = this.getMetadata()
+    
+    // Default settings
+    const defaultSettings = {
+      gridType: 'grid',
+      renderType: 'normal',
+    }
+
+    if (!metadata.canvas_settings) {
+      return defaultSettings
+    }
+
+    try {
+      // If it's already an object (parsed by getMetadata), use it
+      // If it's a string (raw from DB), parse it
+      const settings = typeof metadata.canvas_settings === 'string' 
+        ? JSON.parse(metadata.canvas_settings) 
+        : metadata.canvas_settings
+
+      return {
+        ...defaultSettings,
+        ...settings,
+      }
+    } catch (error) {
+      logger.error('Failed to parse canvas settings:', error)
+      return defaultSettings
+    }
+  }
+
+  /**
+   * Save canvas settings to metadata
+   */
+  saveCanvasSettings(settings: { gridType: string; renderType: string }): void {
+    if (!this.db) {
+      throw new Error('No database connection')
+    }
+
+    this.updateMetadata({
+      canvas_settings: settings,
+    })
+  }
+
+  /**
    * Get all objects
    */
   getObjects(viewport?: { x: number; y: number; zoom: number; width: number; height: number }): WhatFileObject[] {

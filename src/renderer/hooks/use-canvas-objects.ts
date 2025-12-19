@@ -6,12 +6,14 @@ import type {
   Viewport,
   CanvasSize,
 } from 'lib/types/canvas'
+import type { RenderType } from 'shared/types/what-file'
 import { logger } from '../../shared/logger'
 
 interface UseCanvasObjectsOptions {
   tabId?: string
   viewport?: Viewport
   containerSize?: CanvasSize
+  renderType?: RenderType
   onLoad?: (objects: DrawingObject[]) => void
   onError?: (error: Error) => void
 }
@@ -25,6 +27,7 @@ export function useCanvasObjects({
   tabId,
   viewport,
   containerSize,
+  renderType = 'normal',
   onLoad,
   onError,
 }: UseCanvasObjectsOptions = {}) {
@@ -67,12 +70,18 @@ export function useCanvasObjects({
       clearTimeout(loadTimeoutRef.current)
     }
 
+    // Adjust debounce time based on renderType
+    // 'fast' mode waits longer (500ms) to ensure interaction is finished
+    // 'normal' mode updates more frequently (100ms)
+    const debounceTime = renderType === 'fast' ? 500 : 100
+
     loadTimeoutRef.current = setTimeout(() => {
       const loadObjects = async () => {
         try {
           // Calculate visible bounds in world coordinates
           // We use a buffer to pre-load surrounding areas
-          const PRELOAD_BUFFER = 1000 / viewport.zoom
+          // 'fast' mode has NO buffer (0), 'normal' mode has 1000px buffer
+          const PRELOAD_BUFFER = renderType === 'fast' ? 0 : 1000 / viewport.zoom
           const halfWidth = containerSize.width / (2 * viewport.zoom)
           const halfHeight = containerSize.height / (2 * viewport.zoom)
           
@@ -202,14 +211,14 @@ export function useCanvasObjects({
       }
 
       loadObjects()
-    }, 100) // 100ms debounce
+    }, debounceTime)
 
     return () => {
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current)
       }
     }
-  }, [tabId, viewport, containerSize]) // Re-run when viewport changes
+  }, [tabId, viewport, containerSize, renderType]) // Re-run when viewport changes
 
   // Add a new object
   const addObject = useCallback(
